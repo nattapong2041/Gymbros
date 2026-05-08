@@ -8,7 +8,7 @@
 
 ## ✅ CURRENT STATUS (as of 2026-05-08)
 
-**Tasks 1–7 are fully implemented and committed.** Pick up from Task 8.
+**Tasks 1–8 are fully implemented and Task 8 is ready to commit.**
 
 **Completed commits:**
 - `feat: add Supabase schema and exercise seed data`
@@ -18,15 +18,16 @@
 - `feat: set AccentColor to lime #C8FF00, add GymPurple #9B7FE8`
 - `feat: add SupabaseClient singleton and AuthService with Apple Sign-In`
 - `feat: add four Supabase repositories and RepositoryError`
+- `feat: add SignInView with Apple Sign-In and RootView auth gate`
 
 **Known issues / deviations from plan:**
 - Available simulator is **iPhone 17e**, not iPhone 16 — substitute `name=iPhone 17e` in all xcodebuild commands
 - **`Color.gymPurple` is NOT declared in `AppTheme.swift`** — Xcode 16 auto-generates it from `GymPurple.colorset`. Using `.gymPurple` in SwiftUI code works fine via the auto-generated symbol. Do NOT add it back manually.
 - `AppTheme.swift` line 7 has minor indentation issue on `gymSurface` (cosmetic only, does not affect build)
 - Supabase + KeychainAccess Swift packages are **already added** in Xcode — skip that user gate
-- Capabilities (Sign in with Apple, HealthKit) still need to be added — see user gate below Task 7
+- Capabilities (Sign in with Apple, HealthKit) are present in `Gymbros/Gymbros.entitlements`
 
-**Next step:** Complete the USER GATE (add capabilities in Xcode), then implement Task 8.
+**Next step:** Proceed to Task 9 — wire `RootView` as the app entry point and remove the placeholder `ContentView`.
 
 ---
 
@@ -1508,7 +1509,7 @@ git commit -m "feat: add four Supabase repositories and RepositoryError"
 - Create: `Gymbros/Presentation/Auth/SignInView.swift`
 - Create: `Gymbros/App/RootView.swift`
 
-- [ ] **Step 1: Create `Gymbros/Presentation/Auth/SignInView.swift`**
+- [x] **Step 1: Create `Gymbros/Presentation/Auth/SignInView.swift`**
 
 ```swift
 import SwiftUI
@@ -1618,7 +1619,7 @@ struct SignInView: View {
 }
 ```
 
-- [ ] **Step 2: Create `Gymbros/App/RootView.swift`**
+- [x] **Step 2: Create `Gymbros/App/RootView.swift`**
 
 ```swift
 import SwiftUI
@@ -1637,7 +1638,7 @@ struct RootView: View {
 }
 ```
 
-- [ ] **Step 3: Build to confirm no errors**
+- [x] **Step 3: Build to confirm no errors**
 
 ```bash
 xcodebuild build -project Gymbros.xcodeproj -scheme Gymbros \
@@ -1646,7 +1647,7 @@ xcodebuild build -project Gymbros.xcodeproj -scheme Gymbros \
 
 Expected: `BUILD SUCCEEDED`
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add Gymbros/Presentation/ Gymbros/App/RootView.swift
