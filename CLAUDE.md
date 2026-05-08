@@ -95,15 +95,52 @@ Thai is the **primary** language — the app always opens in Thai regardless of 
 
 ## Development Workflow
 
-```
-1. Read .claude/GYMTRACK.md → identify current sprint
-2. Read .claude/specs/S[N]-name.md → the implementation spec
-3. Implement the sprint
-4. Run unit tests
-5. Test in simulator
-6. Commit to main → Xcode Cloud → auto TestFlight
-```
+### Starting a sprint
+
+1. Read `.claude/GYMTRACK.md` → identify current sprint
+2. Read `.claude/specs/S[N]-name.md` → the full implementation spec
+3. Write the plan to `.claude/S[N]-plan.md` (not `docs/` or project root)
+4. Implement task-by-task, marking each step `[x]` in the plan as it completes
+5. Commit to main → Xcode Cloud → auto TestFlight
 
 Sprints 1–4 complete Phase 1 ("Usable"). See `.claude/GYMTRACK.md` §7 for the full 13-sprint roadmap.
 
-Current status: **Sprint 1 in progress** — spec at `.claude/specs/S01-foundation-data.md`.
+### Plan file conventions
+
+- **Location:** `.claude/S[N]-plan.md` (e.g. `.claude/S02-plan.md`)
+- **Format:** Checkbox steps `- [ ]` / `- [x]`. Mark each step done immediately after completing it — don't batch.
+- **Status block:** Keep a `## CURRENT STATUS` section at the top of each plan with: what's done, last commit SHA, known deviations, and next step. Update it each session.
+- **Simulator name:** The available simulator is **iPhone 17e** — always use `name=iPhone 17e` in xcodebuild commands, not `iPhone 16`.
+
+### Task decomposition for parallel execution
+
+Split features so the dependency chain enables parallel work:
+
+```
+Phase 1 — Foundation (sequential, ~1 task)
+  └── Models + Enums (Codable structs, no dependencies)
+
+Phase 2 — Parallel (dispatch simultaneously once models exist)
+  ├── Data layer  (Repository + Service classes — depends on models only)
+  └── ViewModel   (@Observable class — depends on models only)
+
+Phase 3 — View (sequential, depends on ViewModel)
+  └── SwiftUI View (depends on ViewModel interface)
+```
+
+**Rule:** Each parallel task must depend only on models/core, never on the sibling task. ViewModels must not import repository types directly — they receive data via injected closures or protocol abstractions when needed for testability.
+
+**Example task split for a feature "Program Builder":**
+- Task A: `Program`, `ProgramDay`, `ProgramExercise` model structs + unit tests
+- Task B (parallel after A): `ProgramRepository` — CRUD against Supabase
+- Task C (parallel after A): `ProgramBuilderViewModel` — `@Observable`, holds state, calls repository via async methods
+- Task D (after B+C): `ProgramBuilderView` + `ProgramDayRowView` — SwiftUI, binds to ViewModel
+
+### Xcode-specific rules
+
+- **File system sync:** Xcode 16 auto-discovers files created on disk inside the project folder — no `project.pbxproj` edits needed.
+- **Auto-generated color symbols:** Named colors in `Assets.xcassets` (e.g. `GymPurple.colorset`) generate `Color.gymPurple` automatically. Do NOT declare them manually in `AppTheme.swift` — it causes a `invalid redeclaration` build error.
+- **Module name:** `Gymbros` (not `GymBros`) — use `@testable import Gymbros` in all tests.
+- **Test framework:** Swift Testing (`import Testing`, `#expect(...)`, `@Suite`, `@Test`) — not XCTest.
+
+Current status: **Sprint 1 in progress** — spec at `.claude/specs/S01-foundation-data.md`, plan at `.claude/sprint1-plan.md`.
