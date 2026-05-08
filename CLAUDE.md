@@ -114,27 +114,71 @@ Sprints 1–4 complete Phase 1 ("Usable"). See `.claude/GYMTRACK.md` §7 for the
 
 ### Task decomposition for parallel execution
 
-Split features so the dependency chain enables parallel work:
+Every feature follows four phases. The parallel phase (2) is where speed comes from.
 
 ```
-Phase 1 — Foundation (sequential, ~1 task)
-  └── Models + Enums (Codable structs, no dependencies)
+Phase 1 — Models (sequential)
+  └── Task: Codable structs + enums + unit tests
+           Output: types every downstream task shares
 
-Phase 2 — Parallel (dispatch simultaneously once models exist)
-  ├── Data layer  (Repository + Service classes — depends on models only)
-  └── ViewModel   (@Observable class — depends on models only)
+Phase 1b — Contract (sequential, part of the same task or its own)
+  └── Define the ViewModel protocol that the View will code against
+      This is a Swift protocol listing state properties + async action methods
+      Both parallel agents use this as their shared interface
 
-Phase 3 — View (sequential, depends on ViewModel)
-  └── SwiftUI View (depends on ViewModel interface)
+Phase 2 — Parallel (dispatch both at once once Phase 1 is committed)
+  ├── Agent 1 — Data + ViewModel
+  │     Repository (Supabase queries) + real @Observable ViewModel
+  │     ViewModel conforms to the protocol from Phase 1b
+  │
+  └── Agent 2 — View + Stub
+        SwiftUI View coded entirely against the protocol (not the concrete class)
+        Includes a lightweight PreviewViewModel (struct, no async) for #Preview
+        View must compile and preview without Agent 1's files existing
+
+Phase 3 — Wire (sequential, after both agents report done)
+  └── Task: swap stub for real ViewModel in the View's @State initializer
+            run full build + tests + simulator smoke check
+            commit
 ```
 
-**Rule:** Each parallel task must depend only on models/core, never on the sibling task. ViewModels must not import repository types directly — they receive data via injected closures or protocol abstractions when needed for testability.
+**The protocol pattern** (use this shape for every feature ViewModel):
 
-**Example task split for a feature "Program Builder":**
-- Task A: `Program`, `ProgramDay`, `ProgramExercise` model structs + unit tests
-- Task B (parallel after A): `ProgramRepository` — CRUD against Supabase
-- Task C (parallel after A): `ProgramBuilderViewModel` — `@Observable`, holds state, calls repository via async methods
-- Task D (after B+C): `ProgramBuilderView` + `ProgramDayRowView` — SwiftUI, binds to ViewModel
+```swift
+// Phase 1b — define this before parallel work starts
+protocol ProgramBuilderProtocol: Observable {
+    var programs: [Program] { get }
+    var isLoading: Bool { get }
+    func loadPrograms() async
+    func createProgram(name: String) async throws
+}
+
+// Phase 2 Agent 1 — real implementation
+@Observable final class ProgramBuilderViewModel: ProgramBuilderProtocol { ... }
+
+// Phase 2 Agent 2 — stub for previews only
+@Observable final class PreviewProgramBuilderViewModel: ProgramBuilderProtocol {
+    var programs: [Program] = Program.samples
+    var isLoading = false
+    func loadPrograms() async {}
+    func createProgram(name: String) async throws {}
+}
+
+// View — typed against protocol, never the concrete class
+struct ProgramBuilderView<VM: ProgramBuilderProtocol>: View {
+    @State var vm: VM
+    ...
+}
+
+// Phase 3 wiring — one line change in call site
+ProgramBuilderView(vm: ProgramBuilderViewModel())
+```
+
+**Rules:**
+- Agent 2 (View) must produce a buildable, previewable file with zero imports from Agent 1's files
+- Agent 1 (Data+VM) must not touch any UI files
+- The wire task is the only place the two sides touch
+- Mark each task `[x]` in the plan immediately when done; update `CURRENT STATUS` block
 
 ### Xcode-specific rules
 
