@@ -91,7 +91,11 @@ Custom components (only two): `SetRowView` and `RestTimerRingView`.
 
 ## Localization
 
-Thai is the **primary** language — the app always opens in Thai regardless of device locale. English is user-selectable in Settings. String Catalogs (`Localizable.xcstrings`) with `sourceLanguage = "en"` (key format); locales `th` (complete, mandatory) and `en` (complete).
+Thai is the **primary supported** language for Thai users, and English is the fallback for everyone else. Default app language follows the device preferred language: use Thai when the device language is Thai; use English for all other device languages. English can also be user-selected later in Settings.
+
+Every new screen, alert, button, label, error message, empty state, and accessibility string must be localized in both Thai and English at implementation time. Do not leave hardcoded user-facing strings in SwiftUI views, ViewModels, services, or repositories unless the text is a non-user-visible debug/developer string.
+
+String Catalogs (`Localizable.xcstrings`) use `sourceLanguage = "en"` for key format and fallback behavior, with locales `th` (complete, mandatory Thai copy) and `en` (complete English copy).
 
 ## Development Workflow
 

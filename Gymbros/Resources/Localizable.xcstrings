@@ -1,0 +1,70 @@
+{
+  "sourceLanguage" : "en",
+  "strings" : {
+    "auth.signIn.error.failed" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sign in failed: %@"
+          }
+        },
+        "th" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "เข้าสู่ระบบไม่สำเร็จ: %@"
+          }
+        }
+      }
+    },
+    "auth.signIn.error.missingToken" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sign in failed: missing token"
+          }
+        },
+        "th" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "เข้าสู่ระบบไม่สำเร็จ: ไม่พบโทเค็น"
+          }
+        }
+      }
+    },
+    "auth.signIn.tagline" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Just show up. We'll handle the rest."
+          }
+        },
+        "th" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "มาแค่นี้พอ เราจะดูแลส่วนที่เหลือ"
+          }
+        }
+      }
+    },
+    "root.signedIn.placeholder" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Logged in - Sprint 4 adds TodayView here"
+          }
+        },
+        "th" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "เข้าสู่ระบบแล้ว - Sprint 4 จะเพิ่ม TodayView ตรงนี้"
+          }
+        }
+      }
+    }
+  },
+  "version" : "1.0"
+}

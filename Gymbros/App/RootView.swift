@@ -5,7 +5,7 @@ struct RootView: View {
 
     var body: some View {
         if auth.isAuthenticated {
-            Text("Logged in - Sprint 4 adds TodayView here")
+            Text("root.signedIn.placeholder")
                 .foregroundStyle(.secondary)
         } else {
             SignInView()

@@ -8,7 +8,7 @@
 
 ## ✅ CURRENT STATUS (as of 2026-05-08)
 
-**Tasks 1–8 are fully implemented and Task 8 is ready to commit.**
+**Tasks 1–9 are fully implemented and verified.**
 
 **Completed commits:**
 - `feat: add Supabase schema and exercise seed data`
@@ -19,6 +19,7 @@
 - `feat: add SupabaseClient singleton and AuthService with Apple Sign-In`
 - `feat: add four Supabase repositories and RepositoryError`
 - `feat: add SignInView with Apple Sign-In and RootView auth gate`
+- `feat: wire RootView entry point and localize auth UI`
 
 **Known issues / deviations from plan:**
 - Available simulator is **iPhone 17e**, not iPhone 16 — substitute `name=iPhone 17e` in all xcodebuild commands
@@ -26,8 +27,10 @@
 - `AppTheme.swift` line 7 has minor indentation issue on `gymSurface` (cosmetic only, does not affect build)
 - Supabase + KeychainAccess Swift packages are **already added** in Xcode — skip that user gate
 - Capabilities (Sign in with Apple, HealthKit) are present in `Gymbros/Gymbros.entitlements`
+- Task 8 now includes `SignInViewModel` so Apple Sign-In nonce/error handling lives in the presentation ViewModel instead of the SwiftUI view.
+- Localization default follows device language: Thai devices use Thai; all other device languages fall back to English.
 
-**Next step:** Proceed to Task 9 — wire `RootView` as the app entry point and remove the placeholder `ContentView`.
+**Next step:** Proceed to Task 10 — Supabase setup and manual simulator verification.
 
 ---
 
@@ -1662,7 +1665,7 @@ git commit -m "feat: add SignInView with Apple Sign-In and RootView auth gate"
 - Modify: `Gymbros/GymbrosApp.swift`
 - Delete: `Gymbros/ContentView.swift`
 
-- [ ] **Step 1: Update `Gymbros/GymbrosApp.swift`**
+- [x] **Step 1: Update `Gymbros/GymbrosApp.swift`**
 
 ```swift
 import SwiftUI
@@ -1677,7 +1680,7 @@ struct GymbrosApp: App {
 }
 ```
 
-- [ ] **Step 2: Delete `Gymbros/ContentView.swift`**
+- [x] **Step 2: Delete `Gymbros/ContentView.swift`**
 
 ```bash
 rm /Users/nattapongsawa/Desktop/Gymbros/Gymbros/ContentView.swift
@@ -1685,7 +1688,7 @@ rm /Users/nattapongsawa/Desktop/Gymbros/Gymbros/ContentView.swift
 
 (Xcode's file system sync automatically removes it from the project on next build.)
 
-- [ ] **Step 3: Final build + run full test suite**
+- [x] **Step 3: Final build + run full test suite**
 
 ```bash
 xcodebuild test -project Gymbros.xcodeproj -scheme Gymbros \
@@ -1694,7 +1697,7 @@ xcodebuild test -project Gymbros.xcodeproj -scheme Gymbros \
 
 Expected: `BUILD SUCCEEDED`, all 9 tests pass (5 enum + 4 codable), 0 failures.
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add Gymbros/GymbrosApp.swift
