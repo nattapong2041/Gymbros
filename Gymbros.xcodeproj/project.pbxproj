@@ -6,6 +6,16 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		724225DB2FAE1FFF00DA0773 /* KeychainAccess in Frameworks */ = {isa = PBXBuildFile; productRef = 724225DA2FAE1FFF00DA0773 /* KeychainAccess */; };
+		724225DE2FAE201200DA0773 /* Auth in Frameworks */ = {isa = PBXBuildFile; productRef = 724225DD2FAE201200DA0773 /* Auth */; };
+		724225E02FAE201200DA0773 /* Functions in Frameworks */ = {isa = PBXBuildFile; productRef = 724225DF2FAE201200DA0773 /* Functions */; };
+		724225E22FAE201200DA0773 /* PostgREST in Frameworks */ = {isa = PBXBuildFile; productRef = 724225E12FAE201200DA0773 /* PostgREST */; };
+		724225E42FAE201200DA0773 /* Realtime in Frameworks */ = {isa = PBXBuildFile; productRef = 724225E32FAE201200DA0773 /* Realtime */; };
+		724225E62FAE201200DA0773 /* Storage in Frameworks */ = {isa = PBXBuildFile; productRef = 724225E52FAE201200DA0773 /* Storage */; };
+		724225E82FAE201200DA0773 /* Supabase in Frameworks */ = {isa = PBXBuildFile; productRef = 724225E72FAE201200DA0773 /* Supabase */; };
+/* End PBXBuildFile section */
+
 /* Begin PBXContainerItemProxy section */
 		727D4B702DD7BB6600900D6E /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
@@ -52,6 +62,13 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				724225E82FAE201200DA0773 /* Supabase in Frameworks */,
+				724225E62FAE201200DA0773 /* Storage in Frameworks */,
+				724225E22FAE201200DA0773 /* PostgREST in Frameworks */,
+				724225E02FAE201200DA0773 /* Functions in Frameworks */,
+				724225DE2FAE201200DA0773 /* Auth in Frameworks */,
+				724225E42FAE201200DA0773 /* Realtime in Frameworks */,
+				724225DB2FAE1FFF00DA0773 /* KeychainAccess in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -112,6 +129,13 @@
 			);
 			name = Gymbros;
 			packageProductDependencies = (
+				724225DA2FAE1FFF00DA0773 /* KeychainAccess */,
+				724225DD2FAE201200DA0773 /* Auth */,
+				724225DF2FAE201200DA0773 /* Functions */,
+				724225E12FAE201200DA0773 /* PostgREST */,
+				724225E32FAE201200DA0773 /* Realtime */,
+				724225E52FAE201200DA0773 /* Storage */,
+				724225E72FAE201200DA0773 /* Supabase */,
 			);
 			productName = Gymbros;
 			productReference = 727D4B612DD7BB6500900D6E /* Gymbros.app */;
@@ -195,6 +219,10 @@
 			);
 			mainGroup = 727D4B582DD7BB6500900D6E;
 			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				724225D92FAE1FFF00DA0773 /* XCRemoteSwiftPackageReference "KeychainAccess" */,
+				724225DC2FAE201200DA0773 /* XCRemoteSwiftPackageReference "supabase-swift" */,
+			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 727D4B622DD7BB6500900D6E /* Products */;
 			projectDirPath = "";
@@ -593,6 +621,63 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		724225D92FAE1FFF00DA0773 /* XCRemoteSwiftPackageReference "KeychainAccess" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/kishikawakatsumi/KeychainAccess";
+			requirement = {
+				branch = master;
+				kind = branch;
+			};
+		};
+		724225DC2FAE201200DA0773 /* XCRemoteSwiftPackageReference "supabase-swift" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/supabase-community/supabase-swift";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 2.5.1;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		724225DA2FAE1FFF00DA0773 /* KeychainAccess */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 724225D92FAE1FFF00DA0773 /* XCRemoteSwiftPackageReference "KeychainAccess" */;
+			productName = KeychainAccess;
+		};
+		724225DD2FAE201200DA0773 /* Auth */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 724225DC2FAE201200DA0773 /* XCRemoteSwiftPackageReference "supabase-swift" */;
+			productName = Auth;
+		};
+		724225DF2FAE201200DA0773 /* Functions */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 724225DC2FAE201200DA0773 /* XCRemoteSwiftPackageReference "supabase-swift" */;
+			productName = Functions;
+		};
+		724225E12FAE201200DA0773 /* PostgREST */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 724225DC2FAE201200DA0773 /* XCRemoteSwiftPackageReference "supabase-swift" */;
+			productName = PostgREST;
+		};
+		724225E32FAE201200DA0773 /* Realtime */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 724225DC2FAE201200DA0773 /* XCRemoteSwiftPackageReference "supabase-swift" */;
+			productName = Realtime;
+		};
+		724225E52FAE201200DA0773 /* Storage */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 724225DC2FAE201200DA0773 /* XCRemoteSwiftPackageReference "supabase-swift" */;
+			productName = Storage;
+		};
+		724225E72FAE201200DA0773 /* Supabase */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 724225DC2FAE201200DA0773 /* XCRemoteSwiftPackageReference "supabase-swift" */;
+			productName = Supabase;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = 727D4B592DD7BB6500900D6E /* Project object */;
 }
