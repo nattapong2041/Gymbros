@@ -6,9 +6,9 @@
 
 ---
 
-## ✅ CURRENT STATUS (as of 2026-05-08)
+## ✅ CURRENT STATUS (as of 2026-05-09)
 
-**Tasks 1–9 are fully implemented and verified.**
+**Tasks 1–9.5 are implemented. Task 9.5 unit verification passed.**
 
 **Completed commits:**
 - `feat: add Supabase schema and exercise seed data`
@@ -29,9 +29,12 @@
 - Capabilities (Sign in with Apple, HealthKit) are present in `Gymbros/Gymbros.entitlements`
 - Task 8 now includes `SignInViewModel` so Apple Sign-In nonce/error handling lives in the presentation ViewModel instead of the SwiftUI view.
 - Localization follows device language: Thai devices use Thai; all other device languages use English. Sprint 6 adds an easy Settings language override.
-- Task 9.5 was added after the first repository/auth pass to remove `RepositoryError` and raw `String? errorMessage` patterns, replacing them with typed `AppError`, Swift standard `Result<Value, AppError>`, shared `ViewState`, and unit tests.
+- Task 9.5 removed `RepositoryError` and raw `String? errorMessage` patterns, replacing them with typed `AppError`, shared `ViewState`, localized error keys, and unit tests. Existing repository signatures remain `async throws`, but missing-session and caught SDK/runtime failures now throw only `AppError`.
+- Verification note: `xcodebuild test ... -only-testing:GymbrosTests/ErrorHandlingTests` passed, and `xcodebuild test ... -only-testing:GymbrosTests` passed. The unrestricted full-scheme test command built and ran several UI tests, but ended with CoreSimulator `Invalid device state` while launching the UI test runner.
 
-**Next step:** Proceed to Task 9.5 — standard Swift `Result<Value, AppError>` error-handling foundation and unit tests, then Task 10 Supabase setup and manual simulator verification.
+**Last commit SHA:** pending review/commit for Task 9.5.
+
+**Next step:** Review Task 9.5 changes, then proceed to Task 10 Supabase setup and manual simulator verification.
 
 ---
 
@@ -1735,7 +1738,7 @@ git commit -m "feat: wire RootView as app entry point, remove ContentView placeh
 - Do not show raw `Error.localizedDescription`, Supabase messages, SQL hints, status codes, or debug IDs in user UI.
 - Keep raw details only in debug logs with no tokens, API keys, auth headers, Apple identity tokens, or health data.
 
-- [ ] **Step 1: Create shared error types**
+- [x] **Step 1: Create shared error types**
 
 Create `AppError`, `AuthFailure`, `NetworkFailure`, `APIErrorCode`, `ValidationFailure`, and `ViewState<Value>` under `Gymbros/Core/ErrorHandling/`.
 
@@ -1765,7 +1768,7 @@ enum ViewState<Value> {
 }
 ```
 
-- [ ] **Step 2: Create `ErrorMapper`**
+- [x] **Step 2: Create `ErrorMapper`**
 
 `ErrorMapper` is the only place that converts unknown SDK/runtime errors into `AppError`.
 
@@ -1793,7 +1796,7 @@ static func mapHTTPStatus(_ statusCode: Int, code: String?) -> AppError
 static func mapSupabaseCode(_ code: String, statusCode: Int?) -> AppError
 ```
 
-- [ ] **Step 3: Migrate repositories to typed error boundary**
+- [x] **Step 3: Migrate repositories to typed error boundary**
 
 Replace new repository failure paths with Swift standard `Result<Value, AppError>` or `async throws` where only `AppError` is thrown.
 
@@ -1806,7 +1809,7 @@ func fetchCurrentProfile() async throws -> Profile // may throw only AppError
 
 Delete `RepositoryError.swift`. Remove `RepositoryError.networkError(Error)`, `RepositoryError.notAuthenticated`, and any `LocalizedError.errorDescription` that includes `error.localizedDescription`.
 
-- [ ] **Step 4: Migrate `SignInViewModel` state**
+- [x] **Step 4: Migrate `SignInViewModel` state**
 
 Replace `String? errorMessage` with typed state:
 
@@ -1817,7 +1820,7 @@ var error: AppError?
 
 Apple Sign-In user cancellation maps to `.cancelled` and should not show an error. Missing identity token maps to `.auth(.appleCredentialMissing)`. Failed Supabase auth maps through `ErrorMapper`.
 
-- [ ] **Step 5: Add localized error copy**
+- [x] **Step 5: Add localized error copy**
 
 Add English and Thai keys to `Gymbros/Resources/Localizable.xcstrings` for all generic app errors used in Sprint 1:
 
@@ -1845,7 +1848,7 @@ error.unknown.message
 error.action.retry
 ```
 
-- [ ] **Step 6: Add unit tests — `GymbrosTests/ErrorHandlingTests.swift`**
+- [x] **Step 6: Add unit tests — `GymbrosTests/ErrorHandlingTests.swift`**
 
 Use Swift Testing (`import Testing`, `#expect(...)`), not XCTest.
 
@@ -1869,7 +1872,7 @@ Coverage expectations:
 - `429` -> `.rateLimited`
 - cancellation does not become a visible error
 
-- [ ] **Step 7: Run focused error tests**
+- [x] **Step 7: Run focused error tests**
 
 ```bash
 xcodebuild test -project Gymbros.xcodeproj -scheme Gymbros \
@@ -1879,7 +1882,7 @@ xcodebuild test -project Gymbros.xcodeproj -scheme Gymbros \
 
 Expected: all `ErrorHandlingTests` pass.
 
-- [ ] **Step 8: Run full unit suite**
+- [x] **Step 8: Run full unit suite**
 
 ```bash
 xcodebuild test -project Gymbros.xcodeproj -scheme Gymbros \
@@ -1887,6 +1890,14 @@ xcodebuild test -project Gymbros.xcodeproj -scheme Gymbros \
 ```
 
 Expected: all enum, Codable, localization, and error-handling tests pass.
+
+Actual verification: unrestricted full-scheme test built and started UI tests but ended with CoreSimulator `Invalid device state` while launching the UI test runner. The unit target was verified with:
+
+```bash
+xcodebuild test -project Gymbros.xcodeproj -scheme Gymbros \
+  -destination 'platform=iOS Simulator,name=iPhone 17e' \
+  -only-testing:GymbrosTests
+```
 
 - [ ] **Step 9: Commit**
 

@@ -34,8 +34,8 @@ struct SignInView: View {
                 .frame(height: 56)
                 .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
 
-                if let errorMessage = viewModel.errorMessage {
-                    Text(errorMessage)
+                if case .error(let error) = viewModel.state, error.isVisibleToUser {
+                    Text(LocalizedStringKey(error.messageKey))
                         .font(.footnote)
                         .foregroundStyle(.red)
                         .multilineTextAlignment(.center)

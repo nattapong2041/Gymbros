@@ -7,23 +7,31 @@ final class ProfileRepository {
 
     func fetchCurrentProfile() async throws -> Profile {
         guard let userId = AuthService.shared.currentUser?.id else {
-            throw RepositoryError.notAuthenticated
+            throw AppError.auth(.sessionMissing)
         }
-        let profile: Profile = try await client
-            .from("profiles")
-            .select()
-            .eq("id", value: userId)
-            .single()
-            .execute()
-            .value
-        return profile
+        do {
+            let profile: Profile = try await client
+                .from("profiles")
+                .select()
+                .eq("id", value: userId)
+                .single()
+                .execute()
+                .value
+            return profile
+        } catch {
+            throw ErrorMapper.map(error, context: .init(operation: "fetchCurrentProfile", table: "profiles"))
+        }
     }
 
     func updateProfile(_ profile: Profile) async throws {
-        try await client
-            .from("profiles")
-            .update(profile)
-            .eq("id", value: profile.id)
-            .execute()
+        do {
+            try await client
+                .from("profiles")
+                .update(profile)
+                .eq("id", value: profile.id)
+                .execute()
+        } catch {
+            throw ErrorMapper.map(error, context: .init(operation: "updateProfile", table: "profiles"))
+        }
     }
 }

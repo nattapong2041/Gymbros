@@ -7,7 +7,7 @@ import Security
 @MainActor
 @Observable
 final class SignInViewModel {
-    var errorMessage: String?
+    var state: ViewState<Void> = .idle
 
     private let auth: AuthService
     private var currentNonce: String?
@@ -21,41 +21,40 @@ final class SignInViewModel {
         currentNonce = nonce
         request.requestedScopes = [.fullName]
         request.nonce = sha256(nonce)
-        errorMessage = nil
+        state = .idle
     }
 
     func handleAppleSignIn(_ result: Result<ASAuthorization, Error>) async {
         switch result {
         case .success(let authorization):
+            state = .loading
             guard let credential = authorization.credential as? ASAuthorizationAppleIDCredential,
                   let idTokenData = credential.identityToken,
                   let idToken = String(data: idTokenData, encoding: .utf8),
                   let nonce = currentNonce else {
-                errorMessage = String(
-                    localized: "auth.signIn.error.missingToken",
-                    defaultValue: "Sign in failed: missing token"
-                )
+                state = .error(.auth(.appleCredentialMissing))
                 return
             }
 
             do {
                 try await auth.signInWithApple(idToken: idToken, nonce: nonce)
+                state = .success(())
             } catch {
-                errorMessage = localizedSignInError(error)
+                state = .error(ErrorMapper.map(error, context: .init(operation: "signInWithApple")))
             }
         case .failure(let error):
-            if (error as NSError).code != ASAuthorizationError.canceled.rawValue {
-                errorMessage = localizedSignInError(error)
+            if isAppleSignInCancellation(error) {
+                state = .idle
+            } else {
+                state = .error(ErrorMapper.map(error, context: .init(operation: "appleAuthorization")))
             }
         }
     }
 
-    private func localizedSignInError(_ error: Error) -> String {
-        let format = String(
-            localized: "auth.signIn.error.failed",
-            defaultValue: "Sign in failed: %@"
-        )
-        return String(format: format, error.localizedDescription)
+    private func isAppleSignInCancellation(_ error: Error) -> Bool {
+        let nsError = error as NSError
+        return nsError.domain == ASAuthorizationError.errorDomain
+            && nsError.code == ASAuthorizationError.canceled.rawValue
     }
 
     private func randomNonceString(length: Int = 32) -> String {
