@@ -8,7 +8,7 @@
 
 ## ✅ CURRENT STATUS (as of 2026-05-09)
 
-**Tasks 1–9.5 are implemented. Task 9.5 unit verification passed.**
+**Tasks 1–9.5 are implemented, committed, and unit-verified.**
 
 **Completed commits:**
 - `feat: add Supabase schema and exercise seed data`
@@ -20,6 +20,7 @@
 - `feat: add four Supabase repositories and RepositoryError`
 - `feat: add SignInView with Apple Sign-In and RootView auth gate`
 - `feat: wire RootView entry point and localize auth UI`
+- `feat: add standard Result error handling`
 
 **Known issues / deviations from plan:**
 - Available simulator is **iPhone 17e**, not iPhone 16 — substitute `name=iPhone 17e` in all xcodebuild commands
@@ -31,10 +32,11 @@
 - Localization follows device language: Thai devices use Thai; all other device languages use English. Sprint 6 adds an easy Settings language override.
 - Task 9.5 removed `RepositoryError` and raw `String? errorMessage` patterns, replacing them with typed `AppError`, shared `ViewState`, localized error keys, and unit tests. Existing repository signatures remain `async throws`, but missing-session and caught SDK/runtime failures now throw only `AppError`.
 - Verification note: `xcodebuild test ... -only-testing:GymbrosTests/ErrorHandlingTests` passed, and `xcodebuild test ... -only-testing:GymbrosTests` passed. The unrestricted full-scheme test command built and ran several UI tests, but ended with CoreSimulator `Invalid device state` while launching the UI test runner.
+- Supabase auth profile trigger function now lives in `private.handle_new_user()` instead of `public.handle_new_user()` so the `SECURITY DEFINER` function is not in the exposed `public` schema.
 
-**Last commit SHA:** pending review/commit for Task 9.5.
+**Last implementation commit SHA:** `1a8d0ee` (`feat: add standard Result error handling`). The latest repository commit after this status update is the handoff/schema-security commit.
 
-**Next step:** Review Task 9.5 changes, then proceed to Task 10 Supabase setup and manual simulator verification.
+**Next step:** Complete the Supabase user gate: run `supabase/schema.sql`, run `supabase/seed_exercises.sql`, replace placeholder Supabase URL/anon key in `Gymbros/Core/Constants.swift`, then proceed to Task 10 manual simulator/device verification.
 
 ---
 
@@ -112,6 +114,8 @@ No Xcode involvement. These are run manually in the Supabase SQL editor in Task 
 - [x] **Step 1: Create `supabase/schema.sql`**
 
 ```sql
+create schema if not exists private;
+
 -- User profile (extends Supabase auth.users)
 create table public.profiles (
     id uuid references auth.users on delete cascade primary key,
@@ -274,7 +278,7 @@ create policy "Users can manage own sets" on public.workout_sets
     );
 
 -- Triggers
-create or replace function public.handle_new_user()
+create or replace function private.handle_new_user()
 returns trigger language plpgsql security definer set search_path = public
 as $$
 begin
@@ -284,11 +288,9 @@ begin
 end;
 $$;
 
-revoke all on function public.handle_new_user() from public, anon, authenticated;
-
 create trigger on_auth_user_created
     after insert on auth.users
-    for each row execute procedure public.handle_new_user();
+    for each row execute procedure private.handle_new_user();
 
 create or replace function public.handle_updated_at()
 returns trigger language plpgsql
@@ -1899,12 +1901,14 @@ xcodebuild test -project Gymbros.xcodeproj -scheme Gymbros \
   -only-testing:GymbrosTests
 ```
 
-- [ ] **Step 9: Commit**
+- [x] **Step 9: Commit**
 
 ```bash
 git add Gymbros/Core/ErrorHandling Gymbros/Data/Repository Gymbros/Presentation/Auth Gymbros/Resources/Localizable.xcstrings GymbrosTests/ErrorHandlingTests.swift
 git commit -m "feat: add standard Result error handling"
 ```
+
+Actual commit: `1a8d0ee feat: add standard Result error handling`.
 
 ---
 
@@ -1952,7 +1956,7 @@ On a physical iPhone: sign in with Apple → app should show "Logged in" placeho
 
 - [ ] **Step 5: Verify Supabase trigger security**
 
-Confirm `public.handle_new_user()` is not directly executable by `anon` or `authenticated`. If Supabase CLI/MCP advisors are available, run database/security advisors and address any high-severity findings before final commit.
+Confirm `private.handle_new_user()` is not directly executable by `anon` or `authenticated`, and that no `SECURITY DEFINER` functions exist in the exposed `public` schema. If Supabase CLI/MCP advisors are available, run database/security advisors and address any high-severity findings before final commit.
 
 - [ ] **Step 6: Final commit**
 

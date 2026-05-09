@@ -1,3 +1,5 @@
+create schema if not exists private;
+
 -- User profile (extends Supabase auth.users)
 create table public.profiles (
     id uuid references auth.users on delete cascade primary key,
@@ -160,7 +162,7 @@ create policy "Users can manage own sets" on public.workout_sets
     );
 
 -- Triggers
-create or replace function public.handle_new_user()
+create or replace function private.handle_new_user()
 returns trigger language plpgsql security definer set search_path = public
 as $$
 begin
@@ -172,7 +174,7 @@ $$;
 
 create trigger on_auth_user_created
     after insert on auth.users
-    for each row execute procedure public.handle_new_user();
+    for each row execute procedure private.handle_new_user();
 
 create or replace function public.handle_updated_at()
 returns trigger language plpgsql
