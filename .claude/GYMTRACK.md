@@ -93,18 +93,17 @@ English = alternative, user switches in Settings
 How it works:
   String keys:        English format in code (e.g. "start_workout")
                       → readable for development, language-agnostic
-  Default display:    Thai — app always opens in Thai first
+  Default display:    Follows device language
   Device locale:      If device is set to Thai → Thai
-                      If device is set to anything else → Thai (not English)
-                      (this app is Thai-first, not locale-first)
+                      If device is set to anything else → English
   User override:      Settings → Language → ภาษาไทย / English
   String Catalogs:    sourceLanguage = "en" (key format)
                       Locales: "th" (complete) + "en" (complete)
                       Thai strings are never optional — must always exist
 
-Why not "auto from device locale"?
-  Most Thai users have English device language for other reasons.
-  They should still get Thai by default. Let them opt into English.
+Why device locale first?
+  It is the fastest correct default for V1. Thai users with Thai devices get Thai.
+  Everyone else gets English. Sprint 6 adds an easy Settings override.
 ```
 
 ### Approach
@@ -279,7 +278,7 @@ Spec: /specs/S01-foundation-data.md
 ☐ ~100 exercises seeded in Thai + English
 ☐ Localizable.xcstrings — Thai (primary) + English (fallback)
 ☐ Login screen strings localized (first real usage)
-☐ App language follows device locale automatically
+☐ App language follows device locale automatically (Thai device → Thai, all other device languages → English)
 
 Done: Signs in. Data layer ready. Exercises in Supabase.
       Localization infrastructure ready — every sprint adds strings from now on.
@@ -379,15 +378,14 @@ Spec: /specs/S06-onboarding-i18n.md
 
 ☐ OnboardingView — 3 questions → recommend program
 ☐ String Catalogs — all text in Thai (complete) + English (complete)
-☐ App defaults to Thai regardless of device locale
-☐ Settings → Language toggle (ภาษาไทย / English)
+☐ Settings → Language toggle can override device language (ภาษาไทย / English)
 ☐ UserDefaults stores language preference
 ☐ TelemetryDeck — 10 core events
 ☐ App icon + launch screen
 ☐ Anti-guilt UX — never show "streak broken"
 
 Done: New user → 3 swipes → program → Today.
-      App opens in Thai. Settings lets user switch to English.
+      App follows device language. Settings lets user switch language.
 ```
 
 ---
@@ -848,7 +846,7 @@ All major decisions resolved. ✅
 ### 2026-05-08 (session 7)
 - **App name:** GymBros (placeholder, will rename before App Store launch)
 - **Default unit:** kg. Toggle to lb deferred — add to Settings in a later sprint if needed.
-- **Localization:** Thai is PRIMARY language (app opens in Thai regardless of device locale). English is user-selectable in Settings. Not auto-detected from device.
+- **Localization:** Thai is primary for Thai devices. Non-Thai device languages use English. Sprint 6 adds Settings language override.
 - **Open decisions:** all resolved ✅
 
 ### 2026-05-08 (session 6)

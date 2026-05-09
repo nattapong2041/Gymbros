@@ -28,9 +28,10 @@
 - Supabase + KeychainAccess Swift packages are **already added** in Xcode — skip that user gate
 - Capabilities (Sign in with Apple, HealthKit) are present in `Gymbros/Gymbros.entitlements`
 - Task 8 now includes `SignInViewModel` so Apple Sign-In nonce/error handling lives in the presentation ViewModel instead of the SwiftUI view.
-- Localization default follows device language: Thai devices use Thai; all other device languages fall back to English.
+- Localization follows device language: Thai devices use Thai; all other device languages use English. Sprint 6 adds an easy Settings language override.
+- Task 9.5 was added after the first repository/auth pass to remove `RepositoryError` and raw `String? errorMessage` patterns, replacing them with typed `AppError`, Swift standard `Result<Value, AppError>`, shared `ViewState`, and unit tests.
 
-**Next step:** Proceed to Task 10 — Supabase setup and manual simulator verification.
+**Next step:** Proceed to Task 9.5 — standard Swift `Result<Value, AppError>` error-handling foundation and unit tests, then Task 10 Supabase setup and manual simulator verification.
 
 ---
 
@@ -75,11 +76,14 @@
 | `Gymbros/Core/AppTheme.swift` | Create |
 | `Gymbros/Core/Constants.swift` | Create |
 | `Gymbros/Core/Extensions/Date+Extensions.swift` | Create |
+| `Gymbros/Core/ErrorHandling/AppError.swift` | Create |
+| `Gymbros/Core/ErrorHandling/ErrorMapper.swift` | Create |
+| `Gymbros/Core/ErrorHandling/ViewState.swift` | Create |
 | `Gymbros/Assets.xcassets/AccentColor.colorset/Contents.json` | Modify |
 | `Gymbros/Assets.xcassets/GymPurple.colorset/Contents.json` | Create |
 | `Gymbros/Data/Remote/SupabaseClient.swift` | Create |
 | `Gymbros/Data/Remote/AuthService.swift` | Create |
-| `Gymbros/Data/Repository/RepositoryError.swift` | Create |
+| `Gymbros/Data/Repository/RepositoryError.swift` | Delete in Task 9.5 |
 | `Gymbros/Data/Repository/ProfileRepository.swift` | Create |
 | `Gymbros/Data/Repository/ExerciseRepository.swift` | Create |
 | `Gymbros/Data/Repository/ProgramRepository.swift` | Create |
@@ -90,6 +94,7 @@
 | `Gymbros/ContentView.swift` | Delete |
 | `GymbrosTests/EnumsTests.swift` | Create |
 | `GymbrosTests/CodableTests.swift` | Create |
+| `GymbrosTests/ErrorHandlingTests.swift` | Create |
 
 ---
 
@@ -275,6 +280,8 @@ begin
     return new;
 end;
 $$;
+
+revoke all on function public.handle_new_user() from public, anon, authenticated;
 
 create trigger on_auth_user_created
     after insert on auth.users
@@ -502,7 +509,7 @@ struct EnumsTests {
 
 ```bash
 cd /Users/nattapongsawa/Desktop/Gymbros
-xcodebuild build -project Gymbros.xcodeproj -scheme Gymbros -destination 'platform=iOS Simulator,name=iPhone 16' 2>&1 | grep error: | head -10
+xcodebuild build -project Gymbros.xcodeproj -scheme Gymbros -destination 'platform=iOS Simulator,name=iPhone 17e' 2>&1 | grep error: | head -10
 ```
 
 Expected output: errors about missing types (`Goal`, `MovementPattern`, etc.)
@@ -579,7 +586,7 @@ enum TrainingPhase: String, Codable, CaseIterable {
 
 ```bash
 xcodebuild test -project Gymbros.xcodeproj -scheme Gymbros \
-  -destination 'platform=iOS Simulator,name=iPhone 16' \
+  -destination 'platform=iOS Simulator,name=iPhone 17e' \
   -only-testing:GymbrosTests/EnumsTests 2>&1 | grep -E "Test (Suite|Case|session)" | tail -20
 ```
 
@@ -719,7 +726,7 @@ struct CodableTests {
 
 ```bash
 xcodebuild build -project Gymbros.xcodeproj -scheme Gymbros \
-  -destination 'platform=iOS Simulator,name=iPhone 16' 2>&1 | grep error: | head -10
+  -destination 'platform=iOS Simulator,name=iPhone 17e' 2>&1 | grep error: | head -10
 ```
 
 Expected: errors about `Exercise`, `Program`, `WorkoutSession`, `WorkoutSet` not found.
@@ -922,7 +929,7 @@ struct WorkoutSet: Codable, Identifiable, Equatable {
 
 ```bash
 xcodebuild test -project Gymbros.xcodeproj -scheme Gymbros \
-  -destination 'platform=iOS Simulator,name=iPhone 16' \
+  -destination 'platform=iOS Simulator,name=iPhone 17e' \
   -only-testing:GymbrosTests/CodableTests 2>&1 | grep -E "(passed|failed|error)" | tail -20
 ```
 
@@ -1020,7 +1027,7 @@ extension Date {
 
 ```bash
 xcodebuild build -project Gymbros.xcodeproj -scheme Gymbros \
-  -destination 'platform=iOS Simulator,name=iPhone 16' 2>&1 | grep -E "error:|BUILD" | tail -5
+  -destination 'platform=iOS Simulator,name=iPhone 17e' 2>&1 | grep -E "error:|BUILD" | tail -5
 ```
 
 Expected: `BUILD SUCCEEDED`
@@ -1188,7 +1195,7 @@ final class AuthService {
 
 ```bash
 xcodebuild build -project Gymbros.xcodeproj -scheme Gymbros \
-  -destination 'platform=iOS Simulator,name=iPhone 16' 2>&1 | grep -E "error:|BUILD" | tail -5
+  -destination 'platform=iOS Simulator,name=iPhone 17e' 2>&1 | grep -E "error:|BUILD" | tail -5
 ```
 
 Expected: `BUILD SUCCEEDED`
@@ -1203,6 +1210,8 @@ git commit -m "feat: add SupabaseClient singleton and AuthService with Apple Sig
 ---
 
 ## Task 7: Repositories
+
+Historical note: this task was completed before the Sprint 1 error standard was finalized. Task 9.5 supersedes the `RepositoryError` parts and deletes `RepositoryError.swift`.
 
 **Files:**
 - Create: `Gymbros/Data/Repository/RepositoryError.swift`
@@ -1480,7 +1489,7 @@ final class WorkoutRepository {
 
 ```bash
 xcodebuild build -project Gymbros.xcodeproj -scheme Gymbros \
-  -destination 'platform=iOS Simulator,name=iPhone 16' 2>&1 | grep -E "error:|BUILD" | tail -5
+  -destination 'platform=iOS Simulator,name=iPhone 17e' 2>&1 | grep -E "error:|BUILD" | tail -5
 ```
 
 Expected: `BUILD SUCCEEDED`
@@ -1645,7 +1654,7 @@ struct RootView: View {
 
 ```bash
 xcodebuild build -project Gymbros.xcodeproj -scheme Gymbros \
-  -destination 'platform=iOS Simulator,name=iPhone 16' 2>&1 | grep -E "error:|BUILD" | tail -5
+  -destination 'platform=iOS Simulator,name=iPhone 17e' 2>&1 | grep -E "error:|BUILD" | tail -5
 ```
 
 Expected: `BUILD SUCCEEDED`
@@ -1692,16 +1701,198 @@ rm /Users/nattapongsawa/Desktop/Gymbros/Gymbros/ContentView.swift
 
 ```bash
 xcodebuild test -project Gymbros.xcodeproj -scheme Gymbros \
-  -destination 'platform=iOS Simulator,name=iPhone 16' 2>&1 | grep -E "Test Suite|passed|failed|BUILD" | tail -20
+  -destination 'platform=iOS Simulator,name=iPhone 17e' 2>&1 | grep -E "Test Suite|passed|failed|BUILD" | tail -20
 ```
 
-Expected: `BUILD SUCCEEDED`, all 9 tests pass (5 enum + 4 codable), 0 failures.
+Expected: `BUILD SUCCEEDED`, all existing enum and Codable tests pass. Task 9.5 adds error-handling tests before final Sprint 1 verification.
 
 - [x] **Step 4: Commit**
 
 ```bash
 git add Gymbros/GymbrosApp.swift
 git commit -m "feat: wire RootView as app entry point, remove ContentView placeholder"
+```
+
+---
+
+## Task 9.5: Standard Result Error Handling + Unit Tests
+
+**Why this task exists:** Task 7 and Task 8 were implemented before the project error-handling standard was finalized. Sprint 1 must now add the shared typed error pipeline before manual Supabase verification so Sprint 2 does not build on raw `localizedDescription` strings or `RepositoryError`.
+
+**Files:**
+- Create: `Gymbros/Core/ErrorHandling/AppError.swift`
+- Create: `Gymbros/Core/ErrorHandling/ErrorMapper.swift`
+- Create: `Gymbros/Core/ErrorHandling/ViewState.swift`
+- Create: `GymbrosTests/ErrorHandlingTests.swift`
+- Delete: `Gymbros/Data/Repository/RepositoryError.swift`
+- Modify: repositories to use `AppError` directly
+- Modify: `Gymbros/Presentation/Auth/SignInViewModel.swift`
+- Modify: `Gymbros/Resources/Localizable.xcstrings`
+
+**Rules:**
+- Use Swift standard `Result<Value, AppError>` from `https://developer.apple.com/documentation/swift/result`.
+- Do not create `AppResult`, custom result wrappers, or feature-specific result types.
+- Do not show raw `Error.localizedDescription`, Supabase messages, SQL hints, status codes, or debug IDs in user UI.
+- Keep raw details only in debug logs with no tokens, API keys, auth headers, Apple identity tokens, or health data.
+
+- [ ] **Step 1: Create shared error types**
+
+Create `AppError`, `AuthFailure`, `NetworkFailure`, `APIErrorCode`, `ValidationFailure`, and `ViewState<Value>` under `Gymbros/Core/ErrorHandling/`.
+
+Expected shape:
+
+```swift
+enum AppError: Error, Equatable {
+    case auth(AuthFailure)
+    case api(APIErrorCode, statusCode: Int?)
+    case network(NetworkFailure)
+    case decoding
+    case validation(ValidationFailure)
+    case permissionDenied
+    case notFound
+    case conflict
+    case rateLimited
+    case cancelled
+    case unknown(debugID: String)
+}
+
+enum ViewState<Value> {
+    case idle
+    case loading
+    case success(Value)
+    case empty
+    case error(AppError)
+}
+```
+
+- [ ] **Step 2: Create `ErrorMapper`**
+
+`ErrorMapper` is the only place that converts unknown SDK/runtime errors into `AppError`.
+
+Minimum mappings:
+
+```
+CancellationError                         -> .cancelled
+URLError.notConnectedToInternet           -> .network(.offline)
+URLError.timedOut                         -> .network(.timeout)
+DecodingError / EncodingError             -> .decoding
+401 / missing session                     -> .auth(.sessionMissing)
+403 / Postgres 42501 / RLS denied         -> .permissionDenied
+404 / PGRST not found                     -> .notFound
+409 / Postgres 23505 / 23503              -> .conflict
+429                                       -> .rateLimited
+500 / 503 / 504                           -> .network(.temporary) or .api(..., statusCode:)
+Unknown                                   -> .unknown(debugID:)
+```
+
+Expose pure helpers that are easy to unit-test, for example:
+
+```swift
+static func map(_ error: Error, context: ErrorContext) -> AppError
+static func mapHTTPStatus(_ statusCode: Int, code: String?) -> AppError
+static func mapSupabaseCode(_ code: String, statusCode: Int?) -> AppError
+```
+
+- [ ] **Step 3: Migrate repositories to typed error boundary**
+
+Replace new repository failure paths with Swift standard `Result<Value, AppError>` or `async throws` where only `AppError` is thrown.
+
+Acceptable signatures:
+
+```swift
+func fetchAll() async -> Result<[Exercise], AppError>
+func fetchCurrentProfile() async throws -> Profile // may throw only AppError
+```
+
+Delete `RepositoryError.swift`. Remove `RepositoryError.networkError(Error)`, `RepositoryError.notAuthenticated`, and any `LocalizedError.errorDescription` that includes `error.localizedDescription`.
+
+- [ ] **Step 4: Migrate `SignInViewModel` state**
+
+Replace `String? errorMessage` with typed state:
+
+```swift
+var state: ViewState<Void> = .idle
+var error: AppError?
+```
+
+Apple Sign-In user cancellation maps to `.cancelled` and should not show an error. Missing identity token maps to `.auth(.appleCredentialMissing)`. Failed Supabase auth maps through `ErrorMapper`.
+
+- [ ] **Step 5: Add localized error copy**
+
+Add English and Thai keys to `Gymbros/Resources/Localizable.xcstrings` for all generic app errors used in Sprint 1:
+
+```
+error.auth.sessionMissing.title
+error.auth.sessionMissing.message
+error.auth.appleCredentialMissing.title
+error.auth.appleCredentialMissing.message
+error.network.offline.title
+error.network.offline.message
+error.network.timeout.title
+error.network.timeout.message
+error.permissionDenied.title
+error.permissionDenied.message
+error.notFound.title
+error.notFound.message
+error.conflict.title
+error.conflict.message
+error.rateLimited.title
+error.rateLimited.message
+error.decoding.title
+error.decoding.message
+error.unknown.title
+error.unknown.message
+error.action.retry
+```
+
+- [ ] **Step 6: Add unit tests — `GymbrosTests/ErrorHandlingTests.swift`**
+
+Use Swift Testing (`import Testing`, `#expect(...)`), not XCTest.
+
+Required tests:
+
+```swift
+@Test("Cancellation maps to cancelled")
+@Test("Offline URL error maps to network offline")
+@Test("Timed out URL error maps to timeout")
+@Test("Decoding error maps to decoding")
+@Test("HTTP status maps to app error")
+@Test("Supabase Postgres codes map to app error")
+@Test("AppError exposes localization keys without raw messages")
+```
+
+Coverage expectations:
+- `401` -> `.auth(.sessionMissing)`
+- `403` and `42501` -> `.permissionDenied`
+- `404` -> `.notFound`
+- `409`, `23505`, and `23503` -> `.conflict`
+- `429` -> `.rateLimited`
+- cancellation does not become a visible error
+
+- [ ] **Step 7: Run focused error tests**
+
+```bash
+xcodebuild test -project Gymbros.xcodeproj -scheme Gymbros \
+  -destination 'platform=iOS Simulator,name=iPhone 17e' \
+  -only-testing:GymbrosTests/ErrorHandlingTests
+```
+
+Expected: all `ErrorHandlingTests` pass.
+
+- [ ] **Step 8: Run full unit suite**
+
+```bash
+xcodebuild test -project Gymbros.xcodeproj -scheme Gymbros \
+  -destination 'platform=iOS Simulator,name=iPhone 17e'
+```
+
+Expected: all enum, Codable, localization, and error-handling tests pass.
+
+- [ ] **Step 9: Commit**
+
+```bash
+git add Gymbros/Core/ErrorHandling Gymbros/Data/Repository Gymbros/Presentation/Auth Gymbros/Resources/Localizable.xcstrings GymbrosTests/ErrorHandlingTests.swift
+git commit -m "feat: add standard Result error handling"
 ```
 
 ---
@@ -1727,7 +1918,7 @@ Manual verification — no automation possible for Apple Sign-In on simulator.
 
 - [ ] **Step 1: Run on simulator in Xcode**
 
-In Xcode: Product → Run (⌘R) on iPhone 16 simulator.
+In Xcode: Product → Run (⌘R) on iPhone 17e simulator.
 Expected: App launches showing the GymBros sign-in screen with Apple Sign-In button and lime dumbbell icon.
 
 - [ ] **Step 2: Test RLS in Supabase SQL Editor**
@@ -1748,7 +1939,11 @@ select count(*) from public.exercises;
 
 On a physical iPhone: sign in with Apple → app should show "Logged in" placeholder → force quit + reopen → still shows placeholder (session persisted).
 
-- [ ] **Step 5: Final commit**
+- [ ] **Step 5: Verify Supabase trigger security**
+
+Confirm `public.handle_new_user()` is not directly executable by `anon` or `authenticated`. If Supabase CLI/MCP advisors are available, run database/security advisors and address any high-severity findings before final commit.
+
+- [ ] **Step 6: Final commit**
 
 ```bash
 git add Gymbros/Core/Constants.swift
@@ -1760,7 +1955,7 @@ git commit -m "feat: connect Supabase credentials — Sprint 1 complete"
 ## Verification Checklist
 
 ```
-☐ xcodebuild test passes — 9 tests, 0 failures
+☐ xcodebuild test passes — enum, Codable, localization, and error-handling tests all pass
 ☐ App launches on simulator showing SignInView
 ☐ AccentColor shows lime (#C8FF00) on simulator
 ☐ Supabase has 95 exercises

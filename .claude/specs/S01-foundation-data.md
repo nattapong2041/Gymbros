@@ -17,6 +17,7 @@
 5. Repository interfaces and Supabase implementations
 6. Seeded exercise library (~100 exercises)
 7. Login screen
+8. Standard Swift `Result<Value, AppError>` error-handling foundation with unit tests
 
 **Effort estimate:** Medium (1–2 focused coding sessions)
 
@@ -35,6 +36,8 @@
 ✓ Supabase has all tables, indexes, and RLS policies
 ✓ ~100 exercises seeded in Thai + English
 ✓ Sign out works correctly
+✓ Data errors normalize into `AppError` and repositories/ViewModels never expose raw SDK error text
+✓ Error-handling unit tests cover auth, network, cancellation, decoding, HTTP/status, and Supabase code mapping
 ```
 
 ### Out of Scope (Sprint 2+)
@@ -78,7 +81,7 @@ Add via File → Add Packages:
 ```
 1. Supabase Swift SDK
    URL: https://github.com/supabase/supabase-swift
-   Version: latest stable (1.x)
+   Version: latest stable v2.x
 
 2. KeychainAccess (for secure token storage)
    URL: https://github.com/kishikawakatsumi/KeychainAccess
@@ -327,6 +330,9 @@ begin
     return new;
 end;
 $$;
+
+-- This trigger function is not an app-callable API. Keep direct execute access closed.
+revoke all on function public.handle_new_user() from public, anon, authenticated;
 
 create trigger on_auth_user_created
     after insert on auth.users
@@ -776,6 +782,8 @@ final class AuthService {
 
 ### Presentation/Auth/SignInView.swift
 
+Legacy note: this original Sprint 1 sketch is superseded by the Task 8 implementation with `SignInViewModel` and by Section 8.5. New work must not use `String? errorMessage` or show `error.localizedDescription` to users.
+
 ```swift
 import SwiftUI
 import AuthenticationServices
@@ -900,7 +908,7 @@ final class ProfileRepository {
     
     func fetchCurrentProfile() async throws -> Profile {
         guard let userId = AuthService.shared.currentUser?.id else {
-            throw RepositoryError.notAuthenticated
+            throw AppError.auth(.sessionMissing)
         }
         
         let profile: Profile = try await client
@@ -981,7 +989,7 @@ final class ProgramRepository {
     /// Fetch all user's programs (without days/exercises)
     func fetchAll() async throws -> [Program] {
         guard let userId = AuthService.shared.currentUser?.id else {
-            throw RepositoryError.notAuthenticated
+            throw AppError.auth(.sessionMissing)
         }
         
         let programs: [Program] = try await client
@@ -1036,7 +1044,7 @@ final class ProgramRepository {
     
     func fetchActive() async throws -> Program? {
         guard let userId = AuthService.shared.currentUser?.id else {
-            throw RepositoryError.notAuthenticated
+            throw AppError.auth(.sessionMissing)
         }
         
         let programs: [Program] = try await client
@@ -1129,7 +1137,7 @@ final class WorkoutRepository {
     
     func fetchHistory(limit: Int = 50) async throws -> [WorkoutSession] {
         guard let userId = AuthService.shared.currentUser?.id else {
-            throw RepositoryError.notAuthenticated
+            throw AppError.auth(.sessionMissing)
         }
         
         let sessions: [WorkoutSession] = try await client
@@ -1146,21 +1154,144 @@ final class WorkoutRepository {
 }
 ```
 
-### Data/Repository/RepositoryError.swift
+Repositories must use `AppError` directly. Do not create `RepositoryError`.
+
+---
+
+## 8.5 Error Handling Foundation
+
+Use Swift's standard [`Result<Success, Failure>`](https://developer.apple.com/documentation/swift/result). Do not create `AppResult`, custom result wrappers, or feature-specific result types.
+
+### Files
+
+```
+Gymbros/Core/ErrorHandling/AppError.swift
+Gymbros/Core/ErrorHandling/ErrorMapper.swift
+Gymbros/Core/ErrorHandling/ViewState.swift
+GymbrosTests/ErrorHandlingTests.swift
+```
+
+### Required Flow
+
+```
+Supabase / Apple / URLSession / Keychain throws
+  -> ErrorMapper.map(error, context:)
+  -> Result<Value, AppError>
+  -> Repository
+  -> ViewModel ViewState<Value>
+  -> SwiftUI localized error UI
+```
+
+### Core/ErrorHandling/AppError.swift
 
 ```swift
 import Foundation
 
-enum RepositoryError: LocalizedError {
-    case notAuthenticated
+enum AppError: Error, Equatable {
+    case auth(AuthFailure)
+    case api(APIErrorCode, statusCode: Int?)
+    case network(NetworkFailure)
+    case decoding
+    case validation(ValidationFailure)
+    case permissionDenied
     case notFound
-    case networkError(Error)
-    
-    var errorDescription: String? {
-        switch self {
-        case .notAuthenticated: "User is not authenticated"
-        case .notFound: "Resource not found"
-        case .networkError(let error): "Network error: \(error.localizedDescription)"
+    case conflict
+    case rateLimited
+    case cancelled
+    case unknown(debugID: String)
+}
+
+enum AuthFailure: Equatable {
+    case sessionMissing
+    case tokenExpired
+    case appleCredentialMissing
+    case appleSignInFailed
+}
+
+enum NetworkFailure: Equatable {
+    case offline
+    case timeout
+    case temporary
+}
+
+enum APIErrorCode: Equatable {
+    case postgrest(String)
+    case postgres(String)
+    case storage(String)
+    case functions(String)
+    case unknown
+}
+
+enum ValidationFailure: Equatable {
+    case missingRequiredField(String)
+    case invalidValue(String)
+}
+```
+
+### Core/ErrorHandling/ViewState.swift
+
+```swift
+enum ViewState<Value> {
+    case idle
+    case loading
+    case success(Value)
+    case empty
+    case error(AppError)
+}
+```
+
+### Core/ErrorHandling/ErrorMapper.swift
+
+`ErrorMapper` is the only place that converts unknown errors into `AppError`.
+
+Mapping requirements:
+
+```
+CancellationError                         -> .cancelled
+URLError.notConnectedToInternet           -> .network(.offline)
+URLError.timedOut                         -> .network(.timeout)
+DecodingError / EncodingError             -> .decoding
+401 / missing session                     -> .auth(.sessionMissing)
+403 / Postgres 42501 / RLS denied         -> .permissionDenied
+404 / PGRST not found                     -> .notFound
+409 / Postgres 23505 / 23503              -> .conflict
+429                                       -> .rateLimited
+500 / 503 / 504                           -> .network(.temporary) or .api(..., statusCode:)
+Unknown                                   -> .unknown(debugID:)
+```
+
+Handle these Supabase families explicitly when the SDK exposes their typed errors or response metadata: Auth API errors, PostgREST/Data API errors, Storage errors, Edge Function errors, Realtime errors.
+
+`AppError` should expose localized title/message/recovery keys as computed properties, not literal user-facing text. Add all keys to `Localizable.xcstrings` in English and Thai.
+
+### Repository Requirement
+
+New or migrated repositories must use one of these signatures:
+
+```swift
+func fetchAll() async -> Result<[Exercise], AppError>
+func fetchCurrentProfile() async throws -> Profile // may throw only AppError
+```
+
+Do not return raw `Error`, `RepositoryError`, `LocalizedError.errorDescription`, Supabase message strings, SQL hints, or `error.localizedDescription` to ViewModels.
+
+### ViewModel Requirement
+
+ViewModels must expose request state with `ViewState<Value>` or a feature-specific enum wrapping `AppError`, not `String? errorMessage`.
+
+```swift
+@Observable
+@MainActor
+final class ExerciseListViewModel {
+    var state: ViewState<[Exercise]> = .idle
+
+    func load() async {
+        state = .loading
+        switch await repository.fetchAll() {
+        case .success(let exercises):
+            state = exercises.isEmpty ? .empty : .success(exercises)
+        case .failure(let error):
+            state = error == .cancelled ? .idle : .error(error)
         }
     }
 }
@@ -1315,6 +1446,7 @@ select count(*) as exercise_count from public.exercises;
 ☐ ExerciseRepository.fetchAll() returns ~95 exercises
 ☐ All Codable models compile without warnings
 ☐ RLS works: querying another user's profile from SQL editor returns nothing
+☐ `public.handle_new_user()` cannot be directly executed by `anon` or `authenticated`
 ```
 
 ---
@@ -1336,6 +1468,8 @@ User deletes account in Apple settings Session invalidated on next launch
 ---
 
 ## 12. Unit Tests
+
+Use Swift Testing (`import Testing`, `#expect(...)`, `@Suite`, `@Test`) for all new tests. The older XCTest-style examples below describe the assertions only; translate them to Swift Testing in implementation.
 
 ### GymTrackTests/CodableTests.swift
 
@@ -1432,6 +1566,66 @@ final class EnumsTests: XCTestCase {
 }
 ```
 
+### GymbrosTests/ErrorHandlingTests.swift
+
+Use Swift Testing (`import Testing`), not XCTest.
+
+```swift
+import Foundation
+import Testing
+@testable import Gymbros
+
+@Suite("Error handling")
+struct ErrorHandlingTests {
+    @Test("Cancellation maps to cancelled")
+    func cancellationMapsToCancelled() {
+        #expect(ErrorMapper.map(CancellationError(), context: .init(operation: "test")) == .cancelled)
+    }
+
+    @Test("Offline URL error maps to network offline")
+    func offlineMapsToNetworkOffline() {
+        let error = URLError(.notConnectedToInternet)
+        #expect(ErrorMapper.map(error, context: .init(operation: "test")) == .network(.offline))
+    }
+
+    @Test("Timed out URL error maps to timeout")
+    func timeoutMapsToNetworkTimeout() {
+        let error = URLError(.timedOut)
+        #expect(ErrorMapper.map(error, context: .init(operation: "test")) == .network(.timeout))
+    }
+
+    @Test("Decoding error maps to decoding")
+    func decodingMapsToDecoding() {
+        let error = DecodingError.dataCorrupted(.init(codingPath: [], debugDescription: "bad payload"))
+        #expect(ErrorMapper.map(error, context: .init(operation: "test")) == .decoding)
+    }
+
+    @Test("HTTP status maps to app error")
+    func httpStatusMapsToAppError() {
+        #expect(ErrorMapper.mapHTTPStatus(401, code: nil) == .auth(.sessionMissing))
+        #expect(ErrorMapper.mapHTTPStatus(403, code: nil) == .permissionDenied)
+        #expect(ErrorMapper.mapHTTPStatus(404, code: nil) == .notFound)
+        #expect(ErrorMapper.mapHTTPStatus(409, code: nil) == .conflict)
+        #expect(ErrorMapper.mapHTTPStatus(429, code: nil) == .rateLimited)
+    }
+
+    @Test("Supabase Postgres codes map to app error")
+    func supabaseCodesMapToAppError() {
+        #expect(ErrorMapper.mapSupabaseCode("42501", statusCode: 403) == .permissionDenied)
+        #expect(ErrorMapper.mapSupabaseCode("23505", statusCode: 409) == .conflict)
+        #expect(ErrorMapper.mapSupabaseCode("23503", statusCode: 409) == .conflict)
+        #expect(ErrorMapper.mapSupabaseCode("PGRST301", statusCode: 401) == .auth(.sessionMissing))
+    }
+
+    @Test("AppError exposes localization keys without raw messages")
+    func appErrorExposesLocalizationKeys() {
+        let content = AppError.permissionDenied.localizedContent
+        #expect(content.titleKey.hasPrefix("error."))
+        #expect(content.messageKey.hasPrefix("error."))
+    }
+}
+```
+
 ---
 
 ## 13. File Checklist
@@ -1447,6 +1641,10 @@ GymBros/
 │   ├── Constants.swift                ☐
 │   ├── Extensions/
 │   │   └── Date+Extensions.swift      ☐ (helper methods)
+│   ├── ErrorHandling/
+│   │   ├── AppError.swift             ☐
+│   │   ├── ErrorMapper.swift          ☐
+│   │   └── ViewState.swift            ☐
 │   └── AppTheme.swift                 ☐ (lime + purple colors)
 ├── Model/
 │   ├── Profile.swift                  ☐
@@ -1472,8 +1670,7 @@ GymBros/
 │       ├── ProfileRepository.swift    ☐
 │       ├── ExerciseRepository.swift   ☐
 │       ├── ProgramRepository.swift    ☐
-│       ├── WorkoutRepository.swift    ☐
-│       └── RepositoryError.swift      ☐
+│       └── WorkoutRepository.swift    ☐
 ├── Presentation/
 │   └── Auth/
 │       └── SignInView.swift           ☐
@@ -1484,7 +1681,8 @@ GymBros/
 
 GymBrosTests/
 ├── CodableTests.swift                 ☐
-└── EnumsTests.swift                   ☐
+├── EnumsTests.swift                   ☐
+└── ErrorHandlingTests.swift           ☐
 
 supabase/
 ├── schema.sql                         ☐
@@ -1505,15 +1703,16 @@ When pasting this spec into Claude Code, build in this order:
 5. Create all Enums first (no dependencies)
 6. Create all Model structs (depend on enums)
 7. Create Constants.swift
-8. Create RepositoryError.swift
-9. Create SupabaseClient.swift
-10. Create AuthService.swift
-11. Create all Repositories
-12. Create SignInView.swift
-13. Wire up RootView + GymTrackApp
-14. Run unit tests
-15. Test sign-in flow on simulator
-16. Commit to main → Xcode Cloud builds → TestFlight
+8. Create ErrorHandling foundation (`AppError`, `ErrorMapper`, `ViewState`)
+9. Create ErrorHandlingTests.swift and make them pass
+10. Create SupabaseClient.swift
+11. Create AuthService.swift
+12. Create all Repositories with `Result<Value, AppError>` or AppError-only throws
+13. Create SignInView.swift
+14. Wire up RootView + GymTrackApp
+15. Run full unit tests
+16. Test sign-in flow on simulator/device
+17. Commit to main → Xcode Cloud builds → TestFlight
 ```
 
 ---
@@ -1569,6 +1768,8 @@ When pasting this spec into Claude Code, build in this order:
 ✅ Force quit + reopen → still signed in
 ✅ Sign out → returns to login
 ✅ All unit tests pass
+✅ Error mapper and ViewState behavior covered by unit tests
+✅ Supabase trigger security verified
 ✅ Code committed to main
 ✅ TestFlight build succeeds (after CI/CD setup in Sprint 4)
 ```

@@ -16,13 +16,13 @@ This is an Xcode project. There is no CLI build step — open `Gymbros.xcodeproj
 
 ```bash
 # Build
-xcodebuild -project Gymbros.xcodeproj -scheme Gymbros -destination 'platform=iOS Simulator,name=iPhone 16' build
+xcodebuild -project Gymbros.xcodeproj -scheme Gymbros -destination 'platform=iOS Simulator,name=iPhone 17e' build
 
 # Run all tests
-xcodebuild test -project Gymbros.xcodeproj -scheme Gymbros -destination 'platform=iOS Simulator,name=iPhone 16'
+xcodebuild test -project Gymbros.xcodeproj -scheme Gymbros -destination 'platform=iOS Simulator,name=iPhone 17e'
 
 # Run a single test class
-xcodebuild test -project Gymbros.xcodeproj -scheme Gymbros -destination 'platform=iOS Simulator,name=iPhone 16' -only-testing:GymbrosTests/CodableTests
+xcodebuild test -project Gymbros.xcodeproj -scheme Gymbros -destination 'platform=iOS Simulator,name=iPhone 17e' -only-testing:GymbrosTests/CodableTests
 ```
 
 Minimum deployment target: **iOS 17.0**. Language: **Swift**. UI: **SwiftUI**.
@@ -48,7 +48,7 @@ Model/                Codable structs (Profile, Exercise, Program, ProgramDay,
 Model/Enums/          MovementPattern, MuscleGroup, Equipment, ExperienceLevel,
                       Goal, WeightUnit, TrainingPhase
 Data/Remote/          SupabaseClient.swift, AuthService.swift
-Data/Repository/      ProfileRepo, ExerciseRepo, ProgramRepo, WorkoutRepo, RepositoryError
+Data/Repository/      ProfileRepo, ExerciseRepo, ProgramRepo, WorkoutRepo
 Data/Services/        ProgressiveOverloadEngine, SmartSessionAdvisor,
                       ComebackRampService, StallDetector, DeloadAdvisor (Sprint 5+)
 Presentation/         One folder per feature: Auth, Today, Workout, Programs,
@@ -61,6 +61,117 @@ Resources/            Localizable.xcstrings, Assets.xcassets
 **ViewModels** use `@Observable` (iOS 17 Observation framework, not `ObservableObject`).
 
 **Services** (`Data/Services/`) are pure Swift with no I/O — they take data in and return suggestions out. 100% unit-tested. See `.claude/GYMTRACK.md` §8 for the exact algorithms.
+
+## Error Handling
+
+All user-visible errors must flow through one typed pipeline. Never pass raw `Error.localizedDescription`, Supabase messages, SQL details, stack traces, or random debug strings directly to SwiftUI.
+
+Required flow:
+
+```
+Data source / SDK throws
+  -> ErrorMapper / interceptor normalizes the error
+  -> Swift Result<Success, AppError>
+  -> Repository returns the typed result or throws only AppError
+  -> ViewModel maps AppError to feature-specific state
+  -> SwiftUI renders localized error UI
+```
+
+### Error Types
+
+Create shared error utilities under `Core/ErrorHandling/`:
+
+- `AppError`: the single app-level domain error enum used outside the data layer.
+- `Result<Success, AppError>`: use Swift's standard `Result` type for success/failure returns.
+- `ViewState<Value>` or `LoadState<Value>`: common UI state enum with at least `.idle`, `.loading`, `.success(Value)`, `.empty` when needed, and `.error(AppError)`.
+- `ErrorMapper`: the only place that converts unknown `Error` values into `AppError`.
+
+Recommended shape:
+
+```swift
+enum ViewState<Value> {
+    case idle
+    case loading
+    case success(Value)
+    case empty
+    case error(AppError)
+}
+
+enum AppError: Error, Equatable {
+    case auth(AuthFailure)
+    case api(APIErrorCode, statusCode: Int?)
+    case network(NetworkFailure)
+    case decoding
+    case validation(ValidationFailure)
+    case permissionDenied
+    case notFound
+    case conflict
+    case rateLimited
+    case cancelled
+    case unknown(debugID: String)
+}
+```
+
+Use Swift's standard `Result<Success, Failure>` from the standard library. Do not create custom result wrappers or feature-specific result types.
+
+### Supabase Error Mapping
+
+Supabase and Apple framework errors must be normalized before reaching repositories or ViewModels. Handle these families explicitly:
+
+- Auth errors: missing session, expired/invalid token, Apple Sign-In cancellation, Apple credential failure, Supabase Auth API errors, PKCE/id-token exchange errors.
+- PostgREST/Data API errors: JSON error body fields `code`, `message`, `details`, `hint`; HTTP statuses such as 400, 401, 403, 404, 409, 416, 429, 500, 503, 504; Postgres codes such as `23505` uniqueness violation, `23503` foreign key violation, `42501` insufficient privilege/RLS, and `PGRST` API/schema/auth codes.
+- Storage errors: bucket/object not found, unauthorized, RLS denied, file too large, invalid path, upload/download failure.
+- Edge Function errors: function returned 4xx/5xx, relay/network failure, fetch/unreachable failure.
+- Realtime errors: channel join failure, authorization failure, connection loss, timeout.
+- Client/runtime errors: `URLError`, `DecodingError`, `EncodingError`, `CancellationError`, Keychain errors, invalid local state, and validation failures.
+
+Mapping rules:
+
+- `CancellationError` and Apple Sign-In user cancellation should not show an error screen or alert.
+- `401` / missing session -> `.auth(.sessionMissing)` and route to sign-in when appropriate.
+- `403` / RLS / `42501` -> `.permissionDenied` with friendly copy, not database policy text.
+- `404` / no row -> `.notFound` or `.empty` depending on whether empty data is valid for the feature.
+- `409` / `23505` / one-active-program trigger conflicts -> `.conflict` with feature-specific recovery guidance.
+- `429` -> `.rateLimited`.
+- Transient network/server errors -> `.network(.temporary)` or `.api(..., statusCode: 503/504)` and show retry.
+- Decoding/model mismatch -> `.decoding`; log debug details, show a generic localized message.
+- Unknown errors -> `.unknown(debugID:)`; generate/log a debug ID and show generic localized copy.
+
+### Layer Responsibilities
+
+Data sources and SDK adapters:
+
+- May call Supabase, Keychain, Apple APIs, URLSession, or local persistence.
+- May throw raw SDK errors internally.
+- Must map raw thrown errors with `ErrorMapper.map(error, context:)` before crossing into ViewModels.
+
+Repositories:
+
+- Expose `async -> Result<Value, AppError>` or `async throws -> Value` where the only thrown type is `AppError`.
+- Do not return optional for failure. Optional is only for valid empty domain states.
+- Do not construct user-facing strings.
+- Attach structured context for logging only, such as operation name, table, function name, status code, Supabase code, and debug ID.
+- Do not introduce `RepositoryError`; use `AppError` directly.
+
+ViewModels:
+
+- Own the source-of-truth UI state with `@Observable`.
+- Use a common state enum instead of independent `isLoading`, `errorMessage`, and optional data flags for the same request.
+- Convert repository results into `ViewState`.
+- May map `AppError` into feature-specific actions, such as sign-out, retry, or returning to a previous screen.
+- Must not expose raw `String` errors. Expose `AppError?` or `ViewState`.
+
+SwiftUI views:
+
+- Render from state declaratively: idle, loading, success, empty, error.
+- Use shared localized error components for error banners, alerts, full-screen error views, and retry actions.
+- Use `alert`, `ContentUnavailableView`, inline validation text, or a feature error view based on severity and task context.
+- All title, message, recovery, retry, accessibility, and button strings must come from `Localizable.xcstrings` in both Thai and English.
+- Never display raw Supabase messages, SQL hints, status codes, debug IDs, or `localizedDescription` to users. Debug IDs may appear only in developer logs unless explicitly designed for support.
+
+### Logging
+
+Log raw errors only in debug/developer channels. Logs may include operation context, Supabase code, HTTP status, and debug ID. Logs must not include access tokens, refresh tokens, authorization headers, Apple identity tokens, Supabase keys, service role keys, or personal health data.
 
 ## Swift Packages
 
@@ -118,7 +229,7 @@ Sprints 1–4 complete Phase 1 ("Usable"). See `.claude/GYMTRACK.md` §7 for the
 
 ### Task decomposition for parallel execution
 
-Every feature follows four phases. The parallel phase (2) is where speed comes from.
+Use this four-phase protocol pattern only for feature work that is intentionally split across parallel agents. For simple screens, use a concrete `@Observable` ViewModel directly to keep delivery fast.
 
 ```
 Phase 1 — Models (sequential)
@@ -146,7 +257,7 @@ Phase 3 — Wire (sequential, after both agents report done)
             commit
 ```
 
-**The protocol pattern** (use this shape for every feature ViewModel):
+**The protocol pattern** (use this shape only when parallel View/ViewModel work needs a shared contract):
 
 ```swift
 // Phase 1b — define this before parallel work starts
