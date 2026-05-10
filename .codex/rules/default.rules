@@ -1,3 +1,5 @@
+# Codex executable enforcement for policies defined in CLAUDE.md.
+# Do not add policy here unless the shared Markdown policy already exists.
 # Block obvious secret files from being staged by Codex.
 prefix_rule(
     pattern = ["git", "add", ".env"],

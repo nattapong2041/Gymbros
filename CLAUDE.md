@@ -2,13 +2,32 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## Shared Agent Context
+
+This repository keeps one shared agent instruction source. `CLAUDE.md` is the canonical file, and `AGENTS.md`, `AGENT.md`, and `GEMINI.md` must stay as symlinks to it so Claude Code, Codex, Gemini CLI, and other coding agents read the same project guidance, skills, rules, security policy, architecture, workflow, and localization requirements.
+
+Codex command-approval rules live in `.codex/rules/default.rules`. Those rules are an extra enforcement layer for Codex; the durable cross-agent policy belongs in this shared Markdown file.
+
+## Shared Rules and Skills
+
+- Maintain shared agent guidance only in `CLAUDE.md`. Do not create divergent Claude-only, Codex-only, or Gemini-only Markdown instructions.
+- Keep `AGENTS.md`, `AGENT.md`, and `GEMINI.md` as symlinks to `CLAUDE.md`. If any alias becomes a real file, replace it with a symlink before adding new guidance.
+- Add or update skills, workflows, architecture rules, security rules, localization rules, and sprint rules in this shared file first.
+- Use tool-specific files only for executable enforcement that cannot live in Markdown, such as `.codex/rules/default.rules`. Tool-specific rules must mirror this file and must not relax shared policy.
+- Every agent should apply the same skill routing:
+  - SwiftUI or iOS work: follow the Xcode, SwiftUI, design system, localization, and testing rules below.
+  - Supabase work: follow the Supabase, secrets, error handling, auth, RLS, schema, and repository rules below.
+  - Sprint work: read `.claude/GYMTRACK.md`, then the relevant `.claude/sprints/S[N]-name/spec.md`, then update `.claude/sprints/S[N]-name/plan.md` as described below.
+  - Git or release work: inspect the diff first, preserve unrelated user changes, and never stage or commit secrets.
+  - Error handling work: use the shared `AppError` / `ViewState` pipeline below and never expose raw SDK errors to SwiftUI.
+
 ## Project
 
 **GymBros** — an iOS gym companion app for Thai users. Tagline: "มาแค่นี้พอ เราจะดูแลส่วนที่เหลือ" (Just show up. We'll handle the rest.)
 
 The app name "GymBros" is a placeholder — it will be renamed before App Store launch.
 
-Full product decisions, roadmap, and algorithm specs live in `.claude/GYMTRACK.md`. Sprint implementation specs live in `.claude/specs/`. Always read the relevant spec before implementing a sprint.
+Full product decisions, roadmap, and algorithm specs live in `.claude/GYMTRACK.md`. Sprint implementation specs and plans live together under `.claude/sprints/S[N]-name/`. Always read the relevant spec before implementing a sprint.
 
 ## Build & Test
 
@@ -221,8 +240,8 @@ String Catalogs (`Localizable.xcstrings`) use `sourceLanguage = "en"` for key fo
 ### Starting a sprint
 
 1. Read `.claude/GYMTRACK.md` → identify current sprint
-2. Read `.claude/specs/S[N]-name.md` → the full implementation spec
-3. Write the plan to `.claude/S[N]-plan.md` (not `docs/` or project root)
+2. Read `.claude/sprints/S[N]-name/spec.md` → the full implementation spec
+3. Write or update the plan at `.claude/sprints/S[N]-name/plan.md` (not `docs/` or project root)
 4. Implement task-by-task, marking each step `[x]` in the plan as it completes
 5. Commit to main → Xcode Cloud → auto TestFlight
 
@@ -230,7 +249,9 @@ Sprints 1–4 complete Phase 1 ("Usable"). See `.claude/GYMTRACK.md` §7 for the
 
 ### Plan file conventions
 
-- **Location:** `.claude/S[N]-plan.md` (e.g. `.claude/S02-plan.md`)
+- **Location:** `.claude/sprints/S[N]-name/plan.md` (e.g. `.claude/sprints/S02-program-builder/plan.md`)
+- **Spec location:** `.claude/sprints/S[N]-name/spec.md`
+- **Compatibility links:** Old paths may exist as symlinks only. Do not create new sprint plans in `.claude/` root or new sprint specs in `.claude/specs/`.
 - **Format:** Checkbox steps `- [ ]` / `- [x]`. Mark each step done immediately after completing it — don't batch.
 - **Status block:** Keep a `## CURRENT STATUS` section at the top of each plan with: what's done, last commit SHA, known deviations, and next step. Update it each session.
 - **Simulator name:** The available simulator is **iPhone 17e** — always use `name=iPhone 17e` in xcodebuild commands, not `iPhone 16`.
@@ -310,4 +331,4 @@ ProgramBuilderView(vm: ProgramBuilderViewModel())
 - **Module name:** `Gymbros` (not `GymBros`) — use `@testable import Gymbros` in all tests.
 - **Test framework:** Swift Testing (`import Testing`, `#expect(...)`, `@Suite`, `@Test`) — not XCTest.
 
-Current status: **Sprint 1 in progress** — spec at `.claude/specs/S01-foundation-data.md`, plan at `.claude/sprint1-plan.md`.
+Current status: **Sprint 1 in progress** — spec at `.claude/sprints/S01-foundation-data/spec.md`, plan at `.claude/sprints/S01-foundation-data/plan.md`.

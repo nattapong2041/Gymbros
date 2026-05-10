@@ -269,7 +269,8 @@ App Store:  every phase complete (batched for marketing stories)
 
 **Sprint 1 — Foundation + Data** | Effort: Medium
 ```
-Spec: /specs/S01-foundation-data.md
+Spec: /sprints/S01-foundation-data/spec.md
+Plan: /sprints/S01-foundation-data/plan.md
 
 ☐ Xcode project + folder structure
 ☐ Supabase schema.sql + seed exercises
@@ -1080,4 +1081,4 @@ Monitor after beta:
 
 **Analytics:** TelemetryDeck for product behavior. Apple built-in early beta → Crashlytics before public launch.
 
-**Sprint 1 spec:** /specs/S01-foundation-data.md — ready to hand to Claude Code.
+**Sprint 1:** spec at /sprints/S01-foundation-data/spec.md, plan at /sprints/S01-foundation-data/plan.md — ready to hand to Claude Code.
