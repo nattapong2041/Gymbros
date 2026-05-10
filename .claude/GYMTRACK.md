@@ -1,7 +1,7 @@
 # GymTrack — Source of Truth
 
 > Living document. Update as decisions evolve.
-> Last updated: 2026-05-08
+> Last updated: 2026-05-10
 
 ---
 
@@ -17,11 +17,12 @@
 8. [Core Algorithms](#8-core-algorithms)
 9. [Program Templates](#9-program-templates)
 10. [Monetization](#10-monetization)
-11. [Marketing Plan](#11-marketing-plan)
-12. [Development Workflow & CI/CD](#12-development-workflow--cicd)
-13. [Decisions Made (and Rejected)](#13-decisions-made-and-rejected)
-14. [Open Decisions](#14-open-decisions)
-15. [Decision Log](#15-decision-log)
+11. [Product Metrics](#11-product-metrics)
+12. [Marketing Plan](#12-marketing-plan)
+13. [Development Workflow & CI/CD](#13-development-workflow--cicd)
+14. [Decisions Made (and Rejected)](#14-decisions-made-and-rejected)
+15. [Open Decisions](#15-open-decisions)
+16. [Decision Log](#16-decision-log)
 
 ---
 
@@ -73,10 +74,10 @@ GymTrack:      what to lift, how much, what's next — even after 2 weeks off
 | AI V1 | Rule-based Swift | Offline, Thai, free |
 | AI V2 | Firebase AI Logic (Gemini) | Thai coaching, Pro only |
 | Payments | StoreKit 2 + RevenueCat | Native subscriptions |
-| Health | HealthKit | Calories + rings |
+| Health | HealthKit (post-1.0 unless beta feedback demands it) | Nice-to-have, not core differentiation |
 | i18n | String Catalogs | Thai is primary language. English is user-selectable in Settings. |
-| Crashes V1 | Apple built-in | Free |
-| Crashes V2 | Crashlytics | When Firebase enters |
+| Crashes early beta | Apple built-in | Enough while validating the core loop |
+| Crashes before App Store launch | Crashlytics | Free, mobile-native, needed before public release |
 | Analytics | TelemetryDeck | Privacy-first, Swift native |
 | CI/CD | Xcode Cloud | Auto TestFlight on push to main |
 
@@ -319,11 +320,10 @@ Spec: /specs/S03-logger-timer.md
 ☐ Background async upload per set (fire-and-forget)
 ☐ RestTimerRingView — bottom sheet, lime ring, haptic
 ☐ Finish → mark complete in Supabase → clear backup
-☐ HealthKit: start/end HKWorkoutSession
 ☐ Crash recovery: "Restore?" prompt on relaunch
 
 Done: Log full Upper A. Rest timer works.
-      Apple Fitness rings fill. Crash recovery tested.
+      Crash recovery tested.
 ```
 
 ---
@@ -337,10 +337,14 @@ Spec: /specs/S04-today-history-nav.md
 ☐ HistoryView — past sessions, newest first
 ☐ SessionDetailView — sets per exercise for a session
 ☐ Tab navigation: Today / Programs / History / Settings
+☐ Basic onboarding — goal, days/week, experience
+☐ First-run choice: "Start with a recommended plan" or "Build my own"
+☐ V1 starter plans: Full Body 2 Days + PPL 3 Days
 ☐ Empty states (no program, no sessions)
 
-Done: Full loop. Open → today's workout → start → log
-      → finish → see in history. CI/CD set up.
+Done: Full loop. New user can choose a starter plan or build their own.
+      Open → today's workout → start → log → finish → see in history.
+      CI/CD set up.
 ```
 
 **→ RELEASE: TestFlight to 20 beta testers**
@@ -376,16 +380,18 @@ Done: "Try 77.5kg on Bench today."
 ```
 Spec: /specs/S06-onboarding-i18n.md
 
-☐ OnboardingView — 3 questions → recommend program
+☐ Expand onboarding polish — clearer copy, smoother first-run path
 ☐ String Catalogs — all text in Thai (complete) + English (complete)
 ☐ Settings → Language toggle can override device language (ภาษาไทย / English)
 ☐ UserDefaults stores language preference
-☐ TelemetryDeck — 10 core events
+☐ TelemetryDeck — V1 product metrics events
 ☐ App icon + launch screen
 ☐ Anti-guilt UX — never show "streak broken"
+☐ Pro fake-door learning: surface locked premium features before monetization build
 
-Done: New user → 3 swipes → program → Today.
+Done: New user → starter plan or custom plan → Today.
       App follows device language. Settings lets user switch language.
+      Core product metrics are measurable.
 ```
 
 ---
@@ -397,11 +403,12 @@ Spec: /specs/S07-app-store-ship.md
 ☐ Screenshots (TH + EN)
 ☐ App Store description (Thai primary)
 ☐ Privacy policy
+☐ Add Crashlytics before public release
 ☐ Final TestFlight → fix bugs
 ☐ Submit for review
 ☐ CHECKPOINT: review "lost workout" beta feedback
 
-Done: App live. Free download. Public users.
+Done: App live. Public users. Stability monitoring in place.
 ```
 
 **→ RELEASE: App Store 1.0**
@@ -412,7 +419,7 @@ Done: App live. Free download. Public users.
 
 **Sprint 8 — Templates + Substitution** | Effort: Medium
 ```
-☐ 5 program templates as JSON bundles (see Section 9)
+☐ Full 5-template library as JSON bundles (see Section 9)
 ☐ "Browse Templates" in ProgramListView
 ☐ Clone template → user owns the copy → fully editable
 ☐ Exercise substitution (movement pattern matching)
@@ -454,6 +461,7 @@ Done: Users subscribe. Pro features unlock.
 **Sprint 11 — Watch + Widget** | Effort: Complex
 ```
 ☐ MIGRATION CHECKPOINT: add SwiftData if watch needs it
+☐ HealthKit integration if still valuable after beta feedback
 ☐ watchOS: rest timer (lime ring on wrist)
 ☐ Widget: today's workout + streak
 ☐ PR sharing card (IG Story — purple/lime branded)
@@ -468,12 +476,16 @@ Done: Watch timer. Widget on home. PR sharing live.
 
 ### PHASE 5 — "AI + Platform" → App Store 2.0 (2 sprints)
 
-**Sprint 12 — Gemini AI Coaching** | Effort: Complex
+**Sprint 12 — Gemini AI Coaching (Conditional)** | Effort: Complex
 ```
+Trigger only if user demand or retention data justifies it:
+  - users repeatedly ask coaching questions
+  - AI can improve retention, explanation, or conversion
+  - product data shows the core loop is already working
+
 ☐ Firebase AI Logic + Gemini
 ☐ Chat UI — Thai coaching
 ☐ Session context injection
-☐ Crashlytics added
 ☐ Gate behind Pro
 
 Done: Pro asks AI in Thai, gets contextual answer.
@@ -760,15 +772,159 @@ Exercise matching:
 
 ## 10. Monetization
 
+### Model
+
+```
+Launch model:
+  30-day full Pro trial
+  → limited Free plan after trial
+  → Pro unlocks the full "coach" experience
+
+Why:
+  GymTrack's value compounds over multiple sessions and missed-week comebacks.
+  A 30-day trial gives inconsistent lifters enough time to feel the core value.
+```
+
 | Tier | Price | Includes |
-|---|---|---|
-| Free | ฿0 | Logger, custom programs, history, suggestions, timer |
-| Pro | ฿129/mo · ฿990/yr | Templates, AI, graphs, heatmap, watch, widget, export |
+|---|---:|---|
+| Trial | 30 days | Full Pro experience |
+| Free | ฿0 | Manual logger, custom programs, rest timer, basic history, 1 starter template, basic next-session suggestion, 1 free comeback rescue |
+| Pro | ฿129/mo · ฿990/yr | Unlimited smart suggestions, unlimited comeback mode, stall detection, deload guidance, full template library, graphs, heatmap, watch, widget, export, AI |
 | PT Pro | ฿390/mo | Client management, assign programs, dashboard |
+
+### Paywall Strategy
+
+```
+Do not paywall before the user understands the product.
+
+Flow:
+  Sign in
+  → onboarding
+  → starter plan or custom plan
+  → Today screen / first recommendation
+  → "Try Pro free for 1 month"
+
+Free should feel useful.
+Pro should feel like:
+  "GymTrack thinks for me."
+```
+
+### Monetization Learning Before Sprint 10
+
+Track demand before building the full subscription system:
+- fake-door taps on Pro features
+- which locked features users try most
+- whether smart suggestions or progress features create the strongest upgrade intent
+- conversion by users who experienced comeback mode vs users who did not
+
+## 11. Product Metrics
+
+### North-Star Metric
+
+```
+% of new users who complete 2 workout sessions within 14 days of signup
+```
+
+Why this metric:
+- One session can be curiosity.
+- Two completed sessions show the user understood the flow and returned.
+- It matches the target user better than daily app opens because they may only train 1–3×/week.
+
+### Activation Funnel
+
+```
+sign_up_completed
+onboarding_completed
+program_created_or_selected
+first_workout_started
+first_workout_finished
+second_workout_finished
+```
+
+### Training Retention
+
+```
+week_2_workout_completion
+completed_2_sessions_within_14_days
+completed_workouts_in_3_consecutive_calendar_weeks
+D7 / D30 return
+```
+
+### Comeback Metrics
+
+```
+inactive_7d_returned
+inactive_14d_returned
+comeback_card_shown
+comeback_workout_started
+comeback_workout_finished
+second_workout_after_comeback_finished
+```
+
+Primary comeback metric:
+```
+Comeback recovery rate =
+users inactive 7+ days who complete 2 sessions after returning
+```
+
+### Smart Suggestion Effectiveness
+
+```
+suggestion_shown
+suggestion_accepted
+suggestion_edited
+suggestion_ignored
+session_completed_after_suggestion
+next_session_completed_after_suggestion
+```
+
+### Reliability Metrics
+
+```
+workout_started
+workout_finished
+workout_restored
+unfinished_session_detected
+upload_failed
+session_finish_missing
+```
+
+Migration watch:
+```
+5+ "lost workout" reports
+or >5% sessions without finish event
+→ reconsider storage strategy / SwiftData migration
+```
+
+### V1 TelemetryDeck Event Set
+
+```
+sign_up_completed
+onboarding_completed
+program_created
+template_selected
+workout_started
+workout_finished
+suggestion_shown
+suggestion_accepted
+comeback_card_shown
+workout_restored
+```
+
+Add later:
+```
+second_workout_finished
+inactive_7d_returned
+inactive_14d_returned
+comeback_workout_finished
+session_finish_missing
+paywall_viewed
+pro_feature_tapped
+```
 
 ---
 
-## 11. Marketing Plan
+## 12. Marketing Plan
 
 **Pre-launch:** TikTok + Twitter/X in Thai. "หยุดเล่นยิม 2 อาทิตย์ กลับมายังไง" — no app yet.
 
@@ -778,7 +934,7 @@ Exercise matching:
 
 ---
 
-## 12. Development Workflow & CI/CD
+## 13. Development Workflow & CI/CD
 
 ### The Full Loop
 
@@ -808,7 +964,7 @@ git push main → CI/CD ships to TestFlight
 
 ---
 
-## 13. Decisions Made (and Rejected)
+## 14. Decisions Made (and Rejected)
 
 | Area | Chosen | Rejected | Why |
 |---|---|---|---|
@@ -818,12 +974,18 @@ git push main → CI/CD ships to TestFlight
 | Models | ONE Codable struct | DTO + @Model split | No mapping code |
 | AI V1 | Rule-based | AI-first | Offline, Thai, free |
 | Design | SwiftUI native | Figma | Solo dev, 3× faster |
-| Crash V1/V2 | Apple → Crashlytics | Sentry | Free, then free with Firebase |
-| Analytics | TelemetryDeck | Firebase/PostHog | Privacy, Swift |
 | Architecture | MVVM + Repo + Service | UseCase/Coordinator | Lean |
 | Folders | Layer + feature Presentation | Full feature-based | Solo dev clarity |
 | Positioning | "Consistency coach" | "Thai tracker" | Hevy already Thai |
 | Social | Cut | Build social | Hevy owns this |
+| Onboarding | Basic onboarding in Phase 1 | Wait until Sprint 6 | Product promise needs guided first-run |
+| V1 templates | 2 starter plans in Phase 1 | Templates only in Sprint 8 | Reduce blank-state friction without removing customization |
+| Analytics | TelemetryDeck | Firebase Analytics V1 | Privacy-first, enough for V1 product metrics |
+| Crash tracking | Apple early beta → Crashlytics before public launch | Sentry V1 | Lean early, stronger public-release monitoring |
+| HealthKit | Delay unless beta feedback demands it | Ship in Sprint 3 | Nice-to-have, not core wedge |
+| Monetization | 30-day full Pro trial + limited Free | Free core coach forever | Trial matches time-to-value; coach remains monetizable |
+| Free plan | Useful logger + small coach taste | Plain logger only | Preserve differentiation after trial |
+| AI | Conditional later phase | Mandatory roadmap item | Build only if user demand/data justify it |
 | CI/CD | Xcode Cloud | GitHub Actions | Simplest, free |
 | Release | Sprint→TestFlight, Phase→App Store | Sprint→App Store | Marketing + review risk |
 | Custom programs | V1 Sprint 2 | V3 only | Dev tests own routine |
@@ -833,15 +995,33 @@ git push main → CI/CD ships to TestFlight
 
 ---
 
-## 14. Open Decisions
+## 15. Open Decisions
 
-All major decisions resolved. ✅
+All major strategic decisions resolved. ✅
+
+Monitor after beta:
+- whether 2 starter plans are enough for first-run success
+- whether users understand the Free vs Pro boundary
+- whether HealthKit is requested often enough to pull forward
+- whether AI coaching has real demand or should remain deferred
 
 > Add new open decisions here as they arise during development.
 
 ---
 
-## 15. Decision Log
+## 16. Decision Log
+
+### 2026-05-10 (session 8)
+- **Apple Sign-In data:** collect Apple user ID + email; save name only when Apple provides it; do not force real email or extra profile fields at signup
+- **V1 first-run flow:** keep custom program builder early, but add basic onboarding plus two starter plans (Full Body 2 Days, PPL 3 Days)
+- **HealthKit:** move out of Sprint 3; revisit after beta feedback / later watch work
+- **Monetization:** switch to 30-day full Pro trial → limited Free plan → Pro subscription
+- **Free plan:** manual logger, custom programs, timer, basic history, 1 starter template, basic next-session suggestion, 1 free comeback rescue
+- **Pro boundary:** unlimited smart suggestions, unlimited comeback mode, stall/deload guidance, full templates, graphs, heatmap, watch/widget, export, AI
+- **Analytics:** keep TelemetryDeck for V1 product analytics
+- **Crash tracking:** Apple built-in during early beta; add Crashlytics before public App Store launch
+- **Product metrics:** add north-star, activation, retention, comeback, suggestion, and reliability metrics
+- **AI:** keep in roadmap but make conditional on user demand / retention value
 
 ### 2026-05-08 (session 7)
 - **App name:** GymBros (placeholder, will rename before App Store launch)
@@ -893,5 +1073,11 @@ All major decisions resolved. ✅
 **Storage V1:** Supabase + in-memory + UserDefaults. SwiftData later if needed.
 
 **Architecture:** Presentation → Data → Model → Core. Services pure. Tests mandatory.
+
+**North-star metric:** % of new users who complete 2 workout sessions within 14 days.
+
+**Monetization:** 30-day full Pro trial → limited Free → Pro unlocks the full coach.
+
+**Analytics:** TelemetryDeck for product behavior. Apple built-in early beta → Crashlytics before public launch.
 
 **Sprint 1 spec:** /specs/S01-foundation-data.md — ready to hand to Claude Code.
