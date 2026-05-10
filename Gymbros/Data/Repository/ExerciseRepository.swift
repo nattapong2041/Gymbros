@@ -2,7 +2,12 @@ import Foundation
 import Supabase
 
 @MainActor
-final class ExerciseRepository {
+protocol ExerciseRepositoryProviding {
+    func fetchAll() async throws -> [Exercise]
+}
+
+@MainActor
+final class ExerciseRepository: ExerciseRepositoryProviding {
     private let client = SupabaseClientManager.shared.client
 
     func fetchAll() async throws -> [Exercise] {
