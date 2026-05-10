@@ -10,7 +10,7 @@ final class ExerciseRepository {
             let exercises: [Exercise] = try await client
                 .from("exercises")
                 .select()
-                .order("name_en")
+                .order("name")
                 .execute()
                 .value
             return exercises
@@ -25,7 +25,7 @@ final class ExerciseRepository {
                 .from("exercises")
                 .select()
                 .eq("primary_muscle", value: muscle.rawValue)
-                .order("name_en")
+                .order("name")
                 .execute()
                 .value
             return exercises
@@ -40,7 +40,7 @@ final class ExerciseRepository {
                 .from("exercises")
                 .select()
                 .eq("movement_pattern", value: pattern.rawValue)
-                .order("name_en")
+                .order("name")
                 .execute()
                 .value
             return exercises

@@ -14,11 +14,13 @@ create table public.profiles (
     updated_at timestamptz default now() not null
 );
 
--- Master exercise library (shared, read-only for users)
+-- Exercise library. System exercises have owner_user_id = null.
+-- User-created exercises use the exact name the user entered and owner_user_id = auth.uid().
 create table public.exercises (
     id uuid primary key default gen_random_uuid(),
-    name_en text not null,
-    name_th text not null,
+    owner_user_id uuid references public.profiles(id) on delete cascade,
+    slug text,
+    name text not null,
     movement_pattern text not null,
     primary_muscle text not null,
     secondary_muscles text[] default '{}' not null,
@@ -55,7 +57,7 @@ create table public.program_exercises (
     target_sets int not null default 3,
     target_reps_min int not null default 8,
     target_reps_max int not null default 12,
-    rest_seconds int not null default 90,
+    target_rest_seconds int not null default 90,
     exercise_order int not null,
     notes text,
     created_at timestamptz default now() not null
@@ -77,10 +79,15 @@ create table public.workout_sets (
     id uuid primary key default gen_random_uuid(),
     session_id uuid references public.workout_sessions(id) on delete cascade not null,
     exercise_id uuid references public.exercises(id) not null,
+    program_exercise_id uuid references public.program_exercises(id) on delete set null,
     set_number int not null,
     weight numeric(6,2) not null,
     reps int not null,
     rpe numeric(3,1),
+    target_rest_seconds int,
+    actual_rest_seconds int,
+    rest_started_at timestamptz,
+    rest_ended_at timestamptz,
     completed_at timestamptz default now() not null,
     notes text
 );
@@ -94,6 +101,10 @@ create index idx_sessions_user on public.workout_sessions(user_id);
 create index idx_sessions_started on public.workout_sessions(started_at desc);
 create index idx_sets_session on public.workout_sets(session_id);
 create index idx_sets_exercise_user on public.workout_sets(exercise_id, completed_at desc);
+create index idx_sets_program_exercise on public.workout_sets(program_exercise_id);
+create index idx_exercises_owner on public.exercises(owner_user_id);
+create unique index idx_exercises_system_slug on public.exercises(slug)
+    where owner_user_id is null and slug is not null;
 create index idx_exercises_pattern on public.exercises(movement_pattern);
 create index idx_exercises_muscle on public.exercises(primary_muscle);
 
@@ -113,8 +124,22 @@ create policy "Users can insert own profile" on public.profiles
 create policy "Users can update own profile" on public.profiles
     for update using (auth.uid() = id);
 
-create policy "Authenticated users can view exercises" on public.exercises
-    for select using (auth.uid() is not null);
+create policy "Authenticated users can view available exercises" on public.exercises
+    for select to authenticated
+    using (owner_user_id is null or (select auth.uid()) = owner_user_id);
+
+create policy "Users can create own exercises" on public.exercises
+    for insert to authenticated
+    with check ((select auth.uid()) = owner_user_id);
+
+create policy "Users can update own exercises" on public.exercises
+    for update to authenticated
+    using ((select auth.uid()) = owner_user_id)
+    with check ((select auth.uid()) = owner_user_id);
+
+create policy "Users can delete own exercises" on public.exercises
+    for delete to authenticated
+    using ((select auth.uid()) = owner_user_id);
 
 create policy "Users can view own programs" on public.programs
     for select using (auth.uid() = user_id);

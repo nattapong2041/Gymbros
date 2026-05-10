@@ -21,8 +21,9 @@ struct CodableTests {
         let json = """
         {
             "id": "550e8400-e29b-41d4-a716-446655440000",
-            "name_en": "Bench Press",
-            "name_th": "เบนช์เพรส",
+            "owner_user_id": null,
+            "slug": "bench_press",
+            "name": "Bench Press",
             "movement_pattern": "push",
             "primary_muscle": "chest",
             "secondary_muscles": ["shoulders", "triceps"],
@@ -34,8 +35,10 @@ struct CodableTests {
 
         let exercise = try decoder.decode(Exercise.self, from: json)
 
-        #expect(exercise.nameEn == "Bench Press")
-        #expect(exercise.nameTh == "เบนช์เพรส")
+        #expect(exercise.ownerUserId == nil)
+        #expect(exercise.slug == "bench_press")
+        #expect(exercise.name == "Bench Press")
+        #expect(exercise.displayName == "Bench Press")
         #expect(exercise.movementPattern == .push)
         #expect(exercise.primaryMuscle == .chest)
         #expect(exercise.secondaryMuscles == [.shoulders, .triceps])
@@ -112,6 +115,10 @@ struct CodableTests {
             "weight": 80.0,
             "reps": 8,
             "rpe": 7.5,
+            "target_rest_seconds": 180,
+            "actual_rest_seconds": 420,
+            "rest_started_at": "2026-05-08T10:01:00Z",
+            "rest_ended_at": "2026-05-08T10:08:00Z",
             "completed_at": "2026-05-08T10:00:00Z"
         }
         """.data(using: .utf8)!
@@ -122,5 +129,9 @@ struct CodableTests {
         #expect(set.weight == 80.0)
         #expect(set.reps == 8)
         #expect(set.rpe == 7.5)
+        #expect(set.targetRestSeconds == 180)
+        #expect(set.actualRestSeconds == 420)
+        #expect(set.restStartedAt != nil)
+        #expect(set.restEndedAt != nil)
     }
 }

@@ -277,7 +277,7 @@ Plan: /sprints/S01-foundation-data/plan.md
 ☐ All Codable model structs + enums
 ☐ SupabaseClient + Apple Sign-In auth
 ☐ Repositories (Profile, Exercise, Program, Workout)
-☐ ~100 exercises seeded in Thai + English
+☐ ~100 system exercises seeded with canonical names
 ☐ Localizable.xcstrings — Thai (primary) + English (fallback)
 ☐ Login screen strings localized (first real usage)
 ☐ App language follows device locale automatically (Thai device → Thai, all other device languages → English)
@@ -297,7 +297,7 @@ Spec: /specs/S02-custom-program-builder.md
 ☐ Add/remove/rename program days
 ☐ DayBuilderView — manage exercises per day
 ☐ ExercisePickerView — search/filter exercise library
-☐ Set targets per exercise: sets, rep range, rest seconds
+☐ Set targets per exercise: sets, rep range, target rest seconds
 ☐ Reorder exercises within a day (drag handle)
 ☐ Mark program as active (one at a time)
 ☐ Delete program (with confirmation)
@@ -319,7 +319,7 @@ Spec: /specs/S03-logger-timer.md
 ☐ SetRowView — weight + reps + RPE + checkbox
 ☐ Add set (copies last values), swipe to delete
 ☐ Background async upload per set (fire-and-forget)
-☐ RestTimerRingView — bottom sheet, lime ring, haptic
+☐ RestTimerRingView — bottom sheet, lime ring, haptic, records target vs actual rest
 ☐ Finish → mark complete in Supabase → clear backup
 ☐ Crash recovery: "Restore?" prompt on relaunch
 
@@ -764,8 +764,8 @@ On user selection (Sprint 8):
   in Supabase → user owns the copy → can edit freely
 
 Exercise matching:
-  JSON references exercise by name_en
-  On clone, app queries exercise table: WHERE name_en = ?
+  JSON references exercise by stable system slug
+  On clone, app queries exercise table: WHERE slug = ?
   Graceful fallback if exercise not found
 ```
 
@@ -1013,6 +1013,9 @@ Monitor after beta:
 ## 16. Decision Log
 
 ### 2026-05-10 (session 8)
+- **Exercise names:** store one canonical exercise `name` in Supabase; do not translate system exercise names for V1. User-created exercises use the exact name the user enters.
+- **Custom exercises:** use one `exercises` table with nullable `owner_user_id`; system exercises have no owner and user-created exercises belong to one profile.
+- **Rest tracking:** program exercises store editable `target_rest_seconds`; workout sets can snapshot target rest and record actual rest taken when users exceed the timer.
 - **Apple Sign-In data:** collect Apple user ID + email; save name only when Apple provides it; do not force real email or extra profile fields at signup
 - **V1 first-run flow:** keep custom program builder early, but add basic onboarding plus two starter plans (Full Body 2 Days, PPL 3 Days)
 - **HealthKit:** move out of Sprint 3; revisit after beta feedback / later watch work

@@ -35,7 +35,7 @@
 ✓ Apple email scope requested; `profiles.email` stores the auth email when Apple provides one
 ✓ Auth state persists across app launches and is revalidated with Supabase Auth on launch/foreground
 ✓ Supabase has all tables, indexes, and RLS policies
-✓ ~100 exercises seeded in Thai + English
+✓ ~100 system exercises seeded with canonical names
 ✓ Sign out works correctly
 ✓ Data errors normalize into `AppError` and repositories/ViewModels never expose raw SDK error text
 ✓ Error-handling unit tests cover auth, network, cancellation, decoding, HTTP/status, and Supabase code mapping
@@ -149,8 +149,9 @@ create table public.profiles (
 -- Master exercise library (shared, read-only for users)
 create table public.exercises (
     id uuid primary key default gen_random_uuid(),
-    name_en text not null,
-    name_th text not null,
+    owner_user_id uuid references public.profiles(id) on delete cascade,
+    slug text,
+    name text not null,
     movement_pattern text not null,    -- 'push' | 'pull' | 'squat' | 'hinge' | 'lunge' | 'carry' | 'core'
     primary_muscle text not null,      -- 'chest' | 'back' | 'quads' | 'hamstrings' | etc.
     secondary_muscles text[] default '{}' not null,
@@ -187,7 +188,7 @@ create table public.program_exercises (
     target_sets int not null default 3,
     target_reps_min int not null default 8,
     target_reps_max int not null default 12,
-    rest_seconds int not null default 90,
+    target_rest_seconds int not null default 90,
     exercise_order int not null,
     notes text,
     created_at timestamptz default now() not null
@@ -209,10 +210,15 @@ create table public.workout_sets (
     id uuid primary key default gen_random_uuid(),
     session_id uuid references public.workout_sessions(id) on delete cascade not null,
     exercise_id uuid references public.exercises(id) not null,
+    program_exercise_id uuid references public.program_exercises(id) on delete set null,
     set_number int not null,
     weight numeric(6,2) not null,
     reps int not null,
     rpe numeric(3,1),                  -- 1.0 to 10.0, nullable
+    target_rest_seconds int,
+    actual_rest_seconds int,
+    rest_started_at timestamptz,
+    rest_ended_at timestamptz,
     completed_at timestamptz default now() not null,
     notes text
 );
@@ -229,6 +235,10 @@ create index idx_sessions_user on public.workout_sessions(user_id);
 create index idx_sessions_started on public.workout_sessions(started_at desc);
 create index idx_sets_session on public.workout_sets(session_id);
 create index idx_sets_exercise_user on public.workout_sets(exercise_id, completed_at desc);
+create index idx_sets_program_exercise on public.workout_sets(program_exercise_id);
+create index idx_exercises_owner on public.exercises(owner_user_id);
+create unique index idx_exercises_system_slug on public.exercises(slug)
+    where owner_user_id is null and slug is not null;
 create index idx_exercises_pattern on public.exercises(movement_pattern);
 create index idx_exercises_muscle on public.exercises(primary_muscle);
 
@@ -255,8 +265,22 @@ create policy "Users can update own profile" on public.profiles
     for update using (auth.uid() = id);
 
 -- Exercise policies (everyone authenticated can read)
-create policy "Authenticated users can view exercises" on public.exercises
-    for select using (auth.uid() is not null);
+create policy "Authenticated users can view available exercises" on public.exercises
+    for select to authenticated
+    using (owner_user_id is null or (select auth.uid()) = owner_user_id);
+
+create policy "Users can create own exercises" on public.exercises
+    for insert to authenticated
+    with check ((select auth.uid()) = owner_user_id);
+
+create policy "Users can update own exercises" on public.exercises
+    for update to authenticated
+    using ((select auth.uid()) = owner_user_id)
+    with check ((select auth.uid()) = owner_user_id);
+
+create policy "Users can delete own exercises" on public.exercises
+    for delete to authenticated
+    using ((select auth.uid()) = owner_user_id);
 
 -- Program policies
 create policy "Users can view own programs" on public.programs
@@ -442,24 +466,21 @@ import Foundation
 
 struct Exercise: Codable, Identifiable, Hashable {
     let id: UUID
-    let nameEn: String
-    let nameTh: String
+    let ownerUserId: UUID?
+    let slug: String?
+    let name: String
     let movementPattern: MovementPattern
     let primaryMuscle: MuscleGroup
     let secondaryMuscles: [MuscleGroup]
     let equipment: Equipment
     let isCompound: Bool
     let createdAt: Date
-    
-    /// Returns localized name based on current locale
-    var localizedName: String {
-        Locale.current.language.languageCode?.identifier == "th" ? nameTh : nameEn
-    }
-    
+
+    var displayName: String { name }
+
     enum CodingKeys: String, CodingKey {
-        case id, equipment
-        case nameEn = "name_en"
-        case nameTh = "name_th"
+        case id, slug, name, equipment
+        case ownerUserId = "owner_user_id"
         case movementPattern = "movement_pattern"
         case primaryMuscle = "primary_muscle"
         case secondaryMuscles = "secondary_muscles"
@@ -533,7 +554,7 @@ struct ProgramExercise: Codable, Identifiable, Equatable {
     var targetSets: Int
     var targetRepsMin: Int
     var targetRepsMax: Int
-    var restSeconds: Int
+    var targetRestSeconds: Int
     var exerciseOrder: Int
     var notes: String?
     let createdAt: Date
@@ -545,7 +566,7 @@ struct ProgramExercise: Codable, Identifiable, Equatable {
         case targetSets = "target_sets"
         case targetRepsMin = "target_reps_min"
         case targetRepsMax = "target_reps_max"
-        case restSeconds = "rest_seconds"
+        case targetRestSeconds = "target_rest_seconds"
         case exerciseOrder = "exercise_order"
         case createdAt = "created_at"
     }
@@ -595,18 +616,28 @@ struct WorkoutSet: Codable, Identifiable, Equatable {
     let id: UUID
     let sessionId: UUID
     let exerciseId: UUID
+    let programExerciseId: UUID?
     var setNumber: Int
     var weight: Double
     var reps: Int
     var rpe: Double?
+    var targetRestSeconds: Int?
+    var actualRestSeconds: Int?
+    var restStartedAt: Date?
+    var restEndedAt: Date?
     var completedAt: Date
     var notes: String?
-    
+
     enum CodingKeys: String, CodingKey {
         case id, weight, reps, rpe, notes
         case sessionId = "session_id"
         case exerciseId = "exercise_id"
+        case programExerciseId = "program_exercise_id"
         case setNumber = "set_number"
+        case targetRestSeconds = "target_rest_seconds"
+        case actualRestSeconds = "actual_rest_seconds"
+        case restStartedAt = "rest_started_at"
+        case restEndedAt = "rest_ended_at"
         case completedAt = "completed_at"
     }
 }
@@ -986,7 +1017,7 @@ final class ExerciseRepository {
         let exercises: [Exercise] = try await client
             .from("exercises")
             .select()
-            .order("name_en")
+            .order("name")
             .execute()
             .value
         return exercises
@@ -997,7 +1028,7 @@ final class ExerciseRepository {
             .from("exercises")
             .select()
             .eq("primary_muscle", value: muscle.rawValue)
-            .order("name_en")
+            .order("name")
             .execute()
             .value
         return exercises
@@ -1008,7 +1039,7 @@ final class ExerciseRepository {
             .from("exercises")
             .select()
             .eq("movement_pattern", value: pattern.rawValue)
-            .order("name_en")
+            .order("name")
             .execute()
             .value
         return exercises
@@ -1349,126 +1380,14 @@ Run this AFTER schema.sql in Supabase SQL Editor.
 -- ~100 exercises covering common movement patterns
 -- Add more as needed in Sprint 2
 
-insert into public.exercises (name_en, name_th, movement_pattern, primary_muscle, secondary_muscles, equipment, is_compound) values
--- BARBELL COMPOUNDS
-('Barbell Back Squat', 'สควอทบาร์เบล', 'squat', 'quads', '{glutes,hamstrings,core}', 'barbell', true),
-('Barbell Front Squat', 'สควอทบาร์หน้า', 'squat', 'quads', '{glutes,core}', 'barbell', true),
-('Barbell Deadlift', 'เดดลิฟท์บาร์เบล', 'hinge', 'hamstrings', '{glutes,back,core}', 'barbell', true),
-('Romanian Deadlift', 'โรมาเนียนเดดลิฟท์', 'hinge', 'hamstrings', '{glutes,back}', 'barbell', true),
-('Sumo Deadlift', 'ซูโม่เดดลิฟท์', 'hinge', 'hamstrings', '{glutes,quads,back}', 'barbell', true),
-('Barbell Bench Press', 'เบนช์เพรสบาร์เบล', 'push', 'chest', '{shoulders,triceps}', 'barbell', true),
-('Barbell Incline Bench Press', 'อินไคลน์เบนช์เพรส', 'push', 'chest', '{shoulders,triceps}', 'barbell', true),
-('Barbell Overhead Press', 'โอเวอร์เฮดเพรสบาร์เบล', 'push', 'shoulders', '{triceps,core}', 'barbell', true),
-('Barbell Bent Over Row', 'เบนท์โอเวอร์โรว์', 'pull', 'back', '{biceps,traps}', 'barbell', true),
-('Barbell Pendlay Row', 'เพนเดลย์โรว์', 'pull', 'back', '{biceps,traps}', 'barbell', true),
-('Barbell Hip Thrust', 'ฮิปทรัสต์บาร์เบล', 'hinge', 'glutes', '{hamstrings}', 'barbell', true),
+insert into public.exercises (name, slug, movement_pattern, primary_muscle, secondary_muscles, equipment, is_compound) values
+('Barbell Back Squat', 'barbell_back_squat', 'squat', 'quads', '{glutes,hamstrings,core}', 'barbell', true),
+('Barbell Bench Press', 'barbell_bench_press', 'push', 'chest', '{shoulders,triceps}', 'barbell', true);
 
--- DUMBBELL EXERCISES
-('Dumbbell Bench Press', 'เบนช์เพรสดัมเบล', 'push', 'chest', '{shoulders,triceps}', 'dumbbell', true),
-('Dumbbell Incline Press', 'อินไคลน์เพรสดัมเบล', 'push', 'chest', '{shoulders,triceps}', 'dumbbell', true),
-('Dumbbell Shoulder Press', 'โชลเดอร์เพรสดัมเบล', 'push', 'shoulders', '{triceps}', 'dumbbell', true),
-('Dumbbell Row', 'ดัมเบลโรว์', 'pull', 'back', '{biceps,traps}', 'dumbbell', true),
-('Dumbbell Romanian Deadlift', 'โรมาเนียนเดดลิฟท์ดัมเบล', 'hinge', 'hamstrings', '{glutes}', 'dumbbell', true),
-('Dumbbell Lunge', 'ลันจ์ดัมเบล', 'lunge', 'quads', '{glutes,hamstrings}', 'dumbbell', true),
-('Dumbbell Bulgarian Split Squat', 'บัลแกเรียนสปลิทสควอท', 'lunge', 'quads', '{glutes}', 'dumbbell', true),
-('Dumbbell Goblet Squat', 'กอบเล็ทสควอท', 'squat', 'quads', '{glutes,core}', 'dumbbell', true),
-('Dumbbell Lateral Raise', 'ไซด์เลทเทอรัล', 'push', 'shoulders', '{}', 'dumbbell', false),
-('Dumbbell Front Raise', 'ฟรอนเรซดัมเบล', 'push', 'shoulders', '{}', 'dumbbell', false),
-('Dumbbell Rear Delt Fly', 'รีเดลฟลายดัมเบล', 'pull', 'shoulders', '{}', 'dumbbell', false),
-('Dumbbell Bicep Curl', 'ไบเซ็พเคิลดัมเบล', 'pull', 'biceps', '{}', 'dumbbell', false),
-('Dumbbell Hammer Curl', 'แฮมเมอร์เคิล', 'pull', 'biceps', '{forearms}', 'dumbbell', false),
-('Dumbbell Tricep Extension', 'ไตรเซ็พเอ็กซ์เทนชัน', 'push', 'triceps', '{}', 'dumbbell', false),
-('Dumbbell Skull Crusher', 'สกัลครัชเชอร์', 'push', 'triceps', '{}', 'dumbbell', false),
-('Dumbbell Fly', 'ฟลายดัมเบล', 'push', 'chest', '{}', 'dumbbell', false),
-('Dumbbell Pullover', 'พูลโอเวอร์ดัมเบล', 'pull', 'back', '{chest}', 'dumbbell', false),
-('Dumbbell Shrug', 'ชรักดัมเบล', 'pull', 'traps', '{}', 'dumbbell', false),
+-- Full seed list lives in supabase/seed_exercises.sql.
 
--- MACHINE EXERCISES
-('Machine Chest Press', 'เครื่องเพรสอก', 'push', 'chest', '{shoulders,triceps}', 'machine', true),
-('Machine Incline Chest Press', 'เครื่องเพรสอกบน', 'push', 'chest', '{shoulders,triceps}', 'machine', true),
-('Machine Shoulder Press', 'เครื่องเพรสไหล่', 'push', 'shoulders', '{triceps}', 'machine', true),
-('Machine Lat Pulldown', 'แลทพูลดาวน์', 'pull', 'back', '{biceps}', 'machine', true),
-('Machine Seated Row', 'ซีตโรว์', 'pull', 'back', '{biceps,traps}', 'machine', true),
-('Machine Chest Fly', 'เพคเด็ค', 'push', 'chest', '{}', 'machine', false),
-('Machine Rear Delt Fly', 'เครื่องรีเดลฟลาย', 'pull', 'shoulders', '{}', 'machine', false),
-('Leg Press', 'เลกเพรส', 'squat', 'quads', '{glutes,hamstrings}', 'machine', true),
-('Hack Squat', 'แฮคสควอท', 'squat', 'quads', '{glutes}', 'machine', true),
-('Leg Extension', 'เลกเอ็กซ์เทนชัน', 'squat', 'quads', '{}', 'machine', false),
-('Leg Curl (Lying)', 'เลกเคิลนอน', 'hinge', 'hamstrings', '{}', 'machine', false),
-('Leg Curl (Seated)', 'เลกเคิลนั่ง', 'hinge', 'hamstrings', '{}', 'machine', false),
-('Calf Raise (Standing)', 'แคล์ฟเรซยืน', 'core', 'calves', '{}', 'machine', false),
-('Calf Raise (Seated)', 'แคล์ฟเรซนั่ง', 'core', 'calves', '{}', 'machine', false),
-('Smith Machine Bench Press', 'สมิธมาชีนเบนช์', 'push', 'chest', '{shoulders,triceps}', 'machine', true),
-('Smith Machine Squat', 'สมิธมาชีนสควอท', 'squat', 'quads', '{glutes}', 'machine', true),
-('Hip Abductor Machine', 'เครื่องสะโพกออก', 'core', 'glutes', '{}', 'machine', false),
-('Hip Adductor Machine', 'เครื่องสะโพกใน', 'core', 'glutes', '{}', 'machine', false),
-('Glute Kickback Machine', 'เครื่องคิกแบ็คก้น', 'hinge', 'glutes', '{hamstrings}', 'machine', false),
-
--- CABLE EXERCISES
-('Cable Lat Pulldown (Wide Grip)', 'พูลดาวน์เคเบิลกว้าง', 'pull', 'back', '{biceps}', 'cable', true),
-('Cable Lat Pulldown (Close Grip)', 'พูลดาวน์เคเบิลแคบ', 'pull', 'back', '{biceps}', 'cable', true),
-('Cable Row (Seated)', 'เคเบิลโรว์', 'pull', 'back', '{biceps,traps}', 'cable', true),
-('Cable Face Pull', 'เฟซพูล', 'pull', 'shoulders', '{traps}', 'cable', false),
-('Cable Tricep Pushdown', 'ทรายเซ็พพุชดาวน์', 'push', 'triceps', '{}', 'cable', false),
-('Cable Tricep Rope Extension', 'ทรายเซ็พโรปเอ็กซ์เทนชัน', 'push', 'triceps', '{}', 'cable', false),
-('Cable Bicep Curl', 'เคเบิลไบเซ็พเคิล', 'pull', 'biceps', '{}', 'cable', false),
-('Cable Lateral Raise', 'เคเบิลไซด์เรซ', 'push', 'shoulders', '{}', 'cable', false),
-('Cable Chest Fly', 'เคเบิลเชสฟลาย', 'push', 'chest', '{}', 'cable', false),
-('Cable Crossover', 'เคเบิลครอสโอเวอร์', 'push', 'chest', '{}', 'cable', false),
-('Cable Pull-Through', 'เคเบิลพูลทรู', 'hinge', 'glutes', '{hamstrings}', 'cable', false),
-('Cable Crunch', 'เคเบิลครันช์', 'core', 'core', '{}', 'cable', false),
-
--- BODYWEIGHT
-('Pull-Up', 'พูลอัพ', 'pull', 'back', '{biceps}', 'bodyweight', true),
-('Chin-Up', 'ชินอัพ', 'pull', 'back', '{biceps}', 'bodyweight', true),
-('Push-Up', 'พุชอัพ', 'push', 'chest', '{shoulders,triceps,core}', 'bodyweight', true),
-('Dip', 'ดิป', 'push', 'chest', '{triceps,shoulders}', 'bodyweight', true),
-('Bodyweight Squat', 'สควอทตัวเปล่า', 'squat', 'quads', '{glutes}', 'bodyweight', false),
-('Bodyweight Lunge', 'ลันจ์ตัวเปล่า', 'lunge', 'quads', '{glutes,hamstrings}', 'bodyweight', false),
-('Plank', 'แพลงก์', 'core', 'core', '{}', 'bodyweight', false),
-('Side Plank', 'ไซด์แพลงก์', 'core', 'core', '{}', 'bodyweight', false),
-('Glute Bridge', 'กลูตบริดจ์', 'hinge', 'glutes', '{hamstrings}', 'bodyweight', false),
-('Hanging Leg Raise', 'แฮงกิ้งเลกเรซ', 'core', 'core', '{}', 'bodyweight', false),
-('Hanging Knee Raise', 'แฮงกิ้งนีเรซ', 'core', 'core', '{}', 'bodyweight', false),
-('Mountain Climber', 'เมาน์เทนไคลม์เบอร์', 'core', 'core', '{}', 'bodyweight', false),
-('Burpee', 'เบอร์ปี', 'core', 'core', '{}', 'bodyweight', false),
-
--- KETTLEBELL
-('Kettlebell Swing', 'เคทเทิลเบลสวิง', 'hinge', 'glutes', '{hamstrings,back}', 'kettlebell', true),
-('Kettlebell Goblet Squat', 'เคทเทิลกอบเล็ทสควอท', 'squat', 'quads', '{glutes,core}', 'kettlebell', true),
-('Kettlebell Clean', 'เคทเทิลคลีน', 'pull', 'back', '{glutes,shoulders}', 'kettlebell', true),
-('Kettlebell Press', 'เคทเทิลเพรส', 'push', 'shoulders', '{triceps}', 'kettlebell', true),
-('Kettlebell Row', 'เคทเทิลโรว์', 'pull', 'back', '{biceps}', 'kettlebell', true),
-('Turkish Get-Up', 'เทอร์กิชเก็ทอัพ', 'core', 'core', '{shoulders}', 'kettlebell', true),
-
--- BARBELL — additional
-('Barbell Curl', 'เคิลบาร์เบล', 'pull', 'biceps', '{}', 'barbell', false),
-('Barbell Skull Crusher', 'สกัลครัชเชอร์บาร์เบล', 'push', 'triceps', '{}', 'barbell', false),
-('Barbell Shrug', 'ชรักบาร์เบล', 'pull', 'traps', '{}', 'barbell', false),
-('Barbell Calf Raise', 'แคล์ฟเรซบาร์เบล', 'core', 'calves', '{}', 'barbell', false),
-('Barbell Good Morning', 'กู๊ดมอร์นิ่ง', 'hinge', 'hamstrings', '{back,glutes}', 'barbell', true),
-('Barbell Reverse Lunge', 'รีเวิร์สลันจ์', 'lunge', 'quads', '{glutes,hamstrings}', 'barbell', true),
-('Close Grip Bench Press', 'โคลสกริปเบนช์', 'push', 'triceps', '{chest,shoulders}', 'barbell', true),
-('Incline Bench Press', 'อินไคลน์เบนช์', 'push', 'chest', '{shoulders,triceps}', 'barbell', true),
-('Decline Bench Press', 'ดีไคลน์เบนช์', 'push', 'chest', '{triceps}', 'barbell', true),
-
--- DUMBBELL — additional
-('Dumbbell Step-Up', 'สเต็พอัพดัมเบล', 'lunge', 'quads', '{glutes}', 'dumbbell', true),
-('Dumbbell Reverse Lunge', 'รีเวิร์สลันจ์ดัมเบล', 'lunge', 'quads', '{glutes,hamstrings}', 'dumbbell', true),
-('Dumbbell Walking Lunge', 'วอล์กกิ้งลันจ์', 'lunge', 'quads', '{glutes,hamstrings}', 'dumbbell', true),
-('Dumbbell Side Lateral', 'ดัมเบลไซด์เลทเทอรัล', 'push', 'shoulders', '{}', 'dumbbell', false),
-('Dumbbell Concentration Curl', 'คอนเซนเทรชันเคิล', 'pull', 'biceps', '{}', 'dumbbell', false),
-('Dumbbell Reverse Fly', 'รีเวิร์สฟลาย', 'pull', 'shoulders', '{traps}', 'dumbbell', false),
-
--- BAND EXERCISES
-('Band Pull-Apart', 'แบนด์พูลอะพาร์ท', 'pull', 'shoulders', '{traps}', 'band', false),
-('Band Face Pull', 'แบนด์เฟซพูล', 'pull', 'shoulders', '{traps}', 'band', false),
-('Band Tricep Pushdown', 'แบนด์ทรายเซ็พ', 'push', 'triceps', '{}', 'band', false),
-('Band Bicep Curl', 'แบนด์ไบเซ็พ', 'pull', 'biceps', '{}', 'band', false);
-
--- Verify count
 select count(*) as exercise_count from public.exercises;
--- Should be ~95
+-- Should be 98
 ```
 
 ---
@@ -1482,9 +1401,9 @@ select count(*) as exercise_count from public.exercises;
 ☐ Force quit + reopen app → still authenticated when the Supabase Auth user still exists
 ☐ Delete the Auth user in Supabase → foreground/reopen app → returns to login screen
 ☐ Tap Sign Out → returns to login screen
-☐ Supabase shows ~95 exercises in Thai + English
+☐ Supabase shows ~98 exercises with canonical names
 ☐ ProgramRepository.fetchAll() returns empty array (no programs yet)
-☐ ExerciseRepository.fetchAll() returns ~95 exercises
+☐ ExerciseRepository.fetchAll() returns ~98 exercises
 ☐ All Codable models compile without warnings
 ☐ RLS works: querying another user's profile from SQL editor returns nothing
 ☐ `private.handle_new_user()` is not in the exposed `public` schema and cannot be directly executed by `anon` or `authenticated`
@@ -1524,8 +1443,9 @@ final class CodableTests: XCTestCase {
         let json = """
         {
             "id": "550e8400-e29b-41d4-a716-446655440000",
-            "name_en": "Bench Press",
-            "name_th": "เบนช์เพรส",
+            "owner_user_id": null,
+            "slug": "bench_press",
+            "name": "Bench Press",
             "movement_pattern": "push",
             "primary_muscle": "chest",
             "secondary_muscles": ["shoulders", "triceps"],
@@ -1540,8 +1460,9 @@ final class CodableTests: XCTestCase {
         
         let exercise = try decoder.decode(Exercise.self, from: json)
         
-        XCTAssertEqual(exercise.nameEn, "Bench Press")
-        XCTAssertEqual(exercise.nameTh, "เบนช์เพรส")
+        XCTAssertNil(exercise.ownerUserId)
+        XCTAssertEqual(exercise.slug, "bench_press")
+        XCTAssertEqual(exercise.name, "Bench Press")
         XCTAssertEqual(exercise.movementPattern, .push)
         XCTAssertEqual(exercise.primaryMuscle, .chest)
         XCTAssertEqual(exercise.secondaryMuscles, [.shoulders, .triceps])
@@ -1805,7 +1726,7 @@ When pasting this spec into Claude Code, build in this order:
 ✅ All checklist items complete
 ✅ App runs on simulator
 ✅ Can sign in with Apple Sign-In
-✅ Supabase shows 95+ exercises
+✅ Supabase shows 98 exercises
 ✅ Force quit + reopen → still signed in
 ✅ Sign out → returns to login
 ✅ All unit tests pass

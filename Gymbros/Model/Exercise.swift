@@ -2,8 +2,9 @@ import Foundation
 
 struct Exercise: Codable, Identifiable, Hashable {
     let id: UUID
-    let nameEn: String
-    let nameTh: String
+    let ownerUserId: UUID?
+    let slug: String?
+    let name: String
     let movementPattern: MovementPattern
     let primaryMuscle: MuscleGroup
     let secondaryMuscles: [MuscleGroup]
@@ -11,14 +12,11 @@ struct Exercise: Codable, Identifiable, Hashable {
     let isCompound: Bool
     let createdAt: Date
 
-    var localizedName: String {
-        Locale.current.language.languageCode?.identifier == "th" ? nameTh : nameEn
-    }
+    var displayName: String { name }
 
     enum CodingKeys: String, CodingKey {
-        case id, equipment
-        case nameEn = "name_en"
-        case nameTh = "name_th"
+        case id, slug, name, equipment
+        case ownerUserId = "owner_user_id"
         case movementPattern = "movement_pattern"
         case primaryMuscle = "primary_muscle"
         case secondaryMuscles = "secondary_muscles"
