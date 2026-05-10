@@ -8,7 +8,7 @@
 
 ## CURRENT STATUS
 
-**Status:** Task 1 complete. Tasks 2, 3, and 4 are ready for parallel implementation.
+**Status:** Task 2 complete in worktree `../Gymbros-s02-task2` on branch `s02-program-builder-task2`. Tasks 3 and 4 remain ready for parallel implementation; Task 5 should start after Tasks 3-4 are complete.
 
 **Done:**
 - Sprint 2 spec created at `.claude/sprints/S02-program-builder/spec.md`.
@@ -16,8 +16,11 @@
 - Shared Program protocols created for list, builder, detail, day builder, and exercise picker.
 - `ProgramExerciseForm`, validation helpers, zero-based dense order helpers, preview samples, and Swift Testing coverage added.
 - Targeted Task 1 tests pass on `iPhone 17e`.
+- Task 2 repository methods, payload structs, concrete ViewModels, and Swift Testing coverage added.
+- Targeted Task 2 tests pass on `iPhone 17e`.
+- Full `xcodebuild test` scheme passes on `iPhone 17e`.
 
-**Last commit SHA:** 151f690
+**Last commit SHA:** 9c7068f
 
 **Known deviations / constraints:**
 - Use simulator `iPhone 17e` in all `xcodebuild` commands.
@@ -27,8 +30,10 @@
 - Do not manually declare `Color.gymPurple`; it is generated from the asset catalog.
 - No schema migration is expected for Sprint 2.
 - Verification required escalated filesystem/CoreSimulator access because sandboxed `xcodebuild` could not write SwiftPM/Xcode caches.
+- The worktree uses an ignored local placeholder `Gymbros/Core/Secrets.swift` with dummy values so tests compile; do not commit real secrets.
+- Task 2 added repository protocols solely for dependency injection in ViewModel tests; concrete app code still defaults to `ProgramRepository` and `ExerciseRepository`.
 
-**Next step:** Start Task 2, Task 3, and Task 4 in parallel.
+**Next step:** Complete Task 3 SwiftUI screens and Task 4 localization, then start Task 5 wiring/integration.
 
 ---
 
@@ -93,20 +98,20 @@ Task 5 is sequential integration after Tasks 2-4 are complete.
 - `GymbrosTests/ProgramRepositoryPayloadTests.swift`
 - `GymbrosTests/ProgramBuilderValidationTests.swift`
 
-- [ ] Extend `ProgramRepository` with create/update/delete/reorder methods for `program_days`.
-- [ ] Extend `ProgramRepository` with create/update/delete/reorder methods for `program_exercises`.
-- [ ] Use insert/update payload structs so server-managed fields are not sent accidentally.
-- [ ] Ensure repository catch blocks map errors through `ErrorMapper` with operation/table context.
-- [ ] Implement concrete `ProgramListViewModel` conforming to `ProgramListProtocol`.
-- [ ] Implement `ProgramBuilderViewModel` for create/edit program metadata.
-- [ ] Implement `ProgramDetailViewModel` for full program load, active action, delete program, day add/rename/delete/reorder.
-- [ ] Implement `DayBuilderViewModel` for day load, exercise add/update/delete/reorder.
-- [ ] Implement `ExercisePickerViewModel` with fetch-all once and in-memory search/filter.
-- [ ] Ensure all ViewModels use `ViewState` and expose only `AppError` for errors.
-- [ ] Add tests for payload encoding if payload structs are introduced.
-- [ ] Add tests for ViewModel validation paths that do not require live Supabase.
-- [ ] Run relevant Swift tests.
-- [ ] Update `CURRENT STATUS` with completed work and any integration notes for Task 5.
+- [x] Extend `ProgramRepository` with create/update/delete/reorder methods for `program_days`.
+- [x] Extend `ProgramRepository` with create/update/delete/reorder methods for `program_exercises`.
+- [x] Use insert/update payload structs so server-managed fields are not sent accidentally.
+- [x] Ensure repository catch blocks map errors through `ErrorMapper` with operation/table context.
+- [x] Implement concrete `ProgramListViewModel` conforming to `ProgramListProtocol`.
+- [x] Implement `ProgramBuilderViewModel` for create/edit program metadata.
+- [x] Implement `ProgramDetailViewModel` for full program load, active action, delete program, day add/rename/delete/reorder.
+- [x] Implement `DayBuilderViewModel` for day load, exercise add/update/delete/reorder.
+- [x] Implement `ExercisePickerViewModel` with fetch-all once and in-memory search/filter.
+- [x] Ensure all ViewModels use `ViewState` and expose only `AppError` for errors.
+- [x] Add tests for payload encoding if payload structs are introduced.
+- [x] Add tests for ViewModel validation paths that do not require live Supabase.
+- [x] Run relevant Swift tests.
+- [x] Update `CURRENT STATUS` with completed work and any integration notes for Task 5.
 
 ---
 
