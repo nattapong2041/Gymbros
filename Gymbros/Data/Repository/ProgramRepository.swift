@@ -47,9 +47,30 @@ final class ProgramRepository: ProgramRepositoryProviding {
                 .order("updated_at", ascending: false)
                 .execute()
                 .value
-            return programs
+
+            let programIds = programs.map(\.id)
+            guard !programIds.isEmpty else { return [] }
+
+            let days: [ProgramDay] = try await client
+                .from("program_days")
+                .select()
+                .in("program_id", values: programIds)
+                .order("day_order")
+                .execute()
+                .value
+
+            return Self.attachDays(days, to: programs)
         } catch {
             throw ErrorMapper.map(error, context: .init(operation: "fetchPrograms", table: "programs"))
+        }
+    }
+
+    static func attachDays(_ days: [ProgramDay], to programs: [Program]) -> [Program] {
+        let daysByProgramId = Dictionary(grouping: days, by: \.programId)
+        return programs.map { program in
+            var hydratedProgram = program
+            hydratedProgram.days = ProgramOrderNormalizer.normalizeDays(daysByProgramId[program.id] ?? [])
+            return hydratedProgram
         }
     }
 

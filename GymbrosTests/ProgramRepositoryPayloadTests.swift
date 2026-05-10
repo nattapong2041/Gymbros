@@ -91,6 +91,28 @@ struct ProgramRepositoryPayloadTests {
         #expect(updateDictionary["created_at"] == nil)
     }
 
+    @MainActor
+    @Test func attachDaysHydratesProgramListCounts() {
+        let unrelatedProgram = Program(
+            id: UUID(uuidString: "99999999-9999-9999-9999-999999999999")!,
+            userId: ProgramSamples.userId,
+            name: "Empty Program",
+            description: nil,
+            isActive: false,
+            createdAt: ProgramSamples.createdAt,
+            updatedAt: ProgramSamples.createdAt
+        )
+
+        let programs = ProgramRepository.attachDays(
+            ProgramSamples.days,
+            to: [ProgramSamples.program, unrelatedProgram]
+        )
+
+        #expect(programs[0].days.map(\.name) == ["Upper A", "Lower A"])
+        #expect(programs[0].days.map(\.dayOrder) == [0, 1])
+        #expect(programs[1].days.isEmpty)
+    }
+
     private func encodeDictionary<T: Encodable>(_ value: T) throws -> [String: Any] {
         let data = try JSONEncoder().encode(value)
         return try #require(JSONSerialization.jsonObject(with: data) as? [String: Any])
