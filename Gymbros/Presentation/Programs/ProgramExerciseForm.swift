@@ -1,11 +1,13 @@
 import Foundation
 
-struct ProgramExerciseForm: Equatable {
+struct ProgramExerciseForm: Identifiable, Equatable {
     static let defaultTargetSets = 3
     static let defaultTargetRepsMin = 8
     static let defaultTargetRepsMax = 12
     static let defaultTargetRestSeconds = 90
 
+    let id: UUID
+    let exerciseId: UUID
     var targetSets: Int
     var targetRepsMin: Int
     var targetRepsMax: Int
@@ -13,12 +15,16 @@ struct ProgramExerciseForm: Equatable {
     var notes: String
 
     init(
+        id: UUID = UUID(),
+        exerciseId: UUID = UUID(),
         targetSets: Int = Self.defaultTargetSets,
         targetRepsMin: Int = Self.defaultTargetRepsMin,
         targetRepsMax: Int = Self.defaultTargetRepsMax,
         targetRestSeconds: Int = Self.defaultTargetRestSeconds,
         notes: String = ""
     ) {
+        self.id = id
+        self.exerciseId = exerciseId
         self.targetSets = targetSets
         self.targetRepsMin = targetRepsMin
         self.targetRepsMax = targetRepsMax
@@ -28,6 +34,8 @@ struct ProgramExerciseForm: Equatable {
 
     init(programExercise: ProgramExercise) {
         self.init(
+            id: programExercise.id,
+            exerciseId: programExercise.exerciseId,
             targetSets: programExercise.targetSets,
             targetRepsMin: programExercise.targetRepsMin,
             targetRepsMax: programExercise.targetRepsMax,

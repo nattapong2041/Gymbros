@@ -1,9 +1,9 @@
 import SwiftUI
 
-struct DayBuilderView<VM: DayBuilderProtocol>: View {
-    @State var viewModel: VM
+struct DayBuilderView: View {
+    @State var viewModel: DayBuilderViewModel
     @State private var isShowingExercisePicker = false
-    @State private var exerciseToEdit: ProgramExercise?
+    @State private var editingForm: ProgramExerciseForm?
     @State private var isShowingRenameAlert = false
     @State private var renamedDayName = ""
 
@@ -25,7 +25,7 @@ struct DayBuilderView<VM: DayBuilderProtocol>: View {
                             )
                             .contentShape(Rectangle())
                             .onTapGesture {
-                                exerciseToEdit = programExercise
+                                editingForm = ProgramExerciseForm(programExercise: programExercise)
                             }
                             .swipeActions(edge: .trailing) {
                                 Button(role: .destructive) {
@@ -87,12 +87,28 @@ struct DayBuilderView<VM: DayBuilderProtocol>: View {
             Button("common.cancel", role: .cancel) {}
         }
         .sheet(isPresented: $isShowingExercisePicker) {
-            // ExercisePickerView will be next
-            Text("exercisePicker.title")
+            ExercisePickerView(viewModel: ExercisePickerViewModel()) { exercise in
+                Task { await viewModel.addExercise(exercise, form: ProgramExerciseForm(exerciseId: exercise.id)) }
+            }
         }
-        .sheet(item: $exerciseToEdit) { programExercise in
-            // ProgramExerciseEditorView will be implemented
-            Text("dayBuilder.editPrescription.title \(programExercise.exerciseId.uuidString)")
+        .sheet(item: $editingForm) { form in
+            ProgramExerciseEditorView(
+                form: Binding(
+                    get: { editingForm ?? form },
+                    set: { updatedForm in
+                        guard editingForm != nil else { return }
+                        editingForm = updatedForm
+                    }
+                ),
+                exerciseName: viewModel.state.value?.exerciseLookup[form.exerciseId]?.name ?? String(localized: "common.unknown"),
+                onSave: {
+                    let currentForm = editingForm ?? form
+                    editingForm = nil
+                    if let pe = viewModel.state.value?.programExercises.first(where: { $0.id == currentForm.id }) {
+                        Task { await viewModel.updateProgramExercise(pe, form: currentForm) }
+                    }
+                }
+            )
         }
     }
 
@@ -122,18 +138,22 @@ struct ProgramExerciseRow: View {
                     .font(.headline)
                 Spacer()
                 HStack(spacing: 4) {
-                    Text("\(programExercise.targetSets)")
+                    Text(verbatim: "\(programExercise.targetSets)")
                         .font(.gymNumber(size: 18))
-                    Text("x")
+                    Text(verbatim: "x")
                         .font(.caption.bold())
                         .foregroundStyle(.secondary)
-                    Text("\(programExercise.targetRepsMin)-\(programExercise.targetRepsMax)")
+                    Text(verbatim: "\(programExercise.targetRepsMin)-\(programExercise.targetRepsMax)")
                         .font(.gymNumber(size: 18))
                 }
             }
 
             HStack {
-                Label("\(programExercise.targetRestSeconds)s", systemImage: "timer")
+                Label {
+                    Text(verbatim: "\(programExercise.targetRestSeconds)s")
+                } icon: {
+                    Image(systemName: "timer")
+                }
                     .font(.caption)
                     .foregroundStyle(.secondary)
 
@@ -151,67 +171,12 @@ struct ProgramExerciseRow: View {
 
 // MARK: - Previews
 
-@Observable final class PreviewDayBuilderViewModel: DayBuilderProtocol {
-    var dayId: UUID = ProgramSamples.upperDayId
-    var state: ViewState<DayBuilderData> = .success(ProgramSamples.dayBuilderData)
-    var transientError: AppError? = nil
-
-    func loadDay() async {}
-    func renameDay(_ name: String) async {
-        if case .success(var data) = state {
-            data.day.name = name
-            state = .success(data)
-        }
-    }
-    func addExercise(_ exercise: Exercise, form: ProgramExerciseForm) async {
-        if case .success(var data) = state {
-            let newEx = ProgramExercise(
-                id: UUID(),
-                programDayId: dayId,
-                exerciseId: exercise.id,
-                targetSets: form.targetSets,
-                targetRepsMin: form.targetRepsMin,
-                targetRepsMax: form.targetRepsMax,
-                targetRestSeconds: form.targetRestSeconds,
-                exerciseOrder: data.programExercises.count,
-                notes: form.normalizedNotes,
-                createdAt: Date()
-            )
-            data.programExercises.append(newEx)
-            data.exerciseLookup[exercise.id] = exercise
-            state = .success(data)
-        }
-    }
-    func updateProgramExercise(_ programExercise: ProgramExercise, form: ProgramExerciseForm) async {
-        if case .success(var data) = state {
-            if let index = data.programExercises.firstIndex(where: { $0.id == programExercise.id }) {
-                var updated = data.programExercises[index]
-                updated.targetSets = form.targetSets
-                updated.targetRepsMin = form.targetRepsMin
-                updated.targetRepsMax = form.targetRepsMax
-                updated.targetRestSeconds = form.targetRestSeconds
-                updated.notes = form.normalizedNotes
-                data.programExercises[index] = updated
-                state = .success(data)
-            }
-        }
-    }
-    func deleteProgramExercise(_ programExercise: ProgramExercise) async {
-        if case .success(var data) = state {
-            data.programExercises.removeAll { $0.id == programExercise.id }
-            state = .success(data)
-        }
-    }
-    func moveProgramExercises(from sourceOffsets: IndexSet, to destinationOffset: Int) async {
-        if case .success(var data) = state {
-            data.programExercises.move(fromOffsets: sourceOffsets, toOffset: destinationOffset)
-            state = .success(data)
-        }
-    }
-}
-
 #Preview {
     NavigationStack {
-        DayBuilderView(viewModel: PreviewDayBuilderViewModel())
+        DayBuilderView(viewModel: {
+            let vm = DayBuilderViewModel(dayId: ProgramSamples.upperDayId)
+            vm.state = .success(ProgramSamples.dayBuilderData)
+            return vm
+        }())
     }
 }

@@ -1,7 +1,7 @@
 import SwiftUI
 
-struct ExercisePickerView<VM: ExercisePickerProtocol>: View {
-    @State var viewModel: VM
+struct ExercisePickerView: View {
+    @State var viewModel: ExercisePickerViewModel
     var onSelect: (Exercise) -> Void
     @Environment(\.dismiss) private var dismiss
 
@@ -10,9 +10,24 @@ struct ExercisePickerView<VM: ExercisePickerProtocol>: View {
             List {
                 filterSection
 
-                if viewModel.filteredExercises.isEmpty {
+                switch viewModel.state {
+                case .idle, .loading:
+                    ProgressView()
+                case .empty:
+                    ContentUnavailableView("exercisePicker.empty.title", systemImage: "figure.strengthtraining.traditional")
+                case .error(let error):
+                    ContentUnavailableView {
+                        Label(error.titleKey, systemImage: "exclamationmark.triangle")
+                    } description: {
+                        Text(error.messageKey)
+                    } actions: {
+                        Button("common.retry") {
+                            Task { await viewModel.loadExercises() }
+                        }
+                    }
+                case .success where viewModel.filteredExercises.isEmpty:
                     ContentUnavailableView.search(text: viewModel.searchText)
-                } else {
+                case .success:
                     ForEach(viewModel.filteredExercises) { exercise in
                         ExercisePickerRow(exercise: exercise)
                             .contentShape(Rectangle())
@@ -53,22 +68,19 @@ struct ExercisePickerView<VM: ExercisePickerProtocol>: View {
                     filterMenu(
                         selection: $viewModel.selectedMuscle,
                         label: "exercisePicker.filter.muscle",
-                        options: MuscleGroup.allCases,
-                        keyPrefix: "muscleGroup"
+                        options: MuscleGroup.allCases
                     )
 
                     filterMenu(
                         selection: $viewModel.selectedEquipment,
                         label: "exercisePicker.filter.equipment",
-                        options: Equipment.allCases,
-                        keyPrefix: "equipment"
+                        options: Equipment.allCases
                     )
 
                     filterMenu(
                         selection: $viewModel.selectedPattern,
                         label: "exercisePicker.filter.pattern",
-                        options: MovementPattern.allCases,
-                        keyPrefix: "movementPattern"
+                        options: MovementPattern.allCases
                     )
                 }
                 .padding(.vertical, 4)
@@ -78,22 +90,22 @@ struct ExercisePickerView<VM: ExercisePickerProtocol>: View {
         }
     }
 
-    private func filterMenu<T: RawRepresentable & Hashable>(
+    private func filterMenu<T: ExerciseFilterOption>(
         selection: Binding<T?>,
         label: String,
-        options: [T],
-        keyPrefix: String
-    ) -> some View where T.RawValue == String {
+        options: [T]
+    ) -> some View {
         Menu {
-            Picker(label, selection: selection) {
+            Picker(LocalizedStringKey(label), selection: selection) {
                 Text("common.all").tag(nil as T?)
                 ForEach(options, id: \.self) { option in
-                    Text("\(keyPrefix).\(option.rawValue)").tag(option as T?)
+                    Text(option.localizedTitleKey)
+                        .tag(option as T?)
                 }
             }
         } label: {
             HStack(spacing: 4) {
-                Text(selection.wrappedValue.map { "\(keyPrefix).\($0.rawValue)" } ?? label)
+                Text(selection.wrappedValue?.localizedTitleKey ?? LocalizedStringKey(label))
                 Image(systemName: "chevron.down")
                     .font(.caption2)
             }
@@ -128,9 +140,9 @@ struct ExercisePickerRow: View {
             }
 
             HStack(spacing: 8) {
-                Text("muscleGroup.\(exercise.primaryMuscle.rawValue)")
-                Text("•")
-                Text("equipment.\(exercise.equipment.rawValue)")
+                Text(exercise.primaryMuscle.localizedTitleKey)
+                Text(verbatim: "•")
+                Text(exercise.equipment.localizedTitleKey)
             }
             .font(.caption)
             .foregroundStyle(.secondary)
@@ -139,34 +151,63 @@ struct ExercisePickerRow: View {
     }
 }
 
-// MARK: - Previews
+private protocol ExerciseFilterOption: Hashable {
+    var localizedTitleKey: LocalizedStringKey { get }
+}
 
-@Observable final class PreviewExercisePickerViewModel: ExercisePickerProtocol {
-    var state: ViewState<[Exercise]> = .success(ProgramSamples.exercises)
-    var transientError: AppError? = nil
-    var searchText: String = ""
-    var selectedMuscle: MuscleGroup? = nil
-    var selectedEquipment: Equipment? = nil
-    var selectedPattern: MovementPattern? = nil
-
-    var filteredExercises: [Exercise] {
-        ProgramSamples.exercises.filter { exercise in
-            let matchesSearch = searchText.isEmpty || exercise.name.localizedCaseInsensitiveContains(searchText)
-            let matchesMuscle = selectedMuscle == nil || exercise.primaryMuscle == selectedMuscle
-            let matchesEquipment = selectedEquipment == nil || exercise.equipment == selectedEquipment
-            let matchesPattern = selectedPattern == nil || exercise.movementPattern == selectedPattern
-            return matchesSearch && matchesMuscle && matchesEquipment && matchesPattern
+extension MuscleGroup: ExerciseFilterOption {
+    var localizedTitleKey: LocalizedStringKey {
+        switch self {
+        case .chest: "muscleGroup.chest"
+        case .back: "muscleGroup.back"
+        case .shoulders: "muscleGroup.shoulders"
+        case .biceps: "muscleGroup.biceps"
+        case .triceps: "muscleGroup.triceps"
+        case .quads: "muscleGroup.quads"
+        case .hamstrings: "muscleGroup.hamstrings"
+        case .glutes: "muscleGroup.glutes"
+        case .calves: "muscleGroup.calves"
+        case .core: "muscleGroup.core"
+        case .forearms: "muscleGroup.forearms"
+        case .traps: "muscleGroup.traps"
         }
-    }
-
-    func loadExercises() async {}
-    func clearFilters() {
-        selectedMuscle = nil
-        selectedEquipment = nil
-        selectedPattern = nil
     }
 }
 
+extension Equipment: ExerciseFilterOption {
+    var localizedTitleKey: LocalizedStringKey {
+        switch self {
+        case .barbell: "equipment.barbell"
+        case .dumbbell: "equipment.dumbbell"
+        case .machine: "equipment.machine"
+        case .cable: "equipment.cable"
+        case .bodyweight: "equipment.bodyweight"
+        case .kettlebell: "equipment.kettlebell"
+        case .band: "equipment.band"
+        }
+    }
+}
+
+extension MovementPattern: ExerciseFilterOption {
+    var localizedTitleKey: LocalizedStringKey {
+        switch self {
+        case .push: "movementPattern.push"
+        case .pull: "movementPattern.pull"
+        case .squat: "movementPattern.squat"
+        case .hinge: "movementPattern.hinge"
+        case .lunge: "movementPattern.lunge"
+        case .carry: "movementPattern.carry"
+        case .core: "movementPattern.core"
+        }
+    }
+}
+
+// MARK: - Previews
+
 #Preview {
-    ExercisePickerView(viewModel: PreviewExercisePickerViewModel()) { _ in }
+    ExercisePickerView(viewModel: {
+        let viewModel = ExercisePickerViewModel()
+        viewModel.state = .success(ProgramSamples.exercises)
+        return viewModel
+    }()) { _ in }
 }

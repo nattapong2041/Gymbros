@@ -1,15 +1,18 @@
 import SwiftUI
 
-struct ProgramListView<VM: ProgramListProtocol>: View {
-    @State var viewModel: VM
-    @State private var selectedProgramId: UUID?
+struct ProgramListView: View {
+    @State var viewModel: ProgramListViewModel
     @State private var isShowingCreateSheet = false
     @State private var programToDelete: Program?
 
     var body: some View {
-        NavigationSplitView {
+        NavigationStack {
             content
                 .navigationTitle("programs.title")
+                .navigationDestination(for: UUID.self) { programId in
+                    ProgramDetailView(viewModel: ProgramDetailViewModel(programId: programId))
+                        .id(programId)
+                }
                 .toolbar {
                     ToolbarItem(placement: .primaryAction) {
                         Button {
@@ -19,29 +22,12 @@ struct ProgramListView<VM: ProgramListProtocol>: View {
                         }
                     }
                 }
-        } detail: {
-            if selectedProgramId != nil {
-                // ProgramDetailView will be implemented next
-                ProgressView()
-            } else {
-                ContentUnavailableView(
-                    "programs.detail.placeholder.title",
-                    systemImage: "dumbbell",
-                    description: Text("programs.detail.placeholder.message")
-                )
-            }
         }
         .sheet(isPresented: $isShowingCreateSheet) {
-            // ProgramBuilderView will be implemented later
-            NavigationStack {
-                Text("programBuilder.title.create")
-                    .navigationTitle("programBuilder.title.create")
-                    .toolbar {
-                        ToolbarItem(placement: .cancellationAction) {
-                            Button("common.cancel") { isShowingCreateSheet = false }
-                        }
-                    }
-            }
+            ProgramBuilderView(viewModel: ProgramBuilderViewModel(mode: .create))
+                .onDisappear {
+                    Task { await viewModel.loadPrograms(isRefreshing: true) }
+                }
         }
         .alert(
             "programs.delete.confirmation.title",
@@ -66,7 +52,9 @@ struct ProgramListView<VM: ProgramListProtocol>: View {
     @ViewBuilder
     private var content: some View {
         switch viewModel.state {
-        case .idle, .loading:
+        case .idle:
+            Color.clear
+        case .loading:
             ProgressView()
         case .empty:
             ContentUnavailableView {
@@ -82,10 +70,11 @@ struct ProgramListView<VM: ProgramListProtocol>: View {
                 .tint(.gymAccent)
             }
         case .success(let programs):
-            List(selection: $selectedProgramId) {
+            List {
                 ForEach(programs) { program in
-                    ProgramRow(program: program)
-                        .tag(program.id)
+                    NavigationLink(value: program.id) {
+                        ProgramRow(program: program)
+                    }
                         .swipeActions(edge: .trailing, allowsFullSwipe: false) {
                             Button(role: .destructive) {
                                 programToDelete = program
@@ -103,6 +92,9 @@ struct ProgramListView<VM: ProgramListProtocol>: View {
                             }
                         }
                 }
+            }
+            .refreshable {
+                await viewModel.loadPrograms(isRefreshing: true)
             }
         case .error(let error):
             ContentUnavailableView {
@@ -157,40 +149,26 @@ struct ProgramRow: View {
 
 // MARK: - Previews
 
-@Observable final class PreviewProgramListViewModel: ProgramListProtocol {
-    var state: ViewState<[Program]> = .success(ProgramSamples.programs)
-    var transientError: AppError? = nil
-
-    func loadPrograms() async {}
-    func setActive(program: Program) async {
-        // Toggle active for preview
-        if case .success(var programs) = state {
-            for i in programs.indices {
-                programs[i].isActive = (programs[i].id == program.id)
-            }
-            state = .success(programs)
-        }
-    }
-    func deleteProgram(_ program: Program) async {
-        if case .success(var programs) = state {
-            programs.removeAll { $0.id == program.id }
-            state = programs.isEmpty ? .empty : .success(programs)
-        }
-    }
-}
-
 #Preview("Success") {
-    ProgramListView(viewModel: PreviewProgramListViewModel())
+    ProgramListView(viewModel: {
+        let viewModel = ProgramListViewModel()
+        viewModel.state = .success(ProgramSamples.programs)
+        return viewModel
+    }())
 }
 
 #Preview("Empty") {
-    let vm = PreviewProgramListViewModel()
-    vm.state = .empty
-    return ProgramListView(viewModel: vm)
+    ProgramListView(viewModel: {
+        let viewModel = ProgramListViewModel()
+        viewModel.state = .empty
+        return viewModel
+    }())
 }
 
 #Preview("Error") {
-    let vm = PreviewProgramListViewModel()
-    vm.state = .error(.network(.offline))
-    return ProgramListView(viewModel: vm)
+    ProgramListView(viewModel: {
+        let viewModel = ProgramListViewModel()
+        viewModel.state = .error(.network(.offline))
+        return viewModel
+    }())
 }

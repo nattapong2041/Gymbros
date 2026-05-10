@@ -16,7 +16,7 @@ struct ProgramExerciseEditorView: View {
                         HStack {
                             Text("programExercise.sets")
                             Spacer()
-                            Text("\(form.targetSets)")
+                            Text(verbatim: "\(form.targetSets)")
                                 .font(.gymNumber(size: 20))
                                 .foregroundStyle(Color.gymAccent)
                         }
@@ -30,7 +30,7 @@ struct ProgramExerciseEditorView: View {
                         HStack {
                             Text("programExercise.repsMin")
                             Spacer()
-                            Text("\(form.targetRepsMin)")
+                            Text(verbatim: "\(form.targetRepsMin)")
                                 .font(.gymNumber(size: 20))
                         }
                     }
@@ -39,7 +39,7 @@ struct ProgramExerciseEditorView: View {
                         HStack {
                             Text("programExercise.repsMax")
                             Spacer()
-                            Text("\(form.targetRepsMax)")
+                            Text(verbatim: "\(form.targetRepsMax)")
                                 .font(.gymNumber(size: 20))
                         }
                     }
@@ -50,10 +50,10 @@ struct ProgramExerciseEditorView: View {
                 Section {
                     Picker("programExercise.rest.presets", selection: $form.targetRestSeconds) {
                         ForEach(restPresets, id: \.self) { seconds in
-                            Text("\(seconds)s").tag(seconds)
+                            Text(verbatim: "\(seconds)s").tag(seconds)
                         }
                         if !restPresets.contains(form.targetRestSeconds) {
-                            Text("\(form.targetRestSeconds)s").tag(form.targetRestSeconds)
+                            Text(verbatim: "\(form.targetRestSeconds)s").tag(form.targetRestSeconds)
                         }
                     }
                     .pickerStyle(.segmented)
@@ -62,7 +62,7 @@ struct ProgramExerciseEditorView: View {
                         HStack {
                             Text("programExercise.rest.custom")
                             Spacer()
-                            Text("\(form.targetRestSeconds)s")
+                            Text(verbatim: "\(form.targetRestSeconds)s")
                                 .font(.gymNumber(size: 20))
                         }
                     }

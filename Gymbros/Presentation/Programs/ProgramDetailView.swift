@@ -1,7 +1,7 @@
 import SwiftUI
 
-struct ProgramDetailView<VM: ProgramDetailProtocol>: View {
-    @State var viewModel: VM
+struct ProgramDetailView: View {
+    @State var viewModel: ProgramDetailViewModel
     @State private var isShowingEditProgram = false
     @State private var isShowingAddDayAlert = false
     @State private var newDayName = ""
@@ -12,7 +12,9 @@ struct ProgramDetailView<VM: ProgramDetailProtocol>: View {
     var body: some View {
         Group {
             switch viewModel.state {
-            case .idle, .loading:
+            case .idle:
+                Color.clear
+            case .loading:
                 ProgressView()
             case .empty:
                 ContentUnavailableView("programDetail.empty.title", systemImage: "calendar.badge.plus")
@@ -23,8 +25,8 @@ struct ProgramDetailView<VM: ProgramDetailProtocol>: View {
                     Section {
                         ForEach(data.days) { day in
                             NavigationLink {
-                                // DayBuilderView will be next
-                                Text(day.name)
+                                DayBuilderView(viewModel: DayBuilderViewModel(dayId: day.id))
+                                    .id(day.id)
                             } label: {
                                 HStack {
                                     Text(day.name)
@@ -144,10 +146,11 @@ struct ProgramDetailView<VM: ProgramDetailProtocol>: View {
             Text("programs.delete.confirmation.message")
         }
         .sheet(isPresented: $isShowingEditProgram) {
-            if case .success = viewModel.state {
-                // ProgramBuilderView implementation needs to be injected here normally
-                // For Task 3 we just use a placeholder if we don't have the real VM
-                Text("programBuilder.title.edit")
+            if case .success(let data) = viewModel.state {
+                ProgramBuilderView(viewModel: ProgramBuilderViewModel(mode: .edit(data.program)))
+                    .onDisappear {
+                        Task { await viewModel.loadProgram() }
+                    }
             }
         }
     }
@@ -183,50 +186,12 @@ struct ProgramDetailView<VM: ProgramDetailProtocol>: View {
 
 // MARK: - Previews
 
-@Observable final class PreviewProgramDetailViewModel: ProgramDetailProtocol {
-    var programId: UUID = ProgramSamples.programId
-    var state: ViewState<ProgramDetailData> = .success(ProgramSamples.detailData)
-    var transientError: AppError? = nil
-
-    func loadProgram() async {}
-    func setActive() async {
-        if case .success(var data) = state {
-            data.program.isActive = true
-            state = .success(data)
-        }
-    }
-    func deleteProgram() async {}
-    func addDay(name: String) async {
-        if case .success(var data) = state {
-            let newDay = ProgramDay(id: UUID(), programId: programId, name: name, dayOrder: data.days.count, createdAt: Date())
-            data.days.append(newDay)
-            state = .success(data)
-        }
-    }
-    func renameDay(_ day: ProgramDay, name: String) async {
-        if case .success(var data) = state {
-            if let index = data.days.firstIndex(where: { $0.id == day.id }) {
-                data.days[index].name = name
-                state = .success(data)
-            }
-        }
-    }
-    func deleteDay(_ day: ProgramDay) async {
-        if case .success(var data) = state {
-            data.days.removeAll { $0.id == day.id }
-            state = .success(data)
-        }
-    }
-    func moveDays(from sourceOffsets: IndexSet, to destinationOffset: Int) async {
-        if case .success(var data) = state {
-            data.days.move(fromOffsets: sourceOffsets, toOffset: destinationOffset)
-            state = .success(data)
-        }
-    }
-}
-
 #Preview {
     NavigationStack {
-        ProgramDetailView(viewModel: PreviewProgramDetailViewModel())
+        ProgramDetailView(viewModel: {
+            let viewModel = ProgramDetailViewModel(programId: ProgramSamples.programId)
+            viewModel.state = .success(ProgramSamples.detailData)
+            return viewModel
+        }())
     }
 }

@@ -7,8 +7,7 @@ struct RootView: View {
     var body: some View {
         Group {
             if auth.isAuthenticated {
-                Text("root.signedIn.placeholder")
-                    .foregroundStyle(.secondary)
+                ProgramListView(viewModel: ProgramListViewModel())
             } else {
                 SignInView()
             }

@@ -1,9 +1,12 @@
 import Foundation
 import Observation
+import OSLog
+
+private let logger = Logger(subsystem: "com.nattapongsawa.gymbros", category: "ProgramDetailViewModel")
 
 @MainActor
 @Observable
-final class ProgramDetailViewModel: ProgramDetailProtocol {
+final class ProgramDetailViewModel {
     let programId: UUID
     var state: ViewState<ProgramDetailData> = .idle
     var transientError: AppError?
@@ -22,15 +25,27 @@ final class ProgramDetailViewModel: ProgramDetailProtocol {
     }
 
     func loadProgram() async {
+        logger.debug("Starting loadProgram for \(self.programId)")
         transientError = nil
         state = .loading
         do {
-            let program = try await programRepository.fetchFull(id: programId)
-            let exercises = try await exerciseRepository.fetchAll()
+            logger.debug("Fetching full program and all exercises in parallel...")
+            async let programTask = programRepository.fetchFull(id: self.programId)
+            async let exercisesTask = exerciseRepository.fetchAll()
+
+            let (program, exercises) = try await (programTask, exercisesTask)
+
+            logger.debug("Load success.")
             state = .success(makeDetailData(program: program, exercises: exercises))
         } catch {
+            logger.error("Load failed: \(error.localizedDescription)")
             let appError = ProgramViewModelSupport.appError(error, operation: "loadProgramDetail")
-            state = appError.isVisibleToUser ? .error(appError) : .idle
+            if appError == .cancelled {
+                logger.debug("Load cancelled.")
+                state = .idle
+            } else {
+                state = .error(appError)
+            }
         }
     }
 

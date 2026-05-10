@@ -1,5 +1,29 @@
 import Foundation
 
+enum ProgramBuilderMode: Equatable {
+    case create
+    case edit(Program)
+
+    var existingProgram: Program? {
+        if case .edit(let program) = self {
+            return program
+        }
+        return nil
+    }
+}
+
+struct ProgramDetailData {
+    var program: Program
+    var days: [ProgramDay]
+    var exerciseLookup: [UUID: Exercise]
+}
+
+struct DayBuilderData {
+    var day: ProgramDay
+    var programExercises: [ProgramExercise]
+    var exerciseLookup: [UUID: Exercise]
+}
+
 enum ProgramViewModelSupport {
     static func appError(_ error: Error, operation: String) -> AppError {
         ErrorMapper.map(error, context: .init(operation: operation))

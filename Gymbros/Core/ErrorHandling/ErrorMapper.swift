@@ -1,4 +1,5 @@
 import Foundation
+import PostgREST
 
 struct ErrorContext: Equatable {
     let operation: String
@@ -27,6 +28,12 @@ enum ErrorMapper {
 
         if error is CancellationError {
             return .cancelled
+        }
+
+        if let postgrestError = error as? PostgrestError {
+            let code = postgrestError.code
+            let statusCode = context.statusCode ?? (code == "PGRST116" ? 404 : 500)
+            return mapHTTPStatus(statusCode, code: code)
         }
 
         if let urlError = error as? URLError {

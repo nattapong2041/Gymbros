@@ -3,7 +3,7 @@ import Observation
 
 @MainActor
 @Observable
-final class ProgramListViewModel: ProgramListProtocol {
+final class ProgramListViewModel {
     var state: ViewState<[Program]> = .idle
     var transientError: AppError?
 
@@ -13,15 +13,24 @@ final class ProgramListViewModel: ProgramListProtocol {
         self.repository = repository ?? ProgramRepository()
     }
 
-    func loadPrograms() async {
+    func loadPrograms(isRefreshing: Bool = false) async {
         transientError = nil
-        state = .loading
+        if !isRefreshing {
+            state = .loading
+        }
+
         do {
             let programs = ProgramViewModelSupport.sortedPrograms(try await repository.fetchAll())
             state = programs.isEmpty ? .empty : .success(programs)
         } catch {
             let appError = ProgramViewModelSupport.appError(error, operation: "loadPrograms")
-            state = appError.isVisibleToUser ? .error(appError) : .idle
+            if isRefreshing {
+                transientError = appError.isVisibleToUser ? appError : nil
+            } else if appError == .cancelled {
+                state = .idle
+            } else {
+                state = .error(appError)
+            }
         }
     }
 
@@ -29,7 +38,7 @@ final class ProgramListViewModel: ProgramListProtocol {
         transientError = nil
         do {
             try await repository.setActive(programId: program.id)
-            await loadPrograms()
+            await loadPrograms(isRefreshing: true)
         } catch {
             let appError = ProgramViewModelSupport.appError(error, operation: "setActiveProgram")
             transientError = appError.isVisibleToUser ? appError : nil
@@ -40,7 +49,7 @@ final class ProgramListViewModel: ProgramListProtocol {
         transientError = nil
         do {
             try await repository.delete(id: program.id)
-            await loadPrograms()
+            await loadPrograms(isRefreshing: true)
         } catch {
             let appError = ProgramViewModelSupport.appError(error, operation: "deleteProgram")
             transientError = appError.isVisibleToUser ? appError : nil

@@ -1,7 +1,7 @@
 import SwiftUI
 
-struct ProgramBuilderView<VM: ProgramBuilderProtocol>: View {
-    @State var viewModel: VM
+struct ProgramBuilderView: View {
+    @State var viewModel: ProgramBuilderViewModel
     @Environment(\.dismiss) private var dismiss
 
     var body: some View {
@@ -59,41 +59,10 @@ struct ProgramBuilderView<VM: ProgramBuilderProtocol>: View {
 
 // MARK: - Previews
 
-@Observable final class PreviewProgramBuilderViewModel: ProgramBuilderProtocol {
-    var mode: ProgramBuilderMode
-    var name: String = ""
-    var description: String = ""
-    var state: ViewState<Program> = .idle
-    var transientError: AppError? = nil
-
-    var canSave: Bool {
-        !name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-    }
-
-    init(mode: ProgramBuilderMode) {
-        self.mode = mode
-        if case let .edit(program) = mode {
-            self.name = program.name
-            self.description = program.description ?? ""
-        }
-    }
-
-    func save() async {
-        state = .loading
-        try? await Task.sleep(for: .seconds(1))
-        state = .success(ProgramSamples.program)
-    }
-
-    func resetForm() {
-        name = ""
-        description = ""
-    }
-}
-
 #Preview("Create") {
-    ProgramBuilderView(viewModel: PreviewProgramBuilderViewModel(mode: .create))
+    ProgramBuilderView(viewModel: ProgramBuilderViewModel(mode: .create))
 }
 
 #Preview("Edit") {
-    ProgramBuilderView(viewModel: PreviewProgramBuilderViewModel(mode: .edit(ProgramSamples.program)))
+    ProgramBuilderView(viewModel: ProgramBuilderViewModel(mode: .edit(ProgramSamples.program)))
 }

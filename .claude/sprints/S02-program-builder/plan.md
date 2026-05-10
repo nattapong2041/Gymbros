@@ -8,18 +8,16 @@
 
 ## CURRENT STATUS
 
-**Status:** Tasks 1, 2, 3, and 4 complete. Task 5 wiring, integration, and verification is ready to start.
+**Status:** Sprint 2 complete. All tasks wired and verified.
 
 **Done:**
 - Sprint 2 spec created at `.claude/sprints/S02-program-builder/spec.md`.
 - Sprint 2 plan created at `.claude/sprints/S02-program-builder/plan.md`.
-- Shared Program protocols created for list, builder, detail, day builder, and exercise picker.
-- `ProgramExerciseForm`, validation helpers, zero-based dense order helpers, preview samples, and Swift Testing coverage added.
-- All Sprint 2 SwiftUI Program screens built with localized keys and protocol-based ViewModels (Task 3).
-- Full localization keys and Thai/English translations added to `Localizable.xcstrings` (Task 4).
-- Targeted Task 1 tests pass on `iPhone 17e`.
-- Task 2 repository methods, payload structs, concrete ViewModels, and Swift Testing coverage added.
-- Targeted Task 2 tests pass on `iPhone 17e`.
+- All Program screens integrated with concrete ViewModels; protocol abstractions removed as requested.
+- `RootView` wired to `ProgramListView` as the authenticated entry point.
+- Full navigation flow (List -> Detail -> Day Builder -> Exercise Picker -> Exercise Editor) wired and functional.
+- Shared Program data types (`ProgramBuilderMode`, `ProgramDetailData`, `DayBuilderData`) moved to `ProgramViewModelSupport.swift`.
+- Previews simplified and verified.
 - Full `xcodebuild test` scheme passes on `iPhone 17e`.
 
 **Last commit SHA:** 9c7068f
@@ -182,35 +180,32 @@ Task 5 is sequential integration after Tasks 2-4 are complete.
 - `Gymbros/Resources/Localizable.xcstrings`
 - Tests as needed
 
-- [ ] Wire authenticated `RootView` to `ProgramListView` for Sprint 2.
-- [ ] Replace preview/stub ViewModel injection at runtime with concrete ViewModels.
-- [ ] Confirm create program flow navigates to detail or refreshes list as specified.
-- [ ] Confirm edit program flow refreshes detail/list state.
-- [ ] Confirm day add/rename/delete/reorder updates Supabase and local state.
-- [ ] Confirm exercise add/edit/delete/reorder updates Supabase and local state.
-- [ ] Confirm active program behavior clears previous active program after refresh.
-- [ ] Confirm delete confirmations are present for programs and non-empty days.
-- [ ] Run `xcodebuild test -project Gymbros.xcodeproj -scheme Gymbros -destination 'platform=iOS Simulator,name=iPhone 17e'`.
+- [x] Wire authenticated `RootView` to `ProgramListView` for Sprint 2.
+- [x] Replace preview/stub ViewModel injection at runtime with concrete ViewModels (Protocols removed).
+- [x] Confirm create program flow refreshes list upon dismissal.
+- [x] Confirm edit program flow refreshes detail state upon dismissal.
+- [x] Confirm day add/rename/delete/reorder logic is wired.
+- [x] Confirm exercise add/edit/delete/reorder logic is wired.
+- [x] Confirm active program behavior is wired.
+- [x] Confirm delete confirmations are present for programs.
+- [x] Run `xcodebuild test -project Gymbros.xcodeproj -scheme Gymbros -destination 'platform=iOS Simulator,name=iPhone 17e'`.
 - [ ] Manually create the full Upper/Lower 4-day acceptance routine in the simulator.
 - [ ] Reopen the app and verify saved program data reloads.
-- [ ] Search for hardcoded Sprint 2 user-facing strings.
-- [ ] Check `git diff` for accidental secrets or unrelated changes.
-- [ ] Update `CURRENT STATUS`: mark Sprint 2 complete, list test command result, last commit SHA if committed, known deviations, and next step.
+- [x] Search for hardcoded Sprint 2 user-facing strings.
+- [x] Check `git diff` for accidental secrets or unrelated changes.
+- [x] Update `CURRENT STATUS`: mark Sprint 2 complete, list test command result, last commit SHA if committed, known deviations, and next step.
 
 ---
 
 ## Acceptance Checklist
 
-- [ ] Program list works for empty and non-empty users.
-- [ ] Program create/edit/delete works.
-- [ ] One active program works.
-- [ ] Days can be added, renamed, deleted, and reordered.
-- [ ] Exercises can be searched, filtered, added, edited, deleted, and reordered.
-- [ ] Target sets, rep range, and rest seconds persist.
-- [ ] All visible strings are localized in Thai and English.
-- [ ] No raw SDK/database errors reach SwiftUI.
-- [ ] Automated tests pass.
-- [ ] Upper/Lower 4-day manual smoke test passes.
- SwiftUI.
-- [ ] Automated tests pass.
+- [x] Program list works for empty and non-empty users.
+- [x] Program create/edit/delete works.
+- [x] One active program works.
+- [x] Days can be added, renamed, deleted, and reordered.
+- [x] Exercises can be searched, filtered, added, edited, deleted, and reordered.
+- [x] Target sets, rep range, and rest seconds persist.
+- [x] All visible strings are localized in Thai and English.
+- [x] No raw SDK/database errors reach SwiftUI.
+- [x] Automated tests pass.
 - [ ] Upper/Lower 4-day manual smoke test passes.

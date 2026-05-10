@@ -3,7 +3,7 @@ import Observation
 
 @MainActor
 @Observable
-final class ExercisePickerViewModel: ExercisePickerProtocol {
+final class ExercisePickerViewModel {
     var state: ViewState<[Exercise]> = .idle
     var transientError: AppError?
     var searchText = ""

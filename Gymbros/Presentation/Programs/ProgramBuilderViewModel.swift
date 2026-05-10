@@ -3,7 +3,7 @@ import Observation
 
 @MainActor
 @Observable
-final class ProgramBuilderViewModel: ProgramBuilderProtocol {
+final class ProgramBuilderViewModel {
     let mode: ProgramBuilderMode
     var name: String
     var description: String

@@ -6,4 +6,11 @@ enum ViewState<Value> {
     case success(Value)
     case empty
     case error(AppError)
+
+    var value: Value? {
+        if case .success(let value) = self {
+            return value
+        }
+        return nil
+    }
 }

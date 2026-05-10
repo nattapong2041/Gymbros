@@ -1,9 +1,12 @@
 import Foundation
 import Observation
+import OSLog
+
+private let logger = Logger(subsystem: "com.nattapongsawa.gymbros", category: "DayBuilderViewModel")
 
 @MainActor
 @Observable
-final class DayBuilderViewModel: DayBuilderProtocol {
+final class DayBuilderViewModel {
     let dayId: UUID
     var state: ViewState<DayBuilderData> = .idle
     var transientError: AppError?
@@ -22,20 +25,32 @@ final class DayBuilderViewModel: DayBuilderProtocol {
     }
 
     func loadDay() async {
+        logger.debug("Starting loadDay for \(self.dayId)")
         transientError = nil
         state = .loading
         do {
-            let day = try await programRepository.fetchDay(id: dayId)
-            let programExercises = try await programRepository.fetchProgramExercises(dayId: dayId)
-            let exercises = try await exerciseRepository.fetchAll()
+            logger.debug("Fetching program data in parallel...")
+            async let dayTask = programRepository.fetchDay(id: self.dayId)
+            async let programExercisesTask = programRepository.fetchProgramExercises(dayId: self.dayId)
+            async let exercisesTask = exerciseRepository.fetchAll()
+
+            let (day, programExercises, exercises) = try await (dayTask, programExercisesTask, exercisesTask)
+
+            logger.debug("Load success.")
             state = .success(DayBuilderData(
                 day: day,
                 programExercises: ProgramOrderNormalizer.normalizeProgramExercises(programExercises),
                 exerciseLookup: ProgramViewModelSupport.exerciseLookup(from: exercises)
             ))
         } catch {
+            logger.error("Load failed: \(error.localizedDescription)")
             let appError = ProgramViewModelSupport.appError(error, operation: "loadProgramDay")
-            state = appError.isVisibleToUser ? .error(appError) : .idle
+            if appError == .cancelled {
+                logger.debug("Load cancelled.")
+                state = .idle
+            } else {
+                state = .error(appError)
+            }
         }
     }
 
