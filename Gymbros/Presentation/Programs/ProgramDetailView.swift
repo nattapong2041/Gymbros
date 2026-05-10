@@ -24,7 +24,7 @@ struct ProgramDetailView<VM: ProgramDetailProtocol>: View {
                         ForEach(data.days) { day in
                             NavigationLink {
                                 // DayBuilderView will be next
-                                Text("Day Builder for \(day.name)")
+                                Text(day.name)
                             } label: {
                                 HStack {
                                     Text(day.name)
@@ -147,7 +147,7 @@ struct ProgramDetailView<VM: ProgramDetailProtocol>: View {
             if case .success = viewModel.state {
                 // ProgramBuilderView implementation needs to be injected here normally
                 // For Task 3 we just use a placeholder if we don't have the real VM
-                Text("Edit Program Metadata Sheet")
+                Text("programBuilder.title.edit")
             }
         }
     }

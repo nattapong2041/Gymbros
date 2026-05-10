@@ -8,13 +8,15 @@
 
 ## CURRENT STATUS
 
-**Status:** Task 1 complete. Tasks 2, 3, and 4 are ready for parallel implementation.
+**Status:** Tasks 1, 3, and 4 complete. Task 2 is ready for implementation.
 
 **Done:**
 - Sprint 2 spec created at `.claude/sprints/S02-program-builder/spec.md`.
 - Sprint 2 plan created at `.claude/sprints/S02-program-builder/plan.md`.
 - Shared Program protocols created for list, builder, detail, day builder, and exercise picker.
 - `ProgramExerciseForm`, validation helpers, zero-based dense order helpers, preview samples, and Swift Testing coverage added.
+- All Sprint 2 SwiftUI Program screens built with localized keys and protocol-based ViewModels (Task 3).
+- Full localization keys and Thai/English translations added to `Localizable.xcstrings` (Task 4).
 - Targeted Task 1 tests pass on `iPhone 17e`.
 
 **Last commit SHA:** 151f690
@@ -149,17 +151,17 @@ Task 5 is sequential integration after Tasks 2-4 are complete.
 **Files likely touched:**
 - `Gymbros/Resources/Localizable.xcstrings`
 
-- [ ] Add `common.*` keys needed by Sprint 2: save, cancel, delete, edit, done, retry, seconds, minutes, active, search.
-- [ ] Add `programs.*` keys for list title, empty state, create action, active badge, delete confirmation, and loading/error copy.
-- [ ] Add `programBuilder.*` keys for create/edit titles, fields, placeholders, and validation messages.
-- [ ] Add `programDetail.*` keys for day management, active action, edit action, delete action, and confirmations.
-- [ ] Add `dayBuilder.*` keys for add exercise, rename day, exercise count, reorder labels, and confirmations.
-- [ ] Add `exercisePicker.*` keys for search, filters, clear filters, no results, and exercise metadata.
-- [ ] Add `programExercise.*` keys for sets, reps, rep range, rest, notes, presets, and validation.
-- [ ] Add `accessibility.*` keys for all icon-only buttons and destructive actions.
-- [ ] Verify every new key has both `en` and `th` localizations marked translated.
-- [ ] Search for hardcoded Sprint 2 user-facing strings in `Gymbros/Presentation/Programs`.
-- [ ] Update `CURRENT STATUS` with completed work and any missing keys for Task 5.
+- [x] Add `common.*` keys needed by Sprint 2: save, cancel, delete, edit, done, retry, seconds, minutes, active, search.
+- [x] Add `programs.*` keys for list title, empty state, create action, active badge, delete confirmation, and loading/error copy.
+- [x] Add `programBuilder.*` keys for create/edit titles, fields, placeholders, and validation messages.
+- [x] Add `programDetail.*` keys for day management, active action, edit action, delete action, and confirmations.
+- [x] Add `dayBuilder.*` keys for add exercise, rename day, exercise count, reorder labels, and confirmations.
+- [x] Add `exercisePicker.*` keys for search, filters, clear filters, no results, and exercise metadata.
+- [x] Add `programExercise.*` keys for sets, reps, rep range, rest, notes, presets, and validation.
+- [x] Add `accessibility.*` keys for all icon-only buttons and destructive actions.
+- [x] Verify every new key has both `en` and `th` localizations marked translated.
+- [x] Search for hardcoded Sprint 2 user-facing strings in `Gymbros/Presentation/Programs`.
+- [x] Update `CURRENT STATUS` with completed work and any missing keys for Task 5.
 
 ---
 

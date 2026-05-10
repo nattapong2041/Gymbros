@@ -20,9 +20,9 @@ struct ProgramListView<VM: ProgramListProtocol>: View {
                     }
                 }
         } detail: {
-            if let programId = selectedProgramId {
+            if selectedProgramId != nil {
                 // ProgramDetailView will be implemented next
-                Text("Program Detail for \(programId.uuidString)")
+                ProgressView()
             } else {
                 ContentUnavailableView(
                     "programs.detail.placeholder.title",
@@ -34,7 +34,7 @@ struct ProgramListView<VM: ProgramListProtocol>: View {
         .sheet(isPresented: $isShowingCreateSheet) {
             // ProgramBuilderView will be implemented later
             NavigationStack {
-                Text("Create Program Form")
+                Text("programBuilder.title.create")
                     .navigationTitle("programBuilder.title.create")
                     .toolbar {
                         ToolbarItem(placement: .cancellationAction) {

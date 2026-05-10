@@ -88,11 +88,11 @@ struct DayBuilderView<VM: DayBuilderProtocol>: View {
         }
         .sheet(isPresented: $isShowingExercisePicker) {
             // ExercisePickerView will be next
-            Text("Exercise Picker View")
+            Text("exercisePicker.title")
         }
         .sheet(item: $exerciseToEdit) { programExercise in
             // ProgramExerciseEditorView will be implemented
-            Text("Edit Exercise Prescription for \(programExercise.exerciseId.uuidString)")
+            Text("dayBuilder.editPrescription.title \(programExercise.exerciseId.uuidString)")
         }
     }
 
