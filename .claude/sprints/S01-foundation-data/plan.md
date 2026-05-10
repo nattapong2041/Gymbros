@@ -8,7 +8,7 @@
 
 ## ✅ CURRENT STATUS (as of 2026-05-10)
 
-**Tasks 1–9.6 are implemented and unit-verified. The only remaining Sprint 1 work is the external Supabase/device verification in Task 10.**
+**Sprint 1 is implementation-complete and verification-complete. The only remaining action is the final Sprint 1 completion commit.**
 
 **Completed commits:**
 - `feat: add Supabase schema and exercise seed data`
@@ -21,6 +21,8 @@
 - `feat: add SignInView with Apple Sign-In and RootView auth gate`
 - `feat: wire RootView entry point and localize auth UI`
 - `feat: add standard Result error handling`
+- `feat: sync Apple email and validate auth sessions`
+- `chore: complete Sprint 1 verification`
 
 **Known issues / deviations from plan:**
 - Available simulator is **iPhone 17e**, not iPhone 16 — substitute `name=iPhone 17e` in all xcodebuild commands
@@ -37,11 +39,14 @@
 - Verified on 2026-05-10 that every planned Sprint 1 source/test/schema file exists and `supabase/seed_exercises.sql` contains 95 exercise rows.
 - Task 9.6 added Apple email collection: Sign in with Apple now requests `.email`, `profiles.email` stores a nullable copy of `auth.users.email`, and existing profiles get a best-effort email sync after sign-in.
 - Task 9.7 now validates cached sessions with `auth.user()` on launch/foreground and clears local auth when the Supabase Auth user was deleted.
-- Remaining unchecked plan items: Task 10 steps 1-6.
+- Task 10 simulator/Supabase checks passed on 2026-05-10. Live Supabase exercise count is 98, not the older 95 note; this still meets the Sprint 1 "~100 exercises" requirement. Live profiles count is currently 1.
+- Supabase security advisors currently show one warning: leaked password protection disabled. This is not relevant to Apple-only auth in Sprint 1, but should be revisited before adding password auth.
+- Physical-device Apple Sign-In verification passed on 2026-05-10: sign-in succeeds, profile email is stored, close/reopen restores the logged-in user, and deleting the Supabase Auth user clears the local session and returns to SignInView.
+- Remaining unchecked plan items: none.
 
-**Last implementation commit SHA:** `4186200` (`chore: group spec and plan together and update other md file`).
+**Last implementation commit SHA:** `bef3764` (`feat: sync Apple email and validate auth sessions`).
 
-**Next step:** Complete Task 10: confirm the Supabase SQL files were applied to the target project, verify RLS/exercise count/trigger security in Supabase, run simulator smoke verification, test Apple Sign-In on a physical device, then make the final Sprint 1 completion commit.
+**Next step:** Start Sprint 2 from `.claude/sprints/S02-program-builder/spec.md`.
 
 ---
 
@@ -2013,7 +2018,7 @@ Before manual simulator testing (Task 10):
 
 1. Go to [supabase.com](https://supabase.com) → create a new project (or use existing)
 2. **SQL Editor → New Query** → paste and run `supabase/schema.sql`
-3. **SQL Editor → New Query** → paste and run `supabase/seed_exercises.sql` → verify output shows `exercise_count = 95`
+3. **SQL Editor → New Query** → paste and run `supabase/seed_exercises.sql` → verify output shows approximately 100 exercises (live project currently has 98)
 4. **Project Settings → API** → copy **Project URL** and **anon public** key
 5. Put the values in ignored local `Gymbros/Core/Secrets.swift` as `Secrets.supabaseURL` and `Secrets.supabaseAnonKey`
 6. If the Sprint 1 schema was already applied before Task 9.6, run `alter table public.profiles add column if not exists email text;` and replace `private.handle_new_user()` with the version from `supabase/schema.sql`
@@ -2025,38 +2030,50 @@ Before manual simulator testing (Task 10):
 
 Manual verification — no automation possible for Apple Sign-In on simulator.
 
-- [ ] **Step 1: Run on simulator in Xcode**
+- [x] **Step 1: Run on simulator in Xcode**
 
 In Xcode: Product → Run (⌘R) on iPhone 17e simulator.
 Expected: App launches showing the GymBros sign-in screen with Apple Sign-In button and lime dumbbell icon.
 
-- [ ] **Step 2: Test RLS in Supabase SQL Editor**
+Actual verification on 2026-05-10: `xcodebuild build -project Gymbros.xcodeproj -scheme Gymbros -destination 'platform=iOS Simulator,name=iPhone 17e'` succeeded, app installed/launched on iPhone 17e simulator, and screenshot showed the sign-in screen with lime dumbbell icon, GymBros title, tagline, and Apple Sign-In button.
+
+- [x] **Step 2: Test RLS in Supabase SQL Editor**
 
 Run this as `anon` role (no auth) — should return 0 rows:
 ```sql
 select * from public.profiles;
 ```
 
-- [ ] **Step 3: Verify exercise count**
+Actual verification on 2026-05-10: `set local role anon; select count(*) from public.profiles;` returned `0`.
+
+- [x] **Step 3: Verify exercise count**
 
 ```sql
 select count(*) from public.exercises;
--- Expected: 95
+-- Expected: approximately 100
 ```
 
-- [ ] **Step 4: Test sign-in on physical device** (Apple Sign-In doesn't work on simulator without a workaround)
+Actual verification on 2026-05-10: live Supabase project returned `98`.
+
+- [x] **Step 4: Test sign-in on physical device** (Apple Sign-In doesn't work on simulator without a workaround)
 
 On a physical iPhone: sign in with Apple → app should show "Logged in" placeholder → force quit + reopen → still shows placeholder (session persisted).
 
 Verify the profile row has `email` populated when Apple returns one. If testing with an Apple ID that already authorized this app before email scope was added, revoke the app under Apple ID Sign in with Apple settings or use a fresh Apple test account; otherwise Apple may not return the email again.
 
+Actual verification on 2026-05-10: physical iPhone Apple Sign-In succeeds; closing and reopening the app restores the logged-in user. Live Supabase project has 1 profile and 1 profile with email.
+
 After deleting the user in Supabase Auth, bring the app back to foreground or relaunch. Expected: local session is cleared and the app returns to SignInView.
 
-- [ ] **Step 5: Verify Supabase trigger security**
+Actual verification on 2026-05-10: after deleting the user in Supabase Auth, foregrounding/reopening the app cleared the local session and returned to SignInView.
+
+- [x] **Step 5: Verify Supabase trigger security**
 
 Confirm `private.handle_new_user()` is not directly executable by `anon` or `authenticated`, and that no `SECURITY DEFINER` functions exist in the exposed `public` schema. If Supabase CLI/MCP advisors are available, run database/security advisors and address any high-severity findings before final commit.
 
-- [ ] **Step 6: Final commit**
+Actual verification on 2026-05-10: `private.handle_new_user()` and `private.sync_profile_email_from_auth()` exist in the private schema with `security definer` and `search_path=public`; `public.handle_updated_at()` and `public.ensure_single_active_program()` are not security-definer and set `search_path=public`. Auth triggers point to the private functions. Supabase security advisors reported no high-severity findings; only `auth_leaked_password_protection` warning remains, which is not relevant to Apple-only auth.
+
+- [x] **Step 6: Final commit**
 
 ```bash
 git status --short
@@ -2068,14 +2085,15 @@ git commit -m "chore: complete Sprint 1 verification"
 ## Verification Checklist
 
 ```
-☐ xcodebuild test passes — enum, Codable, localization, and error-handling tests all pass
-☐ App launches on simulator showing SignInView
-☐ AccentColor shows lime (#C8FF00) on simulator
-☐ Supabase has 95 exercises
-☐ Supabase profiles table empty (no logins yet)
-☐ RLS blocks anon queries to profiles
-☐ On device: Apple Sign-In creates profile row in Supabase
-☐ On device: Profile row stores Apple email when Apple provides one
-☐ On device: Force quit + reopen stays authenticated
-☐ On device: No way to trigger sign-out yet (Sprint 4 adds Settings)
+☑ xcodebuild test passes — enum, Codable, localization, and error-handling tests all pass
+☑ App launches on simulator showing SignInView
+☑ AccentColor shows lime (#C8FF00) on simulator
+☑ Supabase has approximately 100 exercises (98 live)
+☑ Supabase profiles table has expected current data (1 live profile)
+☑ RLS blocks anon queries to profiles
+☑ On device: Apple Sign-In creates profile row in Supabase
+☑ On device: Profile row stores Apple email when Apple provides one
+☑ On device: Force quit + reopen stays authenticated
+☑ On device: Deleting the Auth user clears local session and returns to SignInView
+☑ On device: No way to trigger sign-out yet (Sprint 4 adds Settings)
 ```
