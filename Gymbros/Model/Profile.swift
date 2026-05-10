@@ -2,6 +2,7 @@ import Foundation
 
 struct Profile: Codable, Identifiable, Equatable {
     let id: UUID
+    var email: String?
     var name: String?
     var experienceLevel: ExperienceLevel?
     var goal: Goal?
@@ -12,7 +13,7 @@ struct Profile: Codable, Identifiable, Equatable {
     var updatedAt: Date
 
     enum CodingKeys: String, CodingKey {
-        case id, name, goal, locale
+        case id, email, name, goal, locale
         case experienceLevel = "experience_level"
         case daysPerWeek = "days_per_week"
         case weightUnit = "weight_unit"

@@ -6,9 +6,9 @@
 
 ---
 
-## ✅ CURRENT STATUS (as of 2026-05-09)
+## ✅ CURRENT STATUS (as of 2026-05-10)
 
-**Tasks 1–9.5 are implemented, committed, and unit-verified.**
+**Tasks 1–9.6 are implemented and unit-verified. The only remaining Sprint 1 work is the external Supabase/device verification in Task 10.**
 
 **Completed commits:**
 - `feat: add Supabase schema and exercise seed data`
@@ -31,12 +31,17 @@
 - Task 8 now includes `SignInViewModel` so Apple Sign-In nonce/error handling lives in the presentation ViewModel instead of the SwiftUI view.
 - Localization follows device language: Thai devices use Thai; all other device languages use English. Sprint 6 adds an easy Settings language override.
 - Task 9.5 removed `RepositoryError` and raw `String? errorMessage` patterns, replacing them with typed `AppError`, shared `ViewState`, localized error keys, and unit tests. Existing repository signatures remain `async throws`, but missing-session and caught SDK/runtime failures now throw only `AppError`.
-- Verification note: `xcodebuild test ... -only-testing:GymbrosTests/ErrorHandlingTests` passed, and `xcodebuild test ... -only-testing:GymbrosTests` passed. The unrestricted full-scheme test command built and ran several UI tests, but ended with CoreSimulator `Invalid device state` while launching the UI test runner.
+- Verification note: `xcodebuild test -project Gymbros.xcodeproj -scheme Gymbros -destination 'platform=iOS Simulator,name=iPhone 17e' -only-testing:GymbrosTests` passed on 2026-05-10.
 - Supabase auth profile trigger function now lives in `private.handle_new_user()` instead of `public.handle_new_user()` so the `SECURITY DEFINER` function is not in the exposed `public` schema.
+- `Gymbros/Core/Constants.swift` now reads Supabase configuration from ignored local `Gymbros/Core/Secrets.swift`; do not commit real Supabase credentials.
+- Verified on 2026-05-10 that every planned Sprint 1 source/test/schema file exists and `supabase/seed_exercises.sql` contains 95 exercise rows.
+- Task 9.6 added Apple email collection: Sign in with Apple now requests `.email`, `profiles.email` stores a nullable copy of `auth.users.email`, and existing profiles get a best-effort email sync after sign-in.
+- Task 9.7 now validates cached sessions with `auth.user()` on launch/foreground and clears local auth when the Supabase Auth user was deleted.
+- Remaining unchecked plan items: Task 10 steps 1-6.
 
-**Last implementation commit SHA:** `1a8d0ee` (`feat: add standard Result error handling`). The latest repository commit after this status update is the handoff/schema-security commit.
+**Last implementation commit SHA:** `4186200` (`chore: group spec and plan together and update other md file`).
 
-**Next step:** Complete the Supabase user gate: run `supabase/schema.sql`, run `supabase/seed_exercises.sql`, replace placeholder Supabase URL/anon key in `Gymbros/Core/Constants.swift`, then proceed to Task 10 manual simulator/device verification.
+**Next step:** Complete Task 10: confirm the Supabase SQL files were applied to the target project, verify RLS/exercise count/trigger security in Supabase, run simulator smoke verification, test Apple Sign-In on a physical device, then make the final Sprint 1 completion commit.
 
 ---
 
@@ -50,9 +55,7 @@
 
 - **Module name is `Gymbros`** (not `GymBros`) — all `@testable import` must use `Gymbros`
 - **Tests use Swift Testing** (`import Testing`, `#expect(...)`) — not XCTest
-- **Two user-gated Xcode steps** block compilation of the Data layer:
-  1. Add Swift packages (Supabase + KeychainAccess) — required before Task 6
-  2. Add capabilities (Sign in with Apple, HealthKit) — required before Task 8
+- **Historical user-gated Xcode steps are complete:** Swift packages are added and capabilities are present.
 - **File system sync**: Xcode auto-discovers files in the `Gymbros/` folder — just create folders on disk
 - **Existing files to handle**: `Gymbros/GymbrosApp.swift` (update), `Gymbros/ContentView.swift` (delete in Task 9)
 
@@ -119,6 +122,7 @@ create schema if not exists private;
 -- User profile (extends Supabase auth.users)
 create table public.profiles (
     id uuid references auth.users on delete cascade primary key,
+    email text,
     name text,
     experience_level text,
     goal text,
@@ -282,8 +286,8 @@ create or replace function private.handle_new_user()
 returns trigger language plpgsql security definer set search_path = public
 as $$
 begin
-    insert into public.profiles (id, name)
-    values (new.id, coalesce(new.raw_user_meta_data->>'full_name', null));
+    insert into public.profiles (id, email, name)
+    values (new.id, new.email, coalesce(new.raw_user_meta_data->>'full_name', null));
     return new;
 end;
 $$;
@@ -292,8 +296,26 @@ create trigger on_auth_user_created
     after insert on auth.users
     for each row execute procedure private.handle_new_user();
 
+create or replace function private.sync_profile_email_from_auth()
+returns trigger language plpgsql security definer set search_path = public
+as $$
+begin
+    update public.profiles
+    set email = new.email
+    where id = new.id
+      and email is distinct from new.email;
+    return new;
+end;
+$$;
+
+create trigger on_auth_user_email_updated
+    after update of email on auth.users
+    for each row
+    when (old.email is distinct from new.email)
+    execute procedure private.sync_profile_email_from_auth();
+
 create or replace function public.handle_updated_at()
-returns trigger language plpgsql
+returns trigger language plpgsql set search_path = public
 as $$
 begin
     new.updated_at = now();
@@ -310,7 +332,7 @@ create trigger programs_updated_at
     for each row execute procedure public.handle_updated_at();
 
 create or replace function public.ensure_single_active_program()
-returns trigger language plpgsql
+returns trigger language plpgsql set search_path = public
 as $$
 begin
     if new.is_active = true then
@@ -744,6 +766,7 @@ import Foundation
 
 struct Profile: Codable, Identifiable, Equatable {
     let id: UUID
+    var email: String?
     var name: String?
     var experienceLevel: ExperienceLevel?
     var goal: Goal?
@@ -754,7 +777,7 @@ struct Profile: Codable, Identifiable, Equatable {
     var updatedAt: Date
 
     enum CodingKeys: String, CodingKey {
-        case id, name, goal, locale
+        case id, email, name, goal, locale
         case experienceLevel = "experience_level"
         case daysPerWeek = "days_per_week"
         case weightUnit = "weight_unit"
@@ -1175,18 +1198,20 @@ final class AuthService {
 
     func loadCurrentSession() async {
         do {
-            let session = try await client.auth.session
-            self.currentUser = session.user
+            self.currentUser = try await client.auth.user()
         } catch {
+            try? await client.auth.signOut(scope: .local)
             self.currentUser = nil
         }
     }
 
-    func signInWithApple(idToken: String, nonce: String) async throws {
+    func signInWithApple(idToken: String, nonce: String, email: String?) async throws {
         let session = try await client.auth.signInWithIdToken(
             credentials: .init(provider: .apple, idToken: idToken, nonce: nonce)
         )
         self.currentUser = session.user
+        // Best-effort sync for existing users; the signup trigger copies new.email for new users.
+        await syncProfileEmail(user: session.user, appleEmail: email)
     }
 
     func signOut() async throws {
@@ -1562,7 +1587,7 @@ struct SignInView: View {
                 SignInWithAppleButton(.signIn) { request in
                     let nonce = randomNonceString()
                     currentNonce = nonce
-                    request.requestedScopes = [.fullName]
+                    request.requestedScopes = [.email]
                     request.nonce = sha256(nonce)
                 } onCompletion: { result in
                     Task { await handleAppleSignIn(result) }
@@ -1593,7 +1618,7 @@ struct SignInView: View {
                 return
             }
             do {
-                try await auth.signInWithApple(idToken: idToken, nonce: nonce)
+                try await auth.signInWithApple(idToken: idToken, nonce: nonce, email: credential.email)
             } catch {
                 errorMessage = "Sign in failed: \(error.localizedDescription)"
             }
@@ -1912,6 +1937,76 @@ Actual commit: `1a8d0ee feat: add standard Result error handling`.
 
 ---
 
+## Task 9.6: Collect Apple Email
+
+**Why this task exists:** Sprint 1 originally used minimal Apple auth scopes. The app now needs to collect the user's Apple email when Apple provides one and keep a nullable copy on `profiles` for app queries. Apple may only return email during the first authorization for a given app/user pair, so email must remain optional.
+
+Supabase Auth remains the canonical email store. `profiles.email` is a nullable app-facing copy of `auth.users.email` because the Auth schema is not exposed through the generated client API. If Apple does not return email, SQL cannot recover it; the tester must revoke this app under Apple ID Sign in with Apple settings or use a fresh Apple test account after the `.email` scope is enabled.
+
+- [x] **Step 1: Add nullable profile email storage**
+
+Update `supabase/schema.sql`:
+```sql
+alter table public.profiles add column if not exists email text;
+```
+
+The canonical fresh schema now defines `profiles.email text` and `private.handle_new_user()` inserts `new.email` into `profiles.email`.
+It also defines `private.sync_profile_email_from_auth()` so future changes to `auth.users.email` are copied to `profiles.email`.
+
+Live project migration applied to `gymbros` on 2026-05-10:
+```sql
+alter table public.profiles add column if not exists email text;
+
+update public.profiles p
+set email = u.email
+from auth.users u
+where p.id = u.id
+  and p.email is null
+  and u.email is not null;
+```
+
+Security advisor follow-up applied the same day: `public.handle_updated_at()` and `public.ensure_single_active_program()` now set `search_path = public`.
+The live project also has `on_auth_user_email_updated` on `auth.users` so future Auth email changes sync to `profiles.email`.
+
+- [x] **Step 2: Add email to `Profile` Codable model and tests**
+
+`Profile.email` is optional and encoded/decoded as `email`.
+
+- [x] **Step 3: Request email from Apple Sign-In**
+
+`SignInViewModel.prepareAppleSignIn(_:)` sets:
+```swift
+request.requestedScopes = [.email]
+```
+
+- [x] **Step 4: Sync email after Supabase auth**
+
+`AuthService.signInWithApple(idToken:nonce:email:)` passes `ASAuthorizationAppleIDCredential.email`; the trigger handles new users, and the app performs a best-effort `profiles.email` update for existing profiles.
+
+---
+
+## Task 9.7: Revalidate Cached Auth Sessions
+
+**Why this task exists:** `client.auth.session` can return a locally cached JWT even after the Auth user is deleted in Supabase. Supabase documents that deleting a user does not automatically invalidate already-issued JWTs. The app must call the Auth server for current user data before trusting a cached session.
+
+- [x] **Step 1: Validate session against Supabase Auth**
+
+`AuthService.loadCurrentSession()` now uses:
+```swift
+self.currentUser = try await client.auth.user()
+```
+
+If validation fails, it clears local session storage with:
+```swift
+try? await client.auth.signOut(scope: .local)
+```
+
+- [x] **Step 2: Revalidate when app returns to foreground**
+
+`RootView` runs `loadCurrentSession()` in `.task` and again when `scenePhase` becomes `.active`.
+
+---
+
 ## ⚠️ USER GATE: Supabase Setup
 
 Before manual simulator testing (Task 10):
@@ -1920,10 +2015,9 @@ Before manual simulator testing (Task 10):
 2. **SQL Editor → New Query** → paste and run `supabase/schema.sql`
 3. **SQL Editor → New Query** → paste and run `supabase/seed_exercises.sql` → verify output shows `exercise_count = 95`
 4. **Project Settings → API** → copy **Project URL** and **anon public** key
-5. In `Gymbros/Core/Constants.swift`, replace:
-   - `"https://YOUR_PROJECT.supabase.co"` → your actual project URL
-   - `"YOUR_ANON_KEY"` → your actual anon key
-6. Rebuild the app
+5. Put the values in ignored local `Gymbros/Core/Secrets.swift` as `Secrets.supabaseURL` and `Secrets.supabaseAnonKey`
+6. If the Sprint 1 schema was already applied before Task 9.6, run `alter table public.profiles add column if not exists email text;` and replace `private.handle_new_user()` with the version from `supabase/schema.sql`
+7. Rebuild the app
 
 ---
 
@@ -1954,6 +2048,10 @@ select count(*) from public.exercises;
 
 On a physical iPhone: sign in with Apple → app should show "Logged in" placeholder → force quit + reopen → still shows placeholder (session persisted).
 
+Verify the profile row has `email` populated when Apple returns one. If testing with an Apple ID that already authorized this app before email scope was added, revoke the app under Apple ID Sign in with Apple settings or use a fresh Apple test account; otherwise Apple may not return the email again.
+
+After deleting the user in Supabase Auth, bring the app back to foreground or relaunch. Expected: local session is cleared and the app returns to SignInView.
+
 - [ ] **Step 5: Verify Supabase trigger security**
 
 Confirm `private.handle_new_user()` is not directly executable by `anon` or `authenticated`, and that no `SECURITY DEFINER` functions exist in the exposed `public` schema. If Supabase CLI/MCP advisors are available, run database/security advisors and address any high-severity findings before final commit.
@@ -1961,8 +2059,8 @@ Confirm `private.handle_new_user()` is not directly executable by `anon` or `aut
 - [ ] **Step 6: Final commit**
 
 ```bash
-git add Gymbros/Core/Constants.swift
-git commit -m "feat: connect Supabase credentials — Sprint 1 complete"
+git status --short
+git commit -m "chore: complete Sprint 1 verification"
 ```
 
 ---
@@ -1977,6 +2075,7 @@ git commit -m "feat: connect Supabase credentials — Sprint 1 complete"
 ☐ Supabase profiles table empty (no logins yet)
 ☐ RLS blocks anon queries to profiles
 ☐ On device: Apple Sign-In creates profile row in Supabase
+☐ On device: Profile row stores Apple email when Apple provides one
 ☐ On device: Force quit + reopen stays authenticated
 ☐ On device: No way to trigger sign-out yet (Sprint 4 adds Settings)
 ```

@@ -1,1 +1,0 @@
-sprints/S01-foundation-data/plan.md

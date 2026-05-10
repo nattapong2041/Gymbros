@@ -3,6 +3,7 @@ create schema if not exists private;
 -- User profile (extends Supabase auth.users)
 create table public.profiles (
     id uuid references auth.users on delete cascade primary key,
+    email text,
     name text,
     experience_level text,
     goal text,
@@ -166,8 +167,8 @@ create or replace function private.handle_new_user()
 returns trigger language plpgsql security definer set search_path = public
 as $$
 begin
-    insert into public.profiles (id, name)
-    values (new.id, coalesce(new.raw_user_meta_data->>'full_name', null));
+    insert into public.profiles (id, email, name)
+    values (new.id, new.email, coalesce(new.raw_user_meta_data->>'full_name', null));
     return new;
 end;
 $$;
@@ -176,8 +177,26 @@ create trigger on_auth_user_created
     after insert on auth.users
     for each row execute procedure private.handle_new_user();
 
+create or replace function private.sync_profile_email_from_auth()
+returns trigger language plpgsql security definer set search_path = public
+as $$
+begin
+    update public.profiles
+    set email = new.email
+    where id = new.id
+      and email is distinct from new.email;
+    return new;
+end;
+$$;
+
+create trigger on_auth_user_email_updated
+    after update of email on auth.users
+    for each row
+    when (old.email is distinct from new.email)
+    execute procedure private.sync_profile_email_from_auth();
+
 create or replace function public.handle_updated_at()
-returns trigger language plpgsql
+returns trigger language plpgsql set search_path = public
 as $$
 begin
     new.updated_at = now();
@@ -194,7 +213,7 @@ create trigger programs_updated_at
     for each row execute procedure public.handle_updated_at();
 
 create or replace function public.ensure_single_active_program()
-returns trigger language plpgsql
+returns trigger language plpgsql set search_path = public
 as $$
 begin
     if new.is_active = true then

@@ -251,7 +251,7 @@ Sprints 1–4 complete Phase 1 ("Usable"). See `.claude/GYMTRACK.md` §7 for the
 
 - **Location:** `.claude/sprints/S[N]-name/plan.md` (e.g. `.claude/sprints/S02-program-builder/plan.md`)
 - **Spec location:** `.claude/sprints/S[N]-name/spec.md`
-- **Compatibility links:** Old paths may exist as symlinks only. Do not create new sprint plans in `.claude/` root or new sprint specs in `.claude/specs/`.
+- **Single source of truth:** Sprint specs and plans live only under `.claude/sprints/S[N]-name/`. Do not create sprint plans in `.claude/` root or sprint specs in `.claude/specs/`; remove old aliases if they reappear.
 - **Format:** Checkbox steps `- [ ]` / `- [x]`. Mark each step done immediately after completing it — don't batch.
 - **Status block:** Keep a `## CURRENT STATUS` section at the top of each plan with: what's done, last commit SHA, known deviations, and next step. Update it each session.
 - **Simulator name:** The available simulator is **iPhone 17e** — always use `name=iPhone 17e` in xcodebuild commands, not `iPhone 16`.

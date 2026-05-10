@@ -32,7 +32,8 @@
 ```
 ✓ Xcode project compiles and runs on simulator
 ✓ Tap "Sign in with Apple" → authenticates → creates profile in Supabase
-✓ Auth state persists across app launches
+✓ Apple email scope requested; `profiles.email` stores the auth email when Apple provides one
+✓ Auth state persists across app launches and is revalidated with Supabase Auth on launch/foreground
 ✓ Supabase has all tables, indexes, and RLS policies
 ✓ ~100 exercises seeded in Thai + English
 ✓ Sign out works correctly
@@ -134,6 +135,7 @@ GymTrack/
 -- User profile (extends Supabase auth.users)
 create table public.profiles (
     id uuid references auth.users on delete cascade primary key,
+    email text,                    -- copied from auth.users.email when Apple provides it
     name text,
     experience_level text,        -- 'beginner' | 'intermediate' | 'advanced'
     goal text,                    -- 'strength' | 'muscle' | 'fat_loss' | 'general'
@@ -318,30 +320,49 @@ create policy "Users can manage own sets" on public.workout_sets
 -- ============================================================
 
 -- Auto-create profile on user signup
-create or replace function public.handle_new_user()
+create or replace function private.handle_new_user()
 returns trigger
 language plpgsql
 security definer
 set search_path = public
 as $$
 begin
-    insert into public.profiles (id, name)
-    values (new.id, coalesce(new.raw_user_meta_data->>'full_name', null));
+    insert into public.profiles (id, email, name)
+    values (new.id, new.email, coalesce(new.raw_user_meta_data->>'full_name', null));
     return new;
 end;
 $$;
 
--- This trigger function is not an app-callable API. Keep direct execute access closed.
-revoke all on function public.handle_new_user() from public, anon, authenticated;
-
 create trigger on_auth_user_created
     after insert on auth.users
-    for each row execute procedure public.handle_new_user();
+    for each row execute procedure private.handle_new_user();
+
+create or replace function private.sync_profile_email_from_auth()
+returns trigger
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+    update public.profiles
+    set email = new.email
+    where id = new.id
+      and email is distinct from new.email;
+    return new;
+end;
+$$;
+
+create trigger on_auth_user_email_updated
+    after update of email on auth.users
+    for each row
+    when (old.email is distinct from new.email)
+    execute procedure private.sync_profile_email_from_auth();
 
 -- Auto-update updated_at on profiles + programs
 create or replace function public.handle_updated_at()
 returns trigger
 language plpgsql
+set search_path = public
 as $$
 begin
     new.updated_at = now();
@@ -361,6 +382,7 @@ create trigger programs_updated_at
 create or replace function public.ensure_single_active_program()
 returns trigger
 language plpgsql
+set search_path = public
 as $$
 begin
     if new.is_active = true then
@@ -392,6 +414,7 @@ import Foundation
 
 struct Profile: Codable, Identifiable, Equatable {
     let id: UUID
+    var email: String?
     var name: String?
     var experienceLevel: ExperienceLevel?
     var goal: Goal?
@@ -402,7 +425,7 @@ struct Profile: Codable, Identifiable, Equatable {
     var updatedAt: Date
     
     enum CodingKeys: String, CodingKey {
-        case id, name, goal, locale
+        case id, email, name, goal, locale
         case experienceLevel = "experience_level"
         case daysPerWeek = "days_per_week"
         case weightUnit = "weight_unit"
@@ -757,25 +780,42 @@ final class AuthService {
     /// Load existing session on app launch
     func loadCurrentSession() async {
         do {
-            let session = try await client.auth.session
-            self.currentUser = session.user
+            self.currentUser = try await client.auth.user()
         } catch {
+            try? await client.auth.signOut(scope: .local)
             self.currentUser = nil
         }
     }
     
-    /// Sign in with Apple — pass the credential from ASAuthorizationAppleIDCredential
-    func signInWithApple(idToken: String, nonce: String) async throws {
+    /// Sign in with Apple — request email scope and pass ASAuthorizationAppleIDCredential.email when Apple returns it.
+    func signInWithApple(idToken: String, nonce: String, email: String?) async throws {
         let session = try await client.auth.signInWithIdToken(
             credentials: .init(provider: .apple, idToken: idToken, nonce: nonce)
         )
         self.currentUser = session.user
+        // Best-effort sync for existing users; the signup trigger copies new.email for new users.
+        await syncProfileEmail(user: session.user, appleEmail: email)
     }
     
     /// Sign out
     func signOut() async throws {
         try await client.auth.signOut()
         self.currentUser = nil
+    }
+
+    private func syncProfileEmail(user: User, appleEmail: String?) async {
+        let email = user.email ?? appleEmail
+        guard let email, email.isEmpty == false else { return }
+
+        do {
+            try await client
+                .from("profiles")
+                .update(["email": email])
+                .eq("id", value: user.id)
+                .execute()
+        } catch {
+            // Debug-log mapped AppError only; do not show raw SDK details to users.
+        }
     }
 }
 ```
@@ -817,7 +857,7 @@ struct SignInView: View {
             SignInWithAppleButton(.signIn) { request in
                 let nonce = randomNonceString()
                 currentNonce = nonce
-                request.requestedScopes = [.fullName]
+                request.requestedScopes = [.email]
                 request.nonce = sha256(nonce)
             } onCompletion: { result in
                 Task { await handleAppleSignIn(result) }
@@ -847,7 +887,7 @@ struct SignInView: View {
             }
             
             do {
-                try await auth.signInWithApple(idToken: idToken, nonce: nonce)
+                try await auth.signInWithApple(idToken: idToken, nonce: nonce, email: credential.email)
             } catch {
                 errorMessage = "Sign in failed: \(error.localizedDescription)"
             }
@@ -1438,15 +1478,16 @@ select count(*) as exercise_count from public.exercises;
 ```
 ☐ Build succeeds on iOS 17+ simulator
 ☐ Tap "Sign in with Apple" → Apple sheet → returns to app authenticated
-☐ Profile row created in Supabase with auth user's id
-☐ Force quit + reopen app → still authenticated (session persisted)
+☐ Profile row created in Supabase with auth user's id and email when Apple provides one
+☐ Force quit + reopen app → still authenticated when the Supabase Auth user still exists
+☐ Delete the Auth user in Supabase → foreground/reopen app → returns to login screen
 ☐ Tap Sign Out → returns to login screen
 ☐ Supabase shows ~95 exercises in Thai + English
 ☐ ProgramRepository.fetchAll() returns empty array (no programs yet)
 ☐ ExerciseRepository.fetchAll() returns ~95 exercises
 ☐ All Codable models compile without warnings
 ☐ RLS works: querying another user's profile from SQL editor returns nothing
-☐ `public.handle_new_user()` cannot be directly executed by `anon` or `authenticated`
+☐ `private.handle_new_user()` is not in the exposed `public` schema and cannot be directly executed by `anon` or `authenticated`
 ```
 
 ---
@@ -1461,7 +1502,7 @@ User cancels Apple Sign-In             Returns to login screen, no error toast
 Network offline during sign-in         Show error: "Check your connection"
 Session expires (30 days)              Auto sign out, return to login
 User signs out then signs back in      Same Profile loaded, no duplicate
-Apple ID has no email shared           OK — we don't require email
+Apple ID has no email shared           OK — email remains nil; do not block sign-in
 User deletes account in Apple settings Session invalidated on next launch
 ```
 

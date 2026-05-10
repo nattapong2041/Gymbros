@@ -19,7 +19,7 @@ final class SignInViewModel {
     func prepareAppleSignIn(_ request: ASAuthorizationAppleIDRequest) {
         let nonce = randomNonceString()
         currentNonce = nonce
-        request.requestedScopes = [] // No scopes needed for minimal auth
+        request.requestedScopes = [.email]
         request.nonce = sha256(nonce)
         state = .idle
     }
@@ -37,7 +37,7 @@ final class SignInViewModel {
             }
 
             do {
-                try await auth.signInWithApple(idToken: idToken, nonce: nonce)
+                try await auth.signInWithApple(idToken: idToken, nonce: nonce, email: credential.email)
                 state = .success(())
             } catch {
                 state = .error(ErrorMapper.map(error, context: .init(operation: "signInWithApple")))
