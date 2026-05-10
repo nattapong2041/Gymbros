@@ -1,4 +1,5 @@
 import Foundation
+import Auth
 import Testing
 @testable import Gymbros
 
@@ -50,6 +51,23 @@ struct ErrorHandlingTests {
         #expect(ErrorMapper.mapSupabaseCode("42501") == .permissionDenied)
         #expect(ErrorMapper.mapSupabaseCode("23505") == .conflict)
         #expect(ErrorMapper.mapSupabaseCode("23503") == .conflict)
+    }
+
+    @Test("Supabase auth session missing maps to app auth error")
+    func supabaseAuthSessionMissingMapsToAppAuthError() {
+        let mapped = ErrorMapper.map(AuthError.sessionMissing, context: .init(operation: "test"))
+
+        #expect(mapped == .auth(.sessionMissing))
+    }
+
+    @Test("Offline session refresh does not clear authenticated user")
+    func offlineSessionRefreshDoesNotClearAuthenticatedUser() {
+        #expect(AuthService.shouldClearCurrentUser(afterSessionLoadFailure: URLError(.notConnectedToInternet)) == false)
+    }
+
+    @Test("Missing session clears authenticated user")
+    func missingSessionClearsAuthenticatedUser() {
+        #expect(AuthService.shouldClearCurrentUser(afterSessionLoadFailure: AuthError.sessionMissing))
     }
 
     @Test("AppError exposes localization keys without raw messages")

@@ -17,7 +17,7 @@ struct ProgramBuilderView: View {
                     Text("programBuilder.details.section")
                 } footer: {
                     if let error = viewModel.transientError {
-                        Text(error.messageKey)
+                        Text(LocalizedStringKey(error.messageKey))
                             .foregroundStyle(.red)
                     }
                 }
@@ -48,6 +48,10 @@ struct ProgramBuilderView: View {
                 }
             }
             .disabled(isSaving)
+            .transientErrorAlert(error: Binding(
+                get: { viewModel.transientError },
+                set: { viewModel.transientError = $0 }
+            ))
         }
     }
 

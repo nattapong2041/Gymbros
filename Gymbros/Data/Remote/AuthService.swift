@@ -16,11 +16,33 @@ final class AuthService {
     }
 
     func loadCurrentSession() async {
+        if let cachedUser = client.auth.currentUser {
+            self.currentUser = cachedUser
+        }
+
         do {
             self.currentUser = try await client.auth.user()
         } catch {
+            guard Self.shouldClearCurrentUser(afterSessionLoadFailure: error) else {
+                #if DEBUG
+                let appError = ErrorMapper.map(error, context: .init(operation: "loadCurrentSession"))
+                debugPrint("Session refresh failed without clearing auth: \(appError)")
+                #endif
+                return
+            }
+
             try? await client.auth.signOut(scope: .local)
             self.currentUser = nil
+        }
+    }
+
+    nonisolated static func shouldClearCurrentUser(afterSessionLoadFailure error: Error) -> Bool {
+        let appError = ErrorMapper.map(error, context: .init(operation: "loadCurrentSession"))
+        switch appError {
+        case .auth(.sessionMissing), .auth(.tokenExpired):
+            return true
+        default:
+            return false
         }
     }
 

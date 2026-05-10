@@ -104,9 +104,9 @@ struct ProgramDetailView: View {
                 }
             case .error(let error):
                 ContentUnavailableView {
-                    Label(error.titleKey, systemImage: "exclamationmark.triangle")
+                    Label(LocalizedStringKey(error.titleKey), systemImage: "exclamationmark.triangle")
                 } description: {
-                    Text(error.messageKey)
+                    Text(LocalizedStringKey(error.messageKey))
                 } actions: {
                     Button("common.retry") {
                         Task { await viewModel.loadProgram() }
@@ -145,6 +145,10 @@ struct ProgramDetailView: View {
         } message: {
             Text("programs.delete.confirmation.message")
         }
+        .transientErrorAlert(error: Binding(
+            get: { viewModel.transientError },
+            set: { viewModel.transientError = $0 }
+        ))
         .sheet(isPresented: $isShowingEditProgram) {
             if case .success(let data) = viewModel.state {
                 ProgramBuilderView(viewModel: ProgramBuilderViewModel(mode: .edit(data.program)))

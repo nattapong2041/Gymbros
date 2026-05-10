@@ -1,4 +1,5 @@
 import Foundation
+import Auth
 import PostgREST
 
 struct ErrorContext: Equatable {
@@ -34,6 +35,10 @@ enum ErrorMapper {
             let code = postgrestError.code
             let statusCode = context.statusCode ?? (code == "PGRST116" ? 404 : 500)
             return mapHTTPStatus(statusCode, code: code)
+        }
+
+        if let authError = error as? AuthError {
+            return map(authError, context: context)
         }
 
         if let urlError = error as? URLError {
@@ -122,6 +127,21 @@ enum ErrorMapper {
             return .cancelled
         default:
             return .network(.temporary)
+        }
+    }
+
+    private static func map(_ error: AuthError, context: ErrorContext) -> AppError {
+        switch error {
+        case .sessionMissing:
+            return .auth(.sessionMissing)
+        case .jwtVerificationFailed:
+            return .auth(.tokenExpired)
+        case .api(_, _, _, let response):
+            return mapHTTPStatus(response.statusCode)
+        case .pkceGrantCodeExchange:
+            return .auth(.credentialExchangeFailed)
+        default:
+            return .unknown(debugID: makeDebugID(context: context))
         }
     }
 

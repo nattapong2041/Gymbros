@@ -63,14 +63,14 @@ struct DayBuilderView: View {
                         }
                     }
                 }
-            case .error(let error):
-                ContentUnavailableView {
-                    Label(error.titleKey, systemImage: "exclamationmark.triangle")
-                } description: {
-                    Text(error.messageKey)
-                } actions: {
-                    Button("common.retry") {
-                        Task { await viewModel.loadDay() }
+                case .error(let error):
+                    ContentUnavailableView {
+                        Label(LocalizedStringKey(error.titleKey), systemImage: "exclamationmark.triangle")
+                    } description: {
+                        Text(LocalizedStringKey(error.messageKey))
+                    } actions: {
+                        Button("common.retry") {
+                            Task { await viewModel.loadDay() }
                     }
                     .buttonStyle(.borderedProminent)
                 }
@@ -86,6 +86,10 @@ struct DayBuilderView: View {
             }
             Button("common.cancel", role: .cancel) {}
         }
+        .transientErrorAlert(error: Binding(
+            get: { viewModel.transientError },
+            set: { viewModel.transientError = $0 }
+        ))
         .sheet(isPresented: $isShowingExercisePicker) {
             ExercisePickerView(viewModel: ExercisePickerViewModel()) { exercise in
                 Task { await viewModel.addExercise(exercise, form: ProgramExerciseForm(exerciseId: exercise.id)) }

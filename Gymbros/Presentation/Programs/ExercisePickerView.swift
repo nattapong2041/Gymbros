@@ -17,9 +17,9 @@ struct ExercisePickerView: View {
                     ContentUnavailableView("exercisePicker.empty.title", systemImage: "figure.strengthtraining.traditional")
                 case .error(let error):
                     ContentUnavailableView {
-                        Label(error.titleKey, systemImage: "exclamationmark.triangle")
+                        Label(LocalizedStringKey(error.titleKey), systemImage: "exclamationmark.triangle")
                     } description: {
-                        Text(error.messageKey)
+                        Text(LocalizedStringKey(error.messageKey))
                     } actions: {
                         Button("common.retry") {
                             Task { await viewModel.loadExercises() }

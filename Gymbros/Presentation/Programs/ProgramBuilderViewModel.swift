@@ -49,7 +49,8 @@ final class ProgramBuilderViewModel {
             state = .success(saved)
         } catch {
             let appError = ProgramViewModelSupport.appError(error, operation: "saveProgram")
-            state = appError.isVisibleToUser ? .error(appError) : .idle
+            transientError = appError.isVisibleToUser ? appError : nil
+            state = .idle
         }
     }
 

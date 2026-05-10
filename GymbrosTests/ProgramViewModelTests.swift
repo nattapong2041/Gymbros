@@ -33,6 +33,20 @@ struct ProgramViewModelTests {
         #expect(programs.map(\.name) == ["Active", "Newest", "Middle"])
     }
 
+    @Test func listRefreshFailureShowsRetryableErrorState() async throws {
+        let repository = FakeProgramRepository(programs: ProgramSamples.programs)
+        let viewModel = ProgramListViewModel(repository: repository)
+
+        await viewModel.loadPrograms()
+        repository.fetchAllError = AppError.network(.offline)
+        await viewModel.loadPrograms(isRefreshing: true)
+
+        guard case .error(let error) = viewModel.state else {
+            throw AppError.unknown(debugID: "expected-error")
+        }
+        #expect(error == .network(.offline))
+    }
+
     @Test func builderRejectsBlankProgramNameWithoutRepositoryCall() async {
         let repository = FakeProgramRepository()
         let viewModel = ProgramBuilderViewModel(mode: .create, repository: repository)
@@ -190,6 +204,7 @@ private final class FakeProgramRepository: ProgramRepositoryProviding {
     var updatedProgramExercises: [ProgramExercise] = []
     var deletedProgramExerciseIds: [UUID] = []
     var reorderedProgramExercises: [[ProgramExercise]] = []
+    var fetchAllError: AppError?
 
     init(
         programs: [Program] = ProgramSamples.programs,
@@ -204,7 +219,10 @@ private final class FakeProgramRepository: ProgramRepositoryProviding {
     }
 
     func fetchAll() async throws -> [Program] {
-        programs
+        if let fetchAllError {
+            throw fetchAllError
+        }
+        return programs
     }
 
     func fetchFull(id: UUID) async throws -> Program {

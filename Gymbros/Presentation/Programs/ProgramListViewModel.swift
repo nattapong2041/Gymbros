@@ -24,10 +24,10 @@ final class ProgramListViewModel {
             state = programs.isEmpty ? .empty : .success(programs)
         } catch {
             let appError = ProgramViewModelSupport.appError(error, operation: "loadPrograms")
-            if isRefreshing {
-                transientError = appError.isVisibleToUser ? appError : nil
-            } else if appError == .cancelled {
-                state = .idle
+            if appError == .cancelled {
+                if !isRefreshing {
+                    state = .idle
+                }
             } else {
                 state = .error(appError)
             }

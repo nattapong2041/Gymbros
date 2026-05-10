@@ -4,6 +4,7 @@ struct ProgramListView: View {
     @State var viewModel: ProgramListViewModel
     @State private var isShowingCreateSheet = false
     @State private var programToDelete: Program?
+    @State private var hasLoadedPrograms = false
 
     var body: some View {
         NavigationStack {
@@ -44,8 +45,17 @@ struct ProgramListView: View {
         } message: { program in
             Text("programs.delete.confirmation.message \(program.name)")
         }
+        .transientErrorAlert(error: Binding(
+            get: { viewModel.transientError },
+            set: { viewModel.transientError = $0 }
+        ))
         .task {
             await viewModel.loadPrograms()
+            hasLoadedPrograms = true
+        }
+        .onAppear {
+            guard hasLoadedPrograms else { return }
+            Task { await viewModel.loadPrograms(isRefreshing: true) }
         }
     }
 
@@ -98,9 +108,9 @@ struct ProgramListView: View {
             }
         case .error(let error):
             ContentUnavailableView {
-                Label(error.titleKey, systemImage: "exclamationmark.triangle")
+                Label(LocalizedStringKey(error.titleKey), systemImage: "exclamationmark.triangle")
             } description: {
-                Text(error.messageKey)
+                Text(LocalizedStringKey(error.messageKey))
             } actions: {
                 Button("common.retry") {
                     Task { await viewModel.loadPrograms() }

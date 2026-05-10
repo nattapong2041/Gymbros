@@ -113,6 +113,22 @@
         }
       }
     },
+    "common.ok" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "OK"
+          }
+        },
+        "th" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ตกลง"
+          }
+        }
+      }
+    },
     "common.retry" : {
       "localizations" : {
         "en" : {
