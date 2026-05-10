@@ -1,0 +1,50 @@
+# Block obvious secret files from being staged by Codex.
+prefix_rule(
+    pattern = ["git", "add", ".env"],
+    decision = "forbidden",
+    justification = "Do not commit local environment files. Commit .env.example with placeholders instead.",
+    match = ["git add .env"],
+)
+
+prefix_rule(
+    pattern = ["git", "add", ".env.local"],
+    decision = "forbidden",
+    justification = "Do not commit local environment files. Commit .env.example with placeholders instead.",
+    match = ["git add .env.local"],
+)
+
+prefix_rule(
+    pattern = ["git", "add", "supabase/.env"],
+    decision = "forbidden",
+    justification = "Do not commit Supabase local environment files.",
+    match = ["git add supabase/.env"],
+)
+
+prefix_rule(
+    pattern = ["git", "add", "Secrets.xcconfig"],
+    decision = "forbidden",
+    justification = "Do not commit local xcconfig secret files.",
+    match = ["git add Secrets.xcconfig"],
+)
+
+prefix_rule(
+    pattern = ["git", "add", "Local.xcconfig"],
+    decision = "forbidden",
+    justification = "Do not commit local xcconfig secret files.",
+    match = ["git add Local.xcconfig"],
+)
+
+prefix_rule(
+    pattern = ["git", "add", "Gymbros/Core/Secrets.swift"],
+    decision = "forbidden",
+    justification = "Do not commit local Swift secret files.",
+    match = ["git add Gymbros/Core/Secrets.swift"],
+)
+
+# Broad staging can accidentally include secrets if .gitignore is incomplete.
+prefix_rule(
+    pattern = ["git", "add", "."],
+    decision = "prompt",
+    justification = "Review broad staging for secrets before allowing it.",
+    match = ["git add ."],
+)

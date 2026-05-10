@@ -185,6 +185,14 @@ Log raw errors only in debug/developer channels. Logs may include operation cont
 - All dates use ISO 8601 encoding.
 - Supabase URL and anon key live in `Core/Constants.swift` under `AppConstants.Supabase`. In Sprint 1 these are hardcoded; use xcconfig for production.
 
+## Secrets and Environment Configuration
+
+- Never commit API keys, Supabase keys, service role keys, Apple credentials, tokens, `.env` files, local xcconfig files, or machine-specific environment settings to git.
+- Keep real secrets in ignored local files such as `.env`, `supabase/.env`, `Secrets.xcconfig`, `Local.xcconfig`, or `Gymbros/Core/Secrets.swift`.
+- Commit only safe examples or templates, such as `.env.example`, with placeholder values.
+- Before staging or committing, check the diff for secrets and remove any accidental key, token, endpoint credential, or local environment value.
+- If a secret was accidentally committed, treat it as compromised: rotate it immediately, remove it from history as needed, and document the cleanup.
+
 ## Design System
 
 Two custom named colors defined in `Assets.xcassets` and aliased in `Core/AppTheme.swift`:
