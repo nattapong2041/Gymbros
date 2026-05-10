@@ -71,6 +71,7 @@ GymTrack:      what to lift, how much, what's next — even after 2 weeks off
 | Storage (later) | SwiftData + Supabase | ONLY if user feedback demands it |
 | Cloud | Supabase (Postgres) | Relational data, SQL queries |
 | Auth | Supabase + Apple Sign-In | One tap |
+| Auth later | Google Sign-In optional, Apple Sign-In remains | If a third-party login is added, keep Apple Sign-In available for App Review compliance |
 | AI V1 | Rule-based Swift | Offline, Thai, free |
 | AI V2 | Firebase AI Logic (Gemini) | Thai coaching, Pro only |
 | Payments | StoreKit 2 + RevenueCat | Native subscriptions |
@@ -338,6 +339,8 @@ Spec: /specs/S04-today-history-nav.md
 ☐ HistoryView — past sessions, newest first
 ☐ SessionDetailView — sets per exercise for a session
 ☐ Tab navigation: Today / Programs / History / Settings
+☐ Settings → Sign out calls Supabase Auth signOut and returns to login
+☐ Settings → Legal section reserves Privacy Policy and Account Deletion entries for App Store readiness
 ☐ Basic onboarding — goal, days/week, experience
 ☐ First-run choice: "Start with a recommended plan" or "Build my own"
 ☐ V1 starter plans: Full Body 2 Days + PPL 3 Days
@@ -403,7 +406,10 @@ Spec: /specs/S07-app-store-ship.md
 
 ☐ Screenshots (TH + EN)
 ☐ App Store description (Thai primary)
-☐ Privacy policy
+☐ Public privacy policy URL
+☐ In-app Privacy Policy link from Settings
+☐ In-app account deletion initiation from Settings
+☐ App Store Connect privacy questionnaire
 ☐ Add Crashlytics before public release
 ☐ Final TestFlight → fix bugs
 ☐ Submit for review
@@ -1030,6 +1036,11 @@ Monitor after beta:
 - **Crash tracking:** Apple built-in during early beta; add Crashlytics before public App Store launch
 - **Product metrics:** add north-star, activation, retention, comeback, suggestion, and reliability metrics
 - **AI:** keep in roadmap but make conditional on user demand / retention value
+
+### 2026-05-10 (session 9)
+- **Logout placement:** Sprint 1 auth plumbing has `AuthService.signOut()`, but the visible UI belongs in Settings. A temporary Settings screen can expose sign-out before Sprint 4 tab navigation lands.
+- **Google Sign-In:** optional later auth expansion. If added, Apple Sign-In must remain available as an equivalent sign-in option for App Review compliance.
+- **App Store privacy:** before App Store 1.0, ship a public privacy policy URL, link it from Settings, complete App Store Connect privacy disclosures, and provide in-app account deletion initiation.
 
 ### 2026-05-08 (session 7)
 - **App name:** GymBros (placeholder, will rename before App Store launch)
