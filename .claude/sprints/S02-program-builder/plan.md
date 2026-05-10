@@ -33,7 +33,7 @@
 - The worktree uses an ignored local placeholder `Gymbros/Core/Secrets.swift` with dummy values so tests compile; do not commit real secrets.
 - Task 2 added repository protocols solely for dependency injection in ViewModel tests; concrete app code still defaults to `ProgramRepository` and `ExerciseRepository`.
 
-**Next step:** Start Task 5 wiring, integration, and verification.
+**Next step:** Start Sprint 3 - Logger + Timer.
 
 ---
 
@@ -189,8 +189,8 @@ Task 5 is sequential integration after Tasks 2-4 are complete.
 - [x] Confirm active program behavior is wired.
 - [x] Confirm delete confirmations are present for programs.
 - [x] Run `xcodebuild test -project Gymbros.xcodeproj -scheme Gymbros -destination 'platform=iOS Simulator,name=iPhone 17e'`.
-- [ ] Manually create the full Upper/Lower 4-day acceptance routine in the simulator.
-- [ ] Reopen the app and verify saved program data reloads.
+- [x] Manually create the full Upper/Lower 4-day acceptance routine in the simulator.
+- [x] Reopen the app and verify saved program data reloads.
 - [x] Search for hardcoded Sprint 2 user-facing strings.
 - [x] Check `git diff` for accidental secrets or unrelated changes.
 - [x] Update `CURRENT STATUS`: mark Sprint 2 complete, list test command result, last commit SHA if committed, known deviations, and next step.
@@ -208,4 +208,4 @@ Task 5 is sequential integration after Tasks 2-4 are complete.
 - [x] All visible strings are localized in Thai and English.
 - [x] No raw SDK/database errors reach SwiftUI.
 - [x] Automated tests pass.
-- [ ] Upper/Lower 4-day manual smoke test passes.
+- [x] Upper/Lower 4-day manual smoke test passes.
