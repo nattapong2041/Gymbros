@@ -8,13 +8,16 @@
 
 ## CURRENT STATUS
 
-**Status:** Ready to implement.
+**Status:** Task 1 complete. Tasks 2, 3, and 4 are ready for parallel implementation.
 
 **Done:**
 - Sprint 2 spec created at `.claude/sprints/S02-program-builder/spec.md`.
 - Sprint 2 plan created at `.claude/sprints/S02-program-builder/plan.md`.
+- Shared Program protocols created for list, builder, detail, day builder, and exercise picker.
+- `ProgramExerciseForm`, validation helpers, zero-based dense order helpers, preview samples, and Swift Testing coverage added.
+- Targeted Task 1 tests pass on `iPhone 17e`.
 
-**Last commit SHA:** Not started in this sprint.
+**Last commit SHA:** 151f690
 
 **Known deviations / constraints:**
 - Use simulator `iPhone 17e` in all `xcodebuild` commands.
@@ -23,8 +26,9 @@
 - Xcode 16 auto-discovers files under `Gymbros/`; do not edit `project.pbxproj` just to add files.
 - Do not manually declare `Color.gymPurple`; it is generated from the asset catalog.
 - No schema migration is expected for Sprint 2.
+- Verification required escalated filesystem/CoreSimulator access because sandboxed `xcodebuild` could not write SwiftPM/Xcode caches.
 
-**Next step:** Task 1 - create shared contracts, form state, validation, samples, and reorder helpers.
+**Next step:** Start Task 2, Task 3, and Task 4 in parallel.
 
 ---
 
@@ -61,18 +65,18 @@ Task 5 is sequential integration after Tasks 2-4 are complete.
 - Keep shared contracts minimal but complete enough for UI and data workers.
 - Do not implement Supabase mutations in this task.
 
-- [ ] Define `ProgramListProtocol` with list state, transient error, load, set active, and delete methods.
-- [ ] Define `ProgramBuilderProtocol` and `ProgramBuilderMode`.
-- [ ] Define `ProgramDetailProtocol` and `ProgramDetailData`.
-- [ ] Define `DayBuilderProtocol` and `DayBuilderData`.
-- [ ] Define `ExercisePickerProtocol`.
-- [ ] Add `ProgramExerciseForm` with default targets: 3 sets, 8-12 reps, 90 seconds rest.
-- [ ] Add validation helpers for program name, day name, sets, rep range, rest seconds, and notes trimming.
-- [ ] Add reorder/order-normalization helper for days and program exercises using zero-based dense order.
-- [ ] Add preview sample data that does not require network/auth.
-- [ ] Add Swift Testing coverage for validation defaults and order normalization.
-- [ ] Run `xcodebuild test -project Gymbros.xcodeproj -scheme Gymbros -destination 'platform=iOS Simulator,name=iPhone 17e' -only-testing:GymbrosTests/ProgramBuilderValidationTests`.
-- [ ] Update `CURRENT STATUS` with completed work, deviations, and next parallel tasks.
+- [x] Define `ProgramListProtocol` with list state, transient error, load, set active, and delete methods.
+- [x] Define `ProgramBuilderProtocol` and `ProgramBuilderMode`.
+- [x] Define `ProgramDetailProtocol` and `ProgramDetailData`.
+- [x] Define `DayBuilderProtocol` and `DayBuilderData`.
+- [x] Define `ExercisePickerProtocol`.
+- [x] Add `ProgramExerciseForm` with default targets: 3 sets, 8-12 reps, 90 seconds rest.
+- [x] Add validation helpers for program name, day name, sets, rep range, rest seconds, and notes trimming.
+- [x] Add reorder/order-normalization helper for days and program exercises using zero-based dense order.
+- [x] Add preview sample data that does not require network/auth.
+- [x] Add Swift Testing coverage for validation defaults and order normalization.
+- [x] Run `xcodebuild test -project Gymbros.xcodeproj -scheme Gymbros -destination 'platform=iOS Simulator,name=iPhone 17e' -only-testing:GymbrosTests/ProgramBuilderValidationTests`.
+- [x] Update `CURRENT STATUS` with completed work, deviations, and next parallel tasks.
 
 ---
 
