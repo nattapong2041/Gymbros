@@ -423,11 +423,15 @@ Done: App live. Public users. Stability monitoring in place.
 ☐ Full 5-template library as JSON bundles (see Section 9)
 ☐ "Browse Templates" in ProgramListView
 ☐ Clone template → user owns the copy → fully editable
+☐ Custom exercises — user can add private exercises to their own library
+☐ Custom exercise fields: name, movement pattern, primary muscle, secondary muscles, equipment, compound/accessory
+☐ Custom exercises appear in ExercisePickerView alongside system exercises
 ☐ Exercise substitution (movement pattern matching)
 ☐ Mid-workout swap ("gym crowded" one tap)
 ☐ Full onboarding quiz (5 questions → template match)
 
 Done: Users pick from 5 templates. Mid-workout swap works.
+      Users can add missing exercises without waiting for the system library.
 ```
 
 ---
