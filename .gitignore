@@ -1,0 +1,46 @@
+# macOS
+.DS_Store
+
+# Xcode build output
+build/
+DerivedData/
+*.xcarchive
+*.ipa
+*.dSYM.zip
+*.dSYM
+
+# Xcode user state
+xcuserdata/
+*.xcuserdatad/
+*.xcuserstate
+*.xcscmblueprint
+*.xccheckout
+*.moved-aside
+
+# Swift Package Manager
+.build/
+.swiftpm/configuration/
+Packages/
+
+# Dependency managers
+Carthage/Build/
+Pods/
+
+# Logs and reports
+*.log
+*.xcresult
+
+# Local environment and secrets
+.env
+.env.*
+!.env.example
+*.local.xcconfig
+Local.xcconfig
+Secrets.xcconfig
+Gymbros/Core/Secrets.swift
+
+# Supabase local CLI state
+supabase/.branches/
+supabase/.temp/
+supabase/.env
+supabase/.env.*

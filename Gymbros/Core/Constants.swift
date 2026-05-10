@@ -2,9 +2,8 @@ import Foundation
 
 enum AppConstants {
     enum Supabase {
-        // Replace with your actual values from supabase.com → Project Settings → API
-        static let url = URL(string: "https://YOUR_PROJECT.supabase.co")!
-        static let anonKey = "YOUR_ANON_KEY"
+        static let url = URL(string: Secrets.supabaseURL)!
+        static let anonKey = Secrets.supabaseAnonKey
     }
 
     enum Workout {

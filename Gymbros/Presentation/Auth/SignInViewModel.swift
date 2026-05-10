@@ -19,7 +19,7 @@ final class SignInViewModel {
     func prepareAppleSignIn(_ request: ASAuthorizationAppleIDRequest) {
         let nonce = randomNonceString()
         currentNonce = nonce
-        request.requestedScopes = [.fullName]
+        request.requestedScopes = [] // No scopes needed for minimal auth
         request.nonce = sha256(nonce)
         state = .idle
     }

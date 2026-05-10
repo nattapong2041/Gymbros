@@ -499,7 +499,7 @@ Done: PT manages clients. Phase affects suggestions.
 
 | Sprint | Name | Status | Notes |
 |--------|------|--------|-------|
-| 1 | Foundation + Data | ☐ | spec ready: S01 |
+| 1 | Foundation + Data | ✅ | Complete. Database live. |
 | 2 | Custom Program Builder | ☐ | |
 | 3 | Logger + Timer | ☐ | |
 | 4 | Today + History + Nav | ☐ | |
