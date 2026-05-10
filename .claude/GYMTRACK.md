@@ -1,7 +1,7 @@
 # GymTrack — Source of Truth
 
 > Living document. Update as decisions evolve.
-> Last updated: 2026-05-10
+> Last updated: 2026-05-11
 
 ---
 
@@ -35,29 +35,83 @@
 **Tagline TH:** "มาแค่นี้พอ เราจะดูแลส่วนที่เหลือ"
 **Tagline EN:** "Just show up. We'll handle the rest."
 
-**Problem:** 50% of gym members quit within 6 months — not because they're lazy, but because no app handles real life: missed sessions, comebacks, decision fatigue, invisible progress.
+**Product truth:** Users do not live around the gym. They have work, family, errands, stress, and days where life wins. When they finally make it to the gym, they should not have to manage another system in their head.
 
-**What makes us different:** Every app is a tracker. We are a coach. Open app → zero decisions → execute → done.
+**Problem:** Busy lifters often like training, but gym decisions become messy when real life interrupts:
+- What should I do today?
+- I missed 1–2 days — do I continue or rearrange the plan?
+- I missed 4 days or a week — should I deload, resume, or restart?
+- When should I progress?
+- After a deload, what comes next?
+
+Most gym apps record what happened. GymTrack removes the decision load before and after the workout so the user can just show up and execute.
+
+**What makes us different:** GymTrack is not for people whose life revolves around training. It is for people who want training to fit into real life. Open app → know today's workout, load, and next step → execute → done.
 
 ---
 
 ## 2. Target Users
 
-**Primary:** Thai gym-goers, 18–35, iPhone. Wants 3–5×/week, actually trains 1–3×/week.
+**Primary:** Thai gym-goers, 18–35, iPhone, who want to train consistently but have full lives outside the gym. They may aim for 3–5×/week, but work, family, errands, travel, or fatigue often reduce that to 1–3×/week.
 
-**Not for (yet):** Competitive powerlifters, cardio athletes.
+**Their reality:**
+- They are not lazy; they are busy.
+- They like lifting, but do not want to manage a training spreadsheet in their head.
+- Missed days create confusion, not just guilt.
+- The hardest question is often not "Should I go?" but "Now that I am here, what exactly should I do?"
+
+**Not for (yet):** Competitive powerlifters, cardio athletes, or people who want to micromanage every programming variable themselves.
 
 **Secondary (V3):** Personal trainers managing 5–15 Thai clients.
 
-**Insight:** The inconsistent lifter is 80% of the gym market and 0% of apps' focus.
+**Insight:** Most people do not need more gym management. They need less of it.
 
 ---
 
 ## 3. Core Value Proposition
 
 ```
-Apple Fitness: how many calories you burned
-GymTrack:      what to lift, how much, what's next — even after 2 weeks off
+Most gym apps: log what you did
+GymTrack:     tell you exactly what to do today — even when life disrupted the plan
+```
+
+### Core Promise
+
+```
+Your life is already busy.
+GymTrack handles the gym decisions.
+```
+
+### The Job To Be Done
+
+When a busy lifter finally arrives at the gym, help them answer:
+1. What workout should I do today?
+2. What weight / reps should I use?
+3. Should I progress, hold, deload, or ramp back up?
+4. If I missed days, how do I continue without re-planning everything?
+
+### The Shining Feature: Next Best Session Engine
+
+```
+Normal week:
+  "Do Upper B today. Try 77.5kg on bench."
+
+Missed 1–2 days:
+  "No problem. Continue with Lower A today."
+
+Missed 4–6 days:
+  "Pick up here. No need to rearrange the week."
+
+Missed 7+ days:
+  "Comeback session today: reduce load, reduce volume, rebuild safely."
+
+After deload / comeback:
+  "You are ready to resume progression. Here is the next step."
+```
+
+The product is not one algorithm in isolation. The value is the full decision-removal loop:
+```
+Open app → know what to do → train → app decides what comes next
 ```
 
 ---
@@ -939,11 +993,19 @@ pro_feature_tapped
 
 ## 12. Marketing Plan
 
-**Pre-launch:** TikTok + Twitter/X in Thai. "หยุดเล่นยิม 2 อาทิตย์ กลับมายังไง" — no app yet.
+**Core message:** Your life is already busy. GymTrack handles the gym decisions.
+
+**Pre-launch content themes (Thai):**
+- "งานยุ่ง ขาดยิม 4 วัน วันนี้เล่นอะไรดี?"
+- "ควรเพิ่มน้ำหนักเมื่อไหร่?"
+- "หยุดเล่นยิม 1 อาทิตย์ กลับมายังไง ไม่ต้องเดา"
+- "ชีวิตยุ่งได้ แต่โปรแกรมไม่ต้องพัง"
 
 **Launch:** TestFlight 20 → Product Hunt → Thai communities → 10 micro-influencers (free Pro) → first 50 users get 3-month Pro.
 
 **Growth:** PR share card (purple/lime branded) → IG story loop. Facebook Group. PTs as distribution. B2B gym deals.
+
+**Positioning rule:** Do not market GymTrack as only a tracker, muscle map, or generic AI coach. Lead with reduced gym decision load for people with real lives.
 
 ---
 
@@ -989,7 +1051,7 @@ git push main → CI/CD ships to TestFlight
 | Design | SwiftUI native | Figma | Solo dev, 3× faster |
 | Architecture | MVVM + Repo + Service | UseCase/Coordinator | Lean |
 | Folders | Layer + feature Presentation | Full feature-based | Solo dev clarity |
-| Positioning | "Consistency coach" | "Thai tracker" | Hevy already Thai |
+| Positioning | "Gym companion for people with real lives" | "Thai tracker", "for inconsistent people only" | Broader, less judgmental, and directly matches the user pain: reduce gym decision load when life interrupts |
 | Social | Cut | Build social | Hevy owns this |
 | Onboarding | Basic onboarding in Phase 1 | Wait until Sprint 6 | Product promise needs guided first-run |
 | V1 templates | 2 starter plans in Phase 1 | Templates only in Sprint 8 | Reduce blank-state friction without removing customization |
@@ -1015,6 +1077,8 @@ All major strategic decisions resolved. ✅
 Monitor after beta:
 - whether 2 starter plans are enough for first-run success
 - whether users understand the Free vs Pro boundary
+- whether users describe the value as "I don't have to think about the gym anymore"
+- whether missed-day / deload / next-step guidance is the strongest retention driver
 - whether HealthKit is requested often enough to pull forward
 - whether AI coaching has real demand or should remain deferred
 
@@ -1023,6 +1087,14 @@ Monitor after beta:
 ---
 
 ## 16. Decision Log
+
+### 2026-05-11 (session 10)
+- **Core concept refined:** GymTrack is for people with real lives, not only "inconsistent lifters." The app exists to reduce gym decision load for busy people.
+- **User pain clarified:** users do not know what to do after missed days, when to progress, when to deload, or what happens after a deload.
+- **Product promise refined:** "Your life is already busy. GymTrack handles the gym decisions."
+- **Shining feature defined:** the `Next Best Session Engine` combines today's workout, progression, missed-day handling, deload guidance, and post-deload next steps into one decision-removal loop.
+- **Positioning rule:** lead with "know exactly what to do today, even when life disrupts the plan," not with generic tracking, muscle maps, or "AI coach" language.
+- **Target-user language updated:** less judgmental than "inconsistent lifter"; focus on busy lifters with work, family, errands, and competing priorities.
 
 ### 2026-05-10 (session 8)
 - **Exercise names:** store one canonical exercise `name` in Supabase; do not translate system exercise names for V1. User-created exercises use the exact name the user enters.
@@ -1083,11 +1155,15 @@ Monitor after beta:
 
 ## Appendix — Quick Reference
 
-**What we are:** The gym companion that handles everything so you just show up.
+**What we are:** The gym companion for people with real lives.
 
-**Who we serve:** The 80% of gym members who are inconsistent.
+**Who we serve:** Busy lifters who want to train consistently but do not want to manage the training system themselves.
 
-**The gap:** Every app tracks. We tell you what to do next — even after 2 weeks off.
+**The gap:** Life disrupts training. Most apps log the aftermath. GymTrack tells users exactly what to do today, when to progress, when to deload, and what comes next after missed time.
+
+**Core promise:** Your life is already busy. GymTrack handles the gym decisions.
+
+**Shining feature:** `Next Best Session Engine` — open the app and know today's workout, load, and next step.
 
 **Colors:** Lime (#C8FF00) for progress. Purple (#9B7FE8) for special states. SwiftUI for everything else.
 
