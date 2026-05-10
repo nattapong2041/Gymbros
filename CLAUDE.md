@@ -212,6 +212,16 @@ Log raw errors only in debug/developer channels. Logs may include operation cont
 - Before staging or committing, check the diff for secrets and remove any accidental key, token, endpoint credential, or local environment value.
 - If a secret was accidentally committed, treat it as compromised: rotate it immediately, remove it from history as needed, and document the cleanup.
 
+## Data Safety and Approval
+
+- **Mandatory Approval:** Every agent (Gemini CLI, Claude Code, Codex, etc.) MUST use `ask_user` or equivalent to obtain explicit confirmation BEFORE performing any "dangerous" operation.
+- **Dangerous Operations include:**
+    - Deleting or dropping database tables or schemas.
+    - Wiping, truncating, or performing bulk deletions of production/development data.
+    - Applying migrations that include `DROP`, `TRUNCATE`, or destructive `ALTER TABLE` statements.
+    - Updating critical system configuration or high-impact metadata.
+- **Protocol:** Explain the impact and potential risks of the operation clearly in the confirmation request. Do not proceed until the user has explicitly granted permission for that specific action.
+
 ## Design System
 
 Two custom named colors defined in `Assets.xcassets` and aliased in `Core/AppTheme.swift`:

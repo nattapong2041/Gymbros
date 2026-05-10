@@ -50,3 +50,18 @@ prefix_rule(
     justification = "Review broad staging for secrets before allowing it.",
     match = ["git add ."],
 )
+
+# Mandatory prompt for destructive database operations.
+prefix_rule(
+    pattern = ["supabase", "db", "reset"],
+    decision = "prompt",
+    justification = "Database reset is destructive and wipes local data. Ensure you have user approval.",
+    match = ["supabase db reset"],
+)
+
+prefix_rule(
+    pattern = ["supabase", "migration", "repair"],
+    decision = "prompt",
+    justification = "Migration repair modifies the migration history and can be dangerous if misapplied.",
+    match = ["supabase migration repair"],
+)
