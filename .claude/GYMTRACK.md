@@ -110,16 +110,18 @@ Why device locale first?
 
 ### Approach
 
-SwiftUI native design system. No Figma. Paper sketches for 4 key screens.
+SwiftUI native design system following the [Apple Human Interface Guidelines](https://developer.apple.com/design/human-interface-guidelines). No Figma. Paper sketches for 4 key screens.
 
 ### Color Strategy
 
 ```
+Mandate: Full support for both Light and Dark modes is required for all screens.
+
 Base:   SwiftUI semantic colors (automatic dark/light mode)
         .systemBackground, .secondarySystemBackground
         .primary, .secondary
         These handle 90% of all color needs.
-
+```
 Custom: TWO named colors defined in Assets.xcassets
         → AccentColor (primary interactive)
         → GymPurple   (special states)

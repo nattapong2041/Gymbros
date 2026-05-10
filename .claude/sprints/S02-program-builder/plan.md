@@ -124,19 +124,19 @@ Task 5 is sequential integration after Tasks 2-4 are complete.
 - `Gymbros/Presentation/Programs/ExercisePickerView.swift`
 - `Gymbros/Presentation/Programs/ProgramExerciseEditorView.swift`
 
-- [ ] Build `ProgramListView` with loading, empty, success, error, create, active, delete confirmation, and navigation.
-- [ ] Build `ProgramBuilderView` with create/edit modes, name/description form, validation, save, and cancel.
-- [ ] Build `ProgramDetailView` with program header, active action, day list, add/rename/delete/reorder days, edit/delete program entry points.
-- [ ] Build `DayBuilderView` with day rename, add exercise, exercise row list, prescription edit, delete, and reorder.
-- [ ] Build `ExercisePickerView` with search, muscle/equipment/pattern filters, clear filters, empty results, and selection callback.
-- [ ] Do not add custom exercise creation in Sprint 2; roadmap places that in Sprint 8.
-- [ ] Build `ProgramExerciseEditorView` with sets, rep min/max, rest presets, notes, validation, save, and cancel.
-- [ ] Ensure icon-only buttons have accessibility labels.
-- [ ] Ensure primary tap targets are at least 48pt.
-- [ ] Ensure previews compile without live Supabase or concrete data ViewModels.
-- [ ] Avoid hardcoded user-facing strings; use localized keys.
-- [ ] Run a build or targeted preview-compatible compile check.
-- [ ] Update `CURRENT STATUS` with completed work and any integration notes for Task 5.
+- [x] Build `ProgramListView` with loading, empty, success, error, create, active, delete confirmation, and navigation.
+- [x] Build `ProgramBuilderView` with create/edit modes, name/description form, validation, save, and cancel.
+- [x] Build `ProgramDetailView` with program header, active action, day list, add/rename/delete/reorder days, edit/delete program entry points.
+- [x] Build `DayBuilderView` with day rename, add exercise, exercise row list, prescription edit, delete, and reorder.
+- [x] Build `ExercisePickerView` with search, muscle/equipment/pattern filters, clear filters, empty results, and selection callback.
+- [x] Do not add custom exercise creation in Sprint 2; roadmap places that in Sprint 8.
+- [x] Build `ProgramExerciseEditorView` with sets, rep min/max, rest presets, notes, validation, save, and cancel.
+- [x] Ensure icon-only buttons have accessibility labels.
+- [x] Ensure primary tap targets are at least 48pt.
+- [x] Ensure previews compile without live Supabase or concrete data ViewModels.
+- [x] Avoid hardcoded user-facing strings; use localized keys.
+- [x] Run a build or targeted preview-compatible compile check.
+- [x] Update `CURRENT STATUS` with completed work and any integration notes for Task 5.
 
 ---
 
@@ -202,5 +202,8 @@ Task 5 is sequential integration after Tasks 2-4 are complete.
 - [ ] Target sets, rep range, and rest seconds persist.
 - [ ] All visible strings are localized in Thai and English.
 - [ ] No raw SDK/database errors reach SwiftUI.
+- [ ] Automated tests pass.
+- [ ] Upper/Lower 4-day manual smoke test passes.
+ SwiftUI.
 - [ ] Automated tests pass.
 - [ ] Upper/Lower 4-day manual smoke test passes.

@@ -489,6 +489,8 @@ Copy guidelines:
 
 ## 8. Accessibility And Design
 
+All UI design must strictly follow the latest [Apple Human Interface Guidelines](https://developer.apple.com/design/human-interface-guidelines). **Full support for both Light and Dark modes is mandatory for all screens.**
+
 Rules:
 
 - Minimum tap target: 48pt.
