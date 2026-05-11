@@ -95,6 +95,7 @@ enum ProgramSamples {
             targetRepsMin: 8,
             targetRepsMax: 12,
             targetRestSeconds: 90,
+            targetWeight: 60,
             exerciseOrder: 0,
             notes: "Pause first rep",
             createdAt: createdAt
@@ -110,6 +111,7 @@ enum ProgramSamples {
             targetRepsMin: 5,
             targetRepsMax: 8,
             targetRestSeconds: 120,
+            targetWeight: nil,
             exerciseOrder: 0,
             notes: nil,
             createdAt: createdAt

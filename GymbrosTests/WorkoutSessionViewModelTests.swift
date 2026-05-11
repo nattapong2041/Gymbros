@@ -233,6 +233,7 @@ private final class FakeWorkoutProgramRepository: ProgramRepositoryProviding {
         targetRepsMin: Int,
         targetRepsMax: Int,
         targetRestSeconds: Int,
+        targetWeight: Double?,
         order: Int,
         notes: String?
     ) async throws -> ProgramExercise {

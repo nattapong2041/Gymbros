@@ -1489,6 +1489,22 @@
         }
       }
     },
+    "program.exercise.target_weight" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Target Weight"
+          }
+        },
+        "th" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "น้ำหนักเป้าหมาย"
+          }
+        }
+      }
+    },
     "programExercise.notes.section" : {
       "localizations" : {
         "en" : {

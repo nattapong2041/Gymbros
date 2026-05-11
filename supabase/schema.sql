@@ -58,6 +58,7 @@ create table public.program_exercises (
     target_reps_min int not null default 8,
     target_reps_max int not null default 12,
     target_rest_seconds int not null default 90,
+    target_weight numeric,
     exercise_order int not null,
     notes text,
     created_at timestamptz default now() not null

@@ -11,6 +11,8 @@ struct ProgramBuilderValidationTests {
         #expect(form.targetRepsMin == 8)
         #expect(form.targetRepsMax == 12)
         #expect(form.targetRestSeconds == 90)
+        #expect(form.targetWeightText.isEmpty)
+        #expect(form.targetWeight == nil)
         #expect(form.notes.isEmpty)
         #expect(form.validate() == nil)
     }
@@ -33,6 +35,15 @@ struct ProgramBuilderValidationTests {
         #expect(ProgramExerciseForm(targetRepsMax: 101).validate() == .validation(.invalidInput))
         #expect(ProgramExerciseForm(targetRestSeconds: 14).validate() == .validation(.invalidInput))
         #expect(ProgramExerciseForm(targetRestSeconds: 601).validate() == .validation(.invalidInput))
+    }
+
+    @Test func targetWeightIsOptionalAndValidatesNumericBounds() {
+        #expect(ProgramExerciseForm(targetWeightText: "").validate() == nil)
+        #expect(ProgramExerciseForm(targetWeightText: "  ").targetWeight == nil)
+        #expect(ProgramExerciseForm(targetWeightText: "72.5").targetWeight == 72.5)
+        #expect(ProgramExerciseForm(targetWeightText: "72.5").validate() == nil)
+        #expect(ProgramExerciseForm(targetWeightText: "-1").validate() == .validation(.invalidInput))
+        #expect(ProgramExerciseForm(targetWeightText: "heavy").validate() == .validation(.invalidInput))
     }
 
     @Test func notesNormalizeToNilWhenBlank() {
@@ -127,6 +138,7 @@ struct ProgramBuilderValidationTests {
             targetRepsMin: 8,
             targetRepsMax: 12,
             targetRestSeconds: 90,
+            targetWeight: nil,
             exerciseOrder: order,
             notes: nil,
             createdAt: ProgramSamples.createdAt.addingTimeInterval(TimeInterval(order))

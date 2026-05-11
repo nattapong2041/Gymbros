@@ -23,6 +23,7 @@ protocol ProgramRepositoryProviding {
         targetRepsMin: Int,
         targetRepsMax: Int,
         targetRestSeconds: Int,
+        targetWeight: Double?,
         order: Int,
         notes: String?
     ) async throws -> ProgramExercise
@@ -297,6 +298,7 @@ final class ProgramRepository: ProgramRepositoryProviding {
         targetRepsMin: Int,
         targetRepsMax: Int,
         targetRestSeconds: Int,
+        targetWeight: Double?,
         order: Int,
         notes: String?
     ) async throws -> ProgramExercise {
@@ -310,6 +312,7 @@ final class ProgramRepository: ProgramRepositoryProviding {
                     targetRepsMin: targetRepsMin,
                     targetRepsMax: targetRepsMax,
                     targetRestSeconds: targetRestSeconds,
+                    targetWeight: targetWeight,
                     exerciseOrder: order,
                     notes: notes
                 ))
@@ -435,6 +438,7 @@ struct ProgramExerciseInsertPayload: Encodable {
     let targetRepsMin: Int
     let targetRepsMax: Int
     let targetRestSeconds: Int
+    let targetWeight: Double?
     let exerciseOrder: Int
     let notes: String?
 
@@ -445,6 +449,7 @@ struct ProgramExerciseInsertPayload: Encodable {
         case targetRepsMin = "target_reps_min"
         case targetRepsMax = "target_reps_max"
         case targetRestSeconds = "target_rest_seconds"
+        case targetWeight = "target_weight"
         case exerciseOrder = "exercise_order"
         case notes
     }
@@ -455,6 +460,7 @@ struct ProgramExerciseUpdatePayload: Encodable {
     let targetRepsMin: Int
     let targetRepsMax: Int
     let targetRestSeconds: Int
+    let targetWeight: Double?
     let exerciseOrder: Int
     let notes: String?
 
@@ -463,6 +469,7 @@ struct ProgramExerciseUpdatePayload: Encodable {
         self.targetRepsMin = programExercise.targetRepsMin
         self.targetRepsMax = programExercise.targetRepsMax
         self.targetRestSeconds = programExercise.targetRestSeconds
+        self.targetWeight = programExercise.targetWeight
         self.exerciseOrder = programExercise.exerciseOrder
         self.notes = programExercise.notes
     }
@@ -472,6 +479,7 @@ struct ProgramExerciseUpdatePayload: Encodable {
         case targetRepsMin = "target_reps_min"
         case targetRepsMax = "target_reps_max"
         case targetRestSeconds = "target_rest_seconds"
+        case targetWeight = "target_weight"
         case exerciseOrder = "exercise_order"
         case notes
     }
@@ -482,6 +490,11 @@ struct ProgramExerciseUpdatePayload: Encodable {
         try container.encode(targetRepsMin, forKey: .targetRepsMin)
         try container.encode(targetRepsMax, forKey: .targetRepsMax)
         try container.encode(targetRestSeconds, forKey: .targetRestSeconds)
+        if let targetWeight {
+            try container.encode(targetWeight, forKey: .targetWeight)
+        } else {
+            try container.encodeNil(forKey: .targetWeight)
+        }
         try container.encode(exerciseOrder, forKey: .exerciseOrder)
         if let notes {
             try container.encode(notes, forKey: .notes)

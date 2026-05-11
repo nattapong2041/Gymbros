@@ -29,6 +29,7 @@ extension WorkoutSessionData {
             targetRepsMin: 8,
             targetRepsMax: 12,
             targetRestSeconds: 90,
+            targetWeight: 60,
             exerciseOrder: 1,
             notes: "Keep chest up",
             createdAt: Date()

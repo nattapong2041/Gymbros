@@ -63,11 +63,13 @@ struct ProgramRepositoryPayloadTests {
             targetRepsMin: 6,
             targetRepsMax: 8,
             targetRestSeconds: 120,
+            targetWeight: 72.5,
             exerciseOrder: 2,
             notes: "Controlled reps"
         )
         var programExercise = ProgramSamples.benchProgramExercise
         programExercise.notes = nil
+        programExercise.targetWeight = nil
         let update = ProgramExerciseUpdatePayload(programExercise: programExercise)
 
         let insertDictionary = try encodeDictionary(insert)
@@ -79,12 +81,14 @@ struct ProgramRepositoryPayloadTests {
         #expect(insertDictionary["target_reps_min"] as? Int == 6)
         #expect(insertDictionary["target_reps_max"] as? Int == 8)
         #expect(insertDictionary["target_rest_seconds"] as? Int == 120)
+        #expect(insertDictionary["target_weight"] as? Double == 72.5)
         #expect(insertDictionary["exercise_order"] as? Int == 2)
         #expect(insertDictionary["notes"] as? String == "Controlled reps")
         #expect(insertDictionary["id"] == nil)
         #expect(insertDictionary["created_at"] == nil)
 
         #expect(updateDictionary["notes"] is NSNull)
+        #expect(updateDictionary["target_weight"] is NSNull)
         #expect(updateDictionary["target_sets"] as? Int == ProgramSamples.benchProgramExercise.targetSets)
         #expect(updateDictionary["program_day_id"] == nil)
         #expect(updateDictionary["exercise_id"] == nil)

@@ -8,7 +8,7 @@
 
 ## CURRENT STATUS
 
-**Status:** Tasks 0–3 complete (commit `754efff`). Spec realigned 2026-05-11 to a paged one-exercise-at-a-time flow with per-exercise finish, free-swipe between unfinished pages, and a new `program_exercises.target_weight` column. **Realignment Fix-up tasks F1–F6 are pending and block Task 4 (Wire + Verify).**
+**Status:** Tasks 0–3 complete (commit `754efff`). Spec realigned 2026-05-11 to a paged one-exercise-at-a-time flow with per-exercise finish, free-swipe between unfinished pages, and a new `program_exercises.target_weight` column. **Realignment Fix-up F1 is complete; F2–F6 remain pending and block Task 4 (Wire + Verify).**
 
 **Done:**
 - Sprint 3 spec created at `.claude/sprints/S03-logger-timer/spec.md` and realigned 2026-05-11.
@@ -20,6 +20,7 @@
 - Task 3 implemented `Localizable.xcstrings` keys for workout logger, timer, restore, sync, and accessibility in English and Thai.
 - UI components follow HIG with 48pt tap targets and semantic colors.
 - Build verified on `iPhone 17e`.
+- F1 added nullable `program_exercises.target_weight` locally and remotely on Supabase dev project `mkeoidoakzmsgjslihvf`, plus optional target-weight model/repository/program-builder UI support.
 
 **Last commit SHA:** 754efff
 
@@ -45,7 +46,7 @@
 - If `xcodebuild` cannot write SwiftPM/Xcode/Simulator caches in the sandbox, rerun with the required approval.
 - Task 1 does not wire runtime navigation or SwiftUI views; Task 4 owns that after the Realignment Fix-up section is complete.
 
-**Next step:** Execute Realignment Fix-up F1 (schema + model) sequentially, then F2 and F3 in parallel, then F4, F5, and F6 sequentially, then proceed to Task 4 (Wire + Verify).
+**Next step:** Execute Realignment Fix-up F2 (color audit) and F3 (ViewModel + state refactor) in parallel, then F4, F5, and F6 sequentially, then proceed to Task 4 (Wire + Verify).
 
 ---
 
@@ -258,14 +259,14 @@ F6 (final verification before Task 4)
 - `Gymbros/Presentation/Workout/*` (F3/F4 territory)
 - `Gymbros/Core/AppTheme.swift` (F2 territory)
 
-- [ ] Add `target_weight numeric null` to `program_exercises` in `supabase/schema.sql`.
-- [ ] Create `supabase/migrations/2026-05-11_program_exercises_target_weight.sql` with the same change as an idempotent migration.
-- [ ] **Pause and request user approval before applying remotely** (`CLAUDE.md` Data Safety rule).
-- [ ] Add `var targetWeight: Double?` to `ProgramExercise` with `CodingKeys.targetWeight = "target_weight"`.
-- [ ] Add a target-weight text field to `ProgramExerciseForm` (numeric ≥ 0 when present; empty = nil). Add a `ProgramFormValidation.validateTargetWeight` helper.
-- [ ] Wire the field into `ProgramExerciseEditorView` between rest seconds and notes. Use the `program.exercise.target_weight` localization key.
-- [ ] Update `ProgramRepository` insert/update payloads to include `target_weight`.
-- [ ] Update existing `ProgramExercise` tests/fixtures if any rely on a specific field set.
+- [x] Add `target_weight numeric null` to `program_exercises` in `supabase/schema.sql`.
+- [x] Create `supabase/migrations/2026-05-11_program_exercises_target_weight.sql` with the same change as an idempotent migration.
+- [x] **Pause and request user approval before applying remotely** (`CLAUDE.md` Data Safety rule).
+- [x] Add `var targetWeight: Double?` to `ProgramExercise` with `CodingKeys.targetWeight = "target_weight"`.
+- [x] Add a target-weight text field to `ProgramExerciseForm` (numeric ≥ 0 when present; empty = nil). Add a `ProgramFormValidation.validateTargetWeight` helper.
+- [x] Wire the field into `ProgramExerciseEditorView` between rest seconds and notes. Use the `program.exercise.target_weight` localization key.
+- [x] Update `ProgramRepository` insert/update payloads to include `target_weight`.
+- [x] Update existing `ProgramExercise` tests/fixtures if any rely on a specific field set.
 
 **Verification command:**
 
@@ -273,7 +274,7 @@ F6 (final verification before Task 4)
 xcodebuild -project Gymbros.xcodeproj -scheme Gymbros -destination 'platform=iOS Simulator,name=iPhone 17e' build
 ```
 
-**Handoff notes:** Add when complete.
+**Handoff notes:** Complete. Target weight is optional end-to-end: empty text saves as `nil`, numeric values `>= 0` persist, and invalid/negative input is rejected. Remote Supabase dev project `mkeoidoakzmsgjslihvf` was migrated with `program_exercises_target_weight`; verification query returned `target_weight` as nullable `numeric`. Targeted tests passed for `ProgramRepositoryPayloadTests`, `ProgramBuilderValidationTests`, and `ProgramViewModelTests`; F1 build passed on `iPhone 17e`. Supabase advisors after DDL reported existing auth leaked password protection warning and pre-existing performance lint items; no new target-weight-specific security issue was reported.
 
 ---
 

@@ -91,6 +91,7 @@ final class DayBuilderViewModel {
                 targetRepsMin: form.targetRepsMin,
                 targetRepsMax: form.targetRepsMax,
                 targetRestSeconds: form.targetRestSeconds,
+                targetWeight: form.targetWeight,
                 order: data.programExercises.count,
                 notes: form.normalizedNotes
             )
@@ -108,6 +109,7 @@ final class DayBuilderViewModel {
         updated.targetRepsMin = form.targetRepsMin
         updated.targetRepsMax = form.targetRepsMax
         updated.targetRestSeconds = form.targetRestSeconds
+        updated.targetWeight = form.targetWeight
         updated.notes = form.normalizedNotes
 
         await performDayMutation(operation: "updateProgramExercise") {

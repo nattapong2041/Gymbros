@@ -132,7 +132,7 @@ struct ProgramViewModelTests {
         await viewModel.loadDay()
         await viewModel.updateProgramExercise(
             ProgramSamples.benchProgramExercise,
-            form: ProgramExerciseForm(targetSets: 4, targetRepsMin: 5, targetRepsMax: 6, targetRestSeconds: 180, notes: " \n ")
+            form: ProgramExerciseForm(targetSets: 4, targetRepsMin: 5, targetRepsMax: 6, targetRestSeconds: 180, targetWeightText: "72.5", notes: " \n ")
         )
 
         let updated = try #require(repository.updatedProgramExercises.last)
@@ -140,6 +140,7 @@ struct ProgramViewModelTests {
         #expect(updated.targetRepsMin == 5)
         #expect(updated.targetRepsMax == 6)
         #expect(updated.targetRestSeconds == 180)
+        #expect(updated.targetWeight == 72.5)
         #expect(updated.notes == nil)
     }
 
@@ -308,6 +309,7 @@ private final class FakeProgramRepository: ProgramRepositoryProviding {
         targetRepsMin: Int,
         targetRepsMax: Int,
         targetRestSeconds: Int,
+        targetWeight: Double?,
         order: Int,
         notes: String?
     ) async throws -> ProgramExercise {
@@ -316,6 +318,7 @@ private final class FakeProgramRepository: ProgramRepositoryProviding {
             targetRepsMin: targetRepsMin,
             targetRepsMax: targetRepsMax,
             targetRestSeconds: targetRestSeconds,
+            targetWeightText: targetWeight.map { String($0) } ?? "",
             notes: notes ?? ""
         )
         createdProgramExercises.append((dayId, exerciseId, form, order))
@@ -327,6 +330,7 @@ private final class FakeProgramRepository: ProgramRepositoryProviding {
             targetRepsMin: targetRepsMin,
             targetRepsMax: targetRepsMax,
             targetRestSeconds: targetRestSeconds,
+            targetWeight: targetWeight,
             exerciseOrder: order,
             notes: notes,
             createdAt: ProgramSamples.createdAt

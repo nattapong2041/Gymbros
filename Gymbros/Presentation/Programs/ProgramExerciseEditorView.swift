@@ -71,6 +71,11 @@ struct ProgramExerciseEditorView: View {
                 }
 
                 Section {
+                    TextField("program.exercise.target_weight", text: $form.targetWeightText)
+                        .keyboardType(.decimalPad)
+                }
+
+                Section {
                     TextField("programExercise.notes.placeholder", text: $form.notes, axis: .vertical)
                         .lineLimit(3...5)
                 } header: {

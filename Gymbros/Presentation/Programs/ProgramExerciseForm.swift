@@ -12,6 +12,7 @@ struct ProgramExerciseForm: Identifiable, Equatable {
     var targetRepsMin: Int
     var targetRepsMax: Int
     var targetRestSeconds: Int
+    var targetWeightText: String
     var notes: String
 
     init(
@@ -21,6 +22,7 @@ struct ProgramExerciseForm: Identifiable, Equatable {
         targetRepsMin: Int = Self.defaultTargetRepsMin,
         targetRepsMax: Int = Self.defaultTargetRepsMax,
         targetRestSeconds: Int = Self.defaultTargetRestSeconds,
+        targetWeightText: String = "",
         notes: String = ""
     ) {
         self.id = id
@@ -29,6 +31,7 @@ struct ProgramExerciseForm: Identifiable, Equatable {
         self.targetRepsMin = targetRepsMin
         self.targetRepsMax = targetRepsMax
         self.targetRestSeconds = targetRestSeconds
+        self.targetWeightText = targetWeightText
         self.notes = notes
     }
 
@@ -40,8 +43,14 @@ struct ProgramExerciseForm: Identifiable, Equatable {
             targetRepsMin: programExercise.targetRepsMin,
             targetRepsMax: programExercise.targetRepsMax,
             targetRestSeconds: programExercise.targetRestSeconds,
+            targetWeightText: programExercise.targetWeight.map(Self.formatTargetWeight) ?? "",
             notes: programExercise.notes ?? ""
         )
+    }
+
+    var targetWeight: Double? {
+        let trimmed = targetWeightText.trimmingCharacters(in: .whitespacesAndNewlines)
+        return trimmed.isEmpty ? nil : Double(trimmed)
     }
 
     var normalizedNotes: String? {
@@ -58,7 +67,14 @@ struct ProgramExerciseForm: Identifiable, Equatable {
         if ProgramFormValidation.validateRestSeconds(targetRestSeconds) != nil {
             return .validation(.invalidInput)
         }
+        if ProgramFormValidation.validateTargetWeight(targetWeightText) != nil {
+            return .validation(.invalidInput)
+        }
         return nil
+    }
+
+    private static func formatTargetWeight(_ value: Double) -> String {
+        value.formatted(.number.precision(.fractionLength(0...2)))
     }
 }
 
@@ -89,6 +105,15 @@ enum ProgramFormValidation {
 
     static func validateRestSeconds(_ value: Int) -> AppError? {
         (15...600).contains(value) ? nil : .validation(.invalidInput)
+    }
+
+    static func validateTargetWeight(_ value: String) -> AppError? {
+        let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return nil }
+        guard let number = Double(trimmed), number >= 0 else {
+            return .validation(.invalidInput)
+        }
+        return nil
     }
 
     private static func normalizedRequiredText(_ value: String) -> Result<String, AppError> {

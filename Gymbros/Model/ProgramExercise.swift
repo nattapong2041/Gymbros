@@ -8,6 +8,7 @@ struct ProgramExercise: Codable, Identifiable, Equatable {
     var targetRepsMin: Int
     var targetRepsMax: Int
     var targetRestSeconds: Int
+    var targetWeight: Double?
     var exerciseOrder: Int
     var notes: String?
     let createdAt: Date
@@ -20,6 +21,7 @@ struct ProgramExercise: Codable, Identifiable, Equatable {
         case targetRepsMin = "target_reps_min"
         case targetRepsMax = "target_reps_max"
         case targetRestSeconds = "target_rest_seconds"
+        case targetWeight = "target_weight"
         case exerciseOrder = "exercise_order"
         case createdAt = "created_at"
     }
