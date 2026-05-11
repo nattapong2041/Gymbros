@@ -105,7 +105,7 @@ Rules:
 - Do not add nested relationship properties to `CodingKeys`.
 - Repository methods may be `async throws`, but anything thrown outside the data layer must be `AppError`.
 - Do not expose raw Supabase errors, SQL details, status codes, or `localizedDescription` in SwiftUI.
-- Do not add `Color.gymPurple` manually; Xcode auto-generates it from the named color asset.
+- The whole app uses SwiftUI system and semantic colors only. Do not use `Color.gymAccent`, `Color.gymPurple`, `Color.gymAccentText`, custom named color assets, hex literals, or `Color(red:green:blue:)` in app UI.
 
 ---
 
@@ -134,7 +134,7 @@ Additions (Realignment 2026-05-11):
 - Restore recomputes `currentExerciseIndex` to the first `!isFinished` section regardless of the saved value.
 - Default weight per exercise resolves at session start: `ProgramExercise.targetWeight` → last-logged weight for that exercise → blank.
 - Set 2+ weight and reps pre-fill from the previous set's actual logged values inside the same exercise. RPE is always blank per set.
-- Custom colors policy: only `Color.gymAccent` and `Color.gymPurple`; everything else is a SwiftUI semantic color. `Color.gymAccentText` is retired.
+- Color policy: the whole app uses SwiftUI system and semantic colors only. Custom lime/purple brand colors are deferred because the lime treatment is not readable enough on light backgrounds.
 
 ---
 
@@ -376,7 +376,7 @@ Success layout:
   - `.tabViewStyle(.page(indexDisplayMode: .never))`.
   - Selection bound to `currentExerciseIndex`.
 - Finish Workout action sits in the navigation bar trailing item. It is disabled while finishing **and** disabled until every section's `isFinished == true`.
-- Custom colors used: `Color.gymAccent` for primary actions / progress, `Color.gymPurple` for the "Finished" badge on completed pages. Everything else SwiftUI semantic.
+- Color policy: use default SwiftUI styling and system/semantic colors only. If an explicit tint is required, use an adaptive system color that matches the meaning (`.blue` for primary action, `.green` for success/completion, `.orange` for warning/recovery, `.red` for destructive/error, `.purple` only for comeback/PR/milestone semantics).
 
 ### WorkoutExercisePageView
 
@@ -388,7 +388,7 @@ One per `WorkoutExerciseSection`. Layout:
 - Finished mode: when `isFinished == true`:
   - All inputs disabled (including Add Set).
   - Sync icons hidden (everything is uploaded by definition).
-  - Replace the Finish Exercise button with a non-interactive ✓ "Finished" badge tinted with `Color.gymPurple`.
+  - Replace the Finish Exercise button with a non-interactive ✓ "Finished" badge using default/semantic SwiftUI styling; use `.green` only if an explicit completion tint is needed.
   - No resume prompt when the user swipes to this page.
 
 Each set row has editable weight, reps, optional RPE, completion checkbox/button, and sync status (except in finished mode). Add Set action appears per exercise (except in finished mode).

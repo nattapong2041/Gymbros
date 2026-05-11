@@ -31,7 +31,7 @@
 - Extend `WorkoutSessionData` / `WorkoutExerciseSection` / `ActiveSessionSnapshot` with `currentExerciseIndex`, `isFinished`, `finishedAt`, `defaultWeight`, `finishedExerciseIds`.
 - Add `finishExercise(programExerciseId:)` and `goToExercise(index:)` to `WorkoutSessionViewModel`.
 - Implement default-weight resolution (`targetWeight` → last-logged → blank) and previous-set actual carry-over.
-- Retire `Color.gymAccentText`; audit all custom-color usage; ensure `AccentColor` and `GymPurple` color assets each have light + dark variants.
+- Reset the whole app to SwiftUI system and semantic colors only; remove active use of `Color.gymAccent`, `Color.gymPurple`, and `Color.gymAccentText`.
 - Add new localization keys for exercise finish/finished/next, target weight, and progress count/done.
 - Set completion must **not** auto-advance the TabView; only `finishExercise` does.
 
@@ -40,7 +40,7 @@
 - Module name is `Gymbros`.
 - Tests use Swift Testing, not XCTest.
 - Xcode 16 auto-discovers files under `Gymbros/`; do not edit `project.pbxproj` just to add files.
-- Do not manually declare `Color.gymPurple`; it is generated from the asset catalog.
+- The whole app must use SwiftUI system and semantic colors only. Custom lime/purple brand colors are deferred until they are redesigned and verified for light mode, dark mode, and contrast.
 - One schema change in Sprint 3: `program_exercises.target_weight` (nullable). Requires explicit user approval before applying remotely (`CLAUDE.md` Data Safety rule).
 - Do not add HealthKit, Today, History, tabs, Smart Comeback, substitutions, offline-first sync, or formal superset grouping in Sprint 3.
 - Use concrete `@Observable` ViewModels. Do not create ViewModel protocols unless explicitly requested later.
@@ -229,7 +229,7 @@ xcodebuild -project Gymbros.xcodeproj -scheme Gymbros -destination 'platform=iOS
 
 ## Realignment Fix-up (2026-05-11)
 
-These tasks bring the existing Sprint 3 code in line with the realigned spec (paged TabView, per-exercise finish, free swipe, `target_weight`, color rules) before Task 4 wiring starts. Tasks 0–3 above stay as-is for handoff history; their outputs are amended, not discarded.
+These tasks bring the existing Sprint 3 code in line with the realigned spec (paged TabView, per-exercise finish, free swipe, `target_weight`, whole-app system color rules) before Task 4 wiring starts. Tasks 0–3 above stay as-is for handoff history; their outputs are amended, not discarded.
 
 Execution order:
 
@@ -280,29 +280,31 @@ xcodebuild -project Gymbros.xcodeproj -scheme Gymbros -destination 'platform=iOS
 
 ---
 
-### F2 — Color audit and `gymAccentText` retirement
+### F2 — Whole-app system color reset
 
 **Owner:** UI worker. Parallel with F3.
 
 **Files likely touched:**
 - `Gymbros/Core/AppTheme.swift`
-- `Gymbros/Presentation/Workout/WorkoutSessionView.swift` (or wherever `gymAccentText` is referenced post-F4)
-- `Gymbros/Assets.xcassets/AccentColor.colorset/Contents.json`
-- `Gymbros/Assets.xcassets/GymPurple.colorset/Contents.json`
+- `Gymbros/Presentation/Workout/WorkoutSessionView.swift`
+- `Gymbros/Presentation/Workout/SetRowView.swift`
+- `Gymbros/Presentation/Workout/RestTimerRingView.swift`
+- Other app UI files that still reference custom colors
 
 **Forbidden files:**
 - `Gymbros/Model/*`
 - `Gymbros/Data/*`
 - `Gymbros/Presentation/Workout/WorkoutSessionViewModel.swift` (F3)
 
-- [ ] Remove `Color.gymAccentText` from `AppTheme.swift`. Keep only `gymAccent` and `gymPurple` (auto-generated from assets) plus any pure SwiftUI semantic aliases that are clearly useful (`gymSurface`/`gymBackground` may be kept as semantic-color aliases or removed for clarity).
-- [ ] Replace `Color.gymAccentText` callers with `Color.gymAccent` (text on `Color.gymAccent` background) or `.primary`/`.secondary` (text on system background). Verify both light and dark mode visually.
-- [ ] Verify `AccentColor.colorset/Contents.json` and `GymPurple.colorset/Contents.json` each contain both a Universal/Any appearance and a Dark appearance. Add a Dark variant if missing (target: same hue, tuned for contrast on dark backgrounds).
+- [ ] Remove `Color.gymAccent`, `Color.gymPurple`, and `Color.gymAccentText` from active app UI usage.
+- [ ] Remove `Color.gymAccentText` from `AppTheme.swift`. Keep only semantic aliases such as `gymSurface` / `gymBackground` if they remain useful; do not add new custom brand color helpers.
+- [ ] Replace custom color callers with default SwiftUI styling or semantic/system colors: `.primary`, `.secondary`, system backgrounds, `.blue` for explicit primary action tint, `.green` for success/completion, `.orange` for warning/recovery, `.red` for destructive/error, and `.purple` only for comeback/PR/milestone semantics.
+- [ ] Do not edit `AccentColor.colorset` or `GymPurple.colorset` now; custom brand colors are deferred, not retuned in this sprint.
 - [ ] Grep for forbidden color forms:
   ```bash
-  rg -n "Color\(red:|#[0-9A-Fa-f]{6}|gymAccentText|Color\(\"[A-Z]" Gymbros/ --type swift
+  rg -n "gymAccent|gymPurple|gymAccentText|Color\\(\"AccentColor\"|Color\\(\"GymPurple\"|Color\\(red:|#[0-9A-Fa-f]{6}" Gymbros/ --type swift
   ```
-  Expect zero hits outside `AppTheme.swift` declarations of `gymAccent` / `gymPurple`. Re-run after F4 since the workout views will be rewritten.
+  Expect zero active app UI hits. Re-run after F4 since the workout views will be rewritten.
 
 **Verification command:**
 
@@ -390,7 +392,7 @@ Result: blocked before F3 tests could run by unrelated top-level syntax errors i
 - [ ] When `section.isFinished == true`:
   - Disable all set row inputs.
   - Hide the sync indicator (all uploaded).
-  - Replace Finish Exercise button with a non-interactive ✓ "Finished" badge using `Color.gymPurple`.
+  - Replace Finish Exercise button with a non-interactive ✓ "Finished" badge using default/semantic SwiftUI styling; use `.green` only if an explicit completion tint is needed.
   - Do not show Add Set.
   - Do not show any resume prompt on this page.
 - [ ] Finish Workout in the toolbar is disabled until every section is finished, in addition to the existing `isFinishing` rule.
@@ -444,9 +446,9 @@ xcodebuild -project Gymbros.xcodeproj -scheme Gymbros -destination 'platform=iOS
   ```
 - [ ] Re-run the color grep:
   ```bash
-  rg -n "Color\(red:|#[0-9A-Fa-f]{6}|gymAccentText|Color\(\"[A-Z]" Gymbros/ --type swift
+  rg -n "gymAccent|gymPurple|gymAccentText|Color\\(\"AccentColor\"|Color\\(\"GymPurple\"|Color\\(red:|#[0-9A-Fa-f]{6}" Gymbros/ --type swift
   ```
-  Expect zero hits outside `AppTheme.swift` declarations.
+  Expect zero active app UI hits.
 - [ ] Light/dark mode visual sweep of `WorkoutSessionView`, `WorkoutExercisePageView`, `SetRowView`, `RestTimerRingView`, `ProgramExerciseEditorView`.
 - [ ] Update `CURRENT STATUS` with results and the new last commit SHA (if user asks for a commit), then proceed to Task 4 (Wire + Verify).
 

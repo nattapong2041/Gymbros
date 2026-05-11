@@ -279,35 +279,46 @@ Do not make one language feel like a footnote.
 
 SwiftUI native design system. No Figma for V1. Paper sketches or quick references for key screens only.
 
-### Color Strategy
+### System Color Strategy
 
 ```text
-Custom (the only two named colors allowed):
-  AccentColor → electric lime #C8FF00
-  GymPurple   → #9B7FE8
+Current whole-app rule:
+  Use SwiftUI system and semantic colors only across the entire app.
 
-Each named color provides explicit Any-appearance and Dark-appearance
-variants in Assets.xcassets. Tune both for WCAG AA on body text.
-
-Everything else:
-  SwiftUI semantic colors only.
+Allowed:
   .primary, .secondary
-  .systemBackground, .secondarySystemBackground
-  .red and other system colors where semantic
-  No additional named colors.
-  No hex literals in code.
-  No Color(red:green:blue:) in code.
+  .background, systemBackground, secondarySystemBackground
+  Default SwiftUI button/list/form/navigation styling
+  Adaptive system colors only when semantic:
+    .blue   → primary actions when explicit tint is needed
+    .green  → success/completion
+    .orange → warning/recovery
+    .red    → destructive/error
+    .purple → comeback/PR/milestone only when semantic and readable
+
+Forbidden in app UI:
+  Color.gymAccent
+  Color.gymPurple
+  Color.gymAccentText
+  Custom named color assets for UI styling
+  Hex literals in code/docs as active implementation guidance
+  Color(red:green:blue:) in code
 ```
 
-Note: the earlier `Color.gymAccentText` helper has been retired. Use `Color.gymAccent` directly (its dark-mode variant in the asset catalog handles light/dark readability) or `.primary`/`.secondary` where appropriate.
+Reason: the initial lime brand color has poor readability on light backgrounds. Apple guidance for SwiftUI Color, HIG Color, and HIG Dark Mode favors dynamic system colors and semantic colors that adapt across appearances. Custom brand colors are deferred for the whole app until they can be redesigned and tested for light mode, dark mode, contrast, accessibility, and Thai/English UI density.
 
-### Color Semantic Map
+### Deferred Brand Color Direction
 
 ```text
-Lime   (#C8FF00) → normal progress, completion, primary CTA
-Purple (#9B7FE8) → comeback, deload, PRs, milestones, “this is different”
-Red    (system)  → destructive/delete/warning
-Green  (system)  → use sparingly; lime is the brand’s “go” color
+Deferred:
+  Lime / electric accent direction
+  Purple comeback / PR / deload direction
+
+Before reintroducing:
+  Define light + dark variants
+  Verify contrast against system backgrounds
+  Verify button, text, badge, chart, and card use cases
+  Avoid using brand colors for body text unless contrast is proven
 ```
 
 ### Custom Components
@@ -315,11 +326,11 @@ Green  (system)  → use sparingly; lime is the brand’s “go” color
 ```text
 SetRowView             weight + reps + RPE/feeling + checkbox
 RestTimerRingView      circular countdown ring
-ComebackCardView       purple card for return/adaptation moments
+ComebackCardView       semantic standout card for return/adaptation moments
 EasingBackBadge        appears on comeback-adjusted exercise rows
 HowDidThatFeelPicker   Easy / Just right / Hard input for comeback mode
 SubstituteActionSheet  Substitute / Defer / Skip / Cancel
-DeferredBadge          purple “Deferred” pill
+DeferredBadge          semantic “Deferred” pill
 SubstituteOriginBadge  shows what exercise was replaced
 ```
 
@@ -647,7 +658,7 @@ After this sprint, opening the app after 14 days off shows a clear adjusted sess
 ☐ SmartSessionAdvisor pure Swift service + tests
 ☐ ComebackRampService pure Swift service + tests
 ☐ Basic ProgressiveOverloadEngine pure Swift service + tests
-☐ ComebackCardView — purple, concrete, bilingual-ready
+☐ ComebackCardView — semantic, concrete, bilingual-ready
 ☐ WorkoutSessionView comeback mode:
   ☐ Easing Back badges
   ☐ Adjusted weights and sets
@@ -663,7 +674,7 @@ After this sprint, opening the app after 14 days off shows a clear adjusted sess
   ☐ double haptic when baseline is regained
 
 Done:
-  Force last workout date to 15 days ago → purple comeback card appears,
+  Force last workout date to 15 days ago → comeback card appears,
   weights/sets are reduced, session logs successfully, next ramp decision is ready.
 ```
 
@@ -1610,7 +1621,7 @@ Product Hunt only as secondary channel
 Comeback share card:
   after baseline regained
   “I came back. Lost nothing.”
-  purple/lime visual
+  system-color visual for now; brand visual direction deferred
 
 Crowded gym demo:
   bench taken → substitute → suggested weight ready
@@ -1726,12 +1737,12 @@ Parallel worktrees:
 | Muscle heatmap | Optional | Core Pro feature | Not differentiated enough |
 | CI/CD | Xcode Cloud | GitHub Actions | Simplest Apple path |
 | Release cadence | Sprint→TestFlight, phase→App Store | Every sprint App Store | Lower review/marketing overhead |
-| Accent color | #C8FF00 lime | Many colors | Distinct gym energy |
-| Secondary color | #9B7FE8 purple | None | Comeback/PR/deload semantics |
+| Whole-app color policy | SwiftUI system and semantic colors only | Custom lime/purple brand colors in current app UI | Avoid light-mode readability problems; follow adaptive Apple color behavior first |
+| Brand color direction | Deferred lime/purple exploration | Shipping unreadable accent colors | Revisit only after light/dark contrast and UI-role testing |
 | Sprint 3 logger UI | Paged one-exercise-at-a-time + per-exercise finish | Single-scroll sectioned list | Clearer "show next exercise" product flow |
 | Sprint 3 supersets | Free-swipe between unfinished pages | Formal group_id paired pages | Supports superset/alternating workflows without expanding Sprint 3 scope |
 | Sprint 3 default weight | Add nullable program_exercises.target_weight column | Derive only from history | Lets users set a starting weight per exercise; history is a fallback |
-| Custom colors policy | Only AccentColor + GymPurple, each with light/dark asset variants | Helper variants like gymAccentText, ad-hoc hex literals | One clear color contract; system handles light/dark via the asset catalog |
+| Custom colors policy | No active custom UI colors anywhere in the app | `gymAccentText`, ad-hoc hex literals, custom named color styling | System colors are the current app-wide contract; brand palette can return later after validation |
 
 ---
 
@@ -1767,6 +1778,14 @@ Parallel worktrees:
 
 ## 19. Decision Log
 
+### 2026-05-11 — Whole-app system color reset
+
+- The whole app now uses SwiftUI system and semantic colors only.
+- Deferred the lime/purple brand palette because the lime accent is hard to read on white/light backgrounds.
+- Active UI must not use `Color.gymAccent`, `Color.gymPurple`, `Color.gymAccentText`, custom named color styling, hex literals, or `Color(red:green:blue:)`.
+- Revisit brand colors only after defining light/dark variants and testing contrast across buttons, badges, cards, charts, Thai copy, and English copy.
+- Decision is based on Apple SwiftUI Color, HIG Color, and HIG Dark Mode guidance favoring dynamic, semantic colors that adapt to appearance.
+
 ### 2026-05-11 — Sprint 3 realignment
 
 - Reframed Sprint 3 logger as a paged, one-exercise-at-a-time flow with per-exercise finish.
@@ -1776,7 +1795,7 @@ Parallel worktrees:
 - Resume on relaunch is session-level only; restore jumps to the first unfinished exercise. Finished exercise pages never prompt resume and are read-only for the remainder of the session.
 - Editing past sets of finished exercises deferred to History (Sprint 4+).
 - Formal superset grouping (paired pages with a `group_id` column) deferred — added to Open Decisions.
-- Tightened color rules: only `AccentColor` and `GymPurple`, each with explicit light/dark variants in `Assets.xcassets`. Retired `Color.gymAccentText`.
+- Color policy now follows the whole-app system color reset above.
 
 ### 2026-05-11 — Source-of-truth consolidation
 
@@ -1834,8 +1853,7 @@ Parallel worktrees:
 
 - App name placeholder: GymBros.
 - Default unit: kg.
-- Accent color: #C8FF00 lime.
-- Secondary color: #9B7FE8 purple.
+- Early brand color idea: lime accent + purple secondary, now deferred by the 2026-05-11 whole-app system color reset.
 - Program templates defined.
 - Architecture selected: Core / Model / Data / Presentation.
 - CI/CD selected: Xcode Cloud.
@@ -1883,4 +1901,3 @@ These sources informed strategic assumptions and should be rechecked before publ
 - Apple subscription/free trial guidance: https://developer.apple.com/app-store/subscriptions/
 - TelemetryDeck Swift/privacy-first analytics: https://telemetrydeck.com/platforms/swift/
 - Exercise adherence / lack-of-time research: https://pmc.ncbi.nlm.nih.gov/articles/PMC11992532/
-
