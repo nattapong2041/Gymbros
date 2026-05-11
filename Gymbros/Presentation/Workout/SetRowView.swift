@@ -10,8 +10,30 @@ struct SetRowView: View {
     var onRetry: () -> Void
     var onDelete: () -> Void
     
+    @State private var weightText: String
+    @State private var repsText: String
+    @State private var rpe: Double?
     @FocusState private var isWeightFocused: Bool
     @FocusState private var isRepsFocused: Bool
+
+    init(
+        state: WorkoutSetRowState,
+        isReadOnly: Bool = false,
+        onUpdate: @escaping (String, String, Double?) -> Void,
+        onComplete: @escaping () -> Void,
+        onRetry: @escaping () -> Void,
+        onDelete: @escaping () -> Void
+    ) {
+        self.state = state
+        self.isReadOnly = isReadOnly
+        self.onUpdate = onUpdate
+        self.onComplete = onComplete
+        self.onRetry = onRetry
+        self.onDelete = onDelete
+        _weightText = State(initialValue: state.weightText)
+        _repsText = State(initialValue: state.repsText)
+        _rpe = State(initialValue: state.rpe)
+    }
     
     var body: some View {
         HStack(spacing: 12) {
@@ -25,8 +47,8 @@ struct SetRowView: View {
             // Weight Input
             VStack(alignment: .leading, spacing: 4) {
                 TextField("0", text: Binding(
-                    get: { state.weightText },
-                    set: { onUpdate($0, state.repsText, state.rpe) }
+                    get: { weightText },
+                    set: { weightText = $0 }
                 ))
                 .keyboardType(.decimalPad)
                 .focused($isWeightFocused)
@@ -43,8 +65,8 @@ struct SetRowView: View {
             // Reps Input
             VStack(alignment: .leading, spacing: 4) {
                 TextField("0", text: Binding(
-                    get: { state.repsText },
-                    set: { onUpdate(state.weightText, $0, state.rpe) }
+                    get: { repsText },
+                    set: { repsText = $0 }
                 ))
                 .keyboardType(.numberPad)
                 .focused($isRepsFocused)
@@ -62,20 +84,20 @@ struct SetRowView: View {
             Menu {
                 ForEach(Array(stride(from: 10.0, through: 1.0, by: -0.5)), id: \.self) { rpeValue in
                     Button {
-                        onUpdate(state.weightText, state.repsText, rpeValue)
+                        rpe = rpeValue
                     } label: {
                         Text(String(format: "%.1f", rpeValue))
                     }
                 }
                 Button(role: .destructive) {
-                    onUpdate(state.weightText, state.repsText, nil)
+                    rpe = nil
                 } label: {
-                    Text("Clear RPE")
+                    Text("workout.set.rpe.clear")
                 }
             } label: {
-                Text(state.rpe != nil ? String(format: "%.1f", state.rpe!) : "RPE")
+                Text(rpe.map { String(format: "%.1f", $0) } ?? String(localized: "workout.set.rpe"))
                     .font(.system(.caption, design: .rounded).bold())
-                    .foregroundStyle(state.rpe != nil ? .primary : .secondary)
+                    .foregroundStyle(rpe != nil ? .primary : .secondary)
                     .frame(minWidth: 44, minHeight: 36)
                     .background(Color.gymSurface)
                     .clipShape(RoundedRectangle(cornerRadius: 8))
@@ -89,10 +111,18 @@ struct SetRowView: View {
             HStack(spacing: 8) {
                 if !isReadOnly {
                     syncIndicator
+
+                    Button(role: .destructive, action: onDelete) {
+                        Label("workout.set.delete", systemImage: "trash")
+                            .labelStyle(.iconOnly)
+                            .font(.system(size: 20))
+                            .frame(width: 44, height: 44)
+                    }
                 }
                 
                 Button(action: onComplete) {
-                    Image(systemName: state.isCompleted ? "checkmark.circle.fill" : "circle")
+                    Label("accessibility.workout.set.complete", systemImage: state.isCompleted ? "checkmark.circle.fill" : "circle")
+                        .labelStyle(.iconOnly)
                         .font(.system(size: 28))
                         .foregroundStyle(state.isCompleted ? .green : .secondary)
                         .frame(width: 48, height: 48) // HIG 48pt tap target
@@ -105,10 +135,31 @@ struct SetRowView: View {
         .swipeActions(edge: .trailing, allowsFullSwipe: true) {
             if !isReadOnly {
                 Button(role: .destructive, action: onDelete) {
-                    Label("Delete", systemImage: "trash")
+                    Label("workout.set.delete", systemImage: "trash")
                 }
                 .tint(.red)
             }
+        }
+        .onChange(of: weightText) { _, newValue in
+            onUpdate(newValue, repsText, rpe)
+        }
+        .onChange(of: repsText) { _, newValue in
+            onUpdate(weightText, newValue, rpe)
+        }
+        .onChange(of: rpe) { _, newValue in
+            onUpdate(weightText, repsText, newValue)
+        }
+        .onChange(of: state.weightText) { _, newValue in
+            guard weightText != newValue else { return }
+            weightText = newValue
+        }
+        .onChange(of: state.repsText) { _, newValue in
+            guard repsText != newValue else { return }
+            repsText = newValue
+        }
+        .onChange(of: state.rpe) { _, newValue in
+            guard rpe != newValue else { return }
+            rpe = newValue
         }
     }
     
@@ -127,7 +178,8 @@ struct SetRowView: View {
                 .foregroundStyle(.secondary)
         case .failed:
             Button(action: onRetry) {
-                Image(systemName: "exclamationmark.icloud.fill")
+                Label("workout.sync.retry", systemImage: "exclamationmark.icloud.fill")
+                    .labelStyle(.iconOnly)
                     .font(.system(size: 20))
                     .foregroundStyle(.red)
                     .frame(width: 32, height: 32)

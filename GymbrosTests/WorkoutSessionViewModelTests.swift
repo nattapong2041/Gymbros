@@ -171,14 +171,33 @@ struct WorkoutSessionViewModelTests {
         #expect(data.currentExerciseIndex == 1)
     }
 
-    @Test func finishExerciseRejectsSectionWithoutUploadedSet() async throws {
+    @Test func finishExerciseAllowsSkippingSectionWithoutUploadedSet() async throws {
         let viewModel = makeViewModel()
 
         await viewModel.start(programDayId: ProgramSamples.upperDayId)
         await viewModel.finishExercise(programExerciseId: ProgramSamples.benchProgramExerciseId)
 
-        #expect(viewModel.transientError == .validation(.missingRequiredField))
-        #expect(try successValue(viewModel.state).exerciseSections[0].isFinished == false)
+        #expect(viewModel.transientError == nil)
+        #expect(try successValue(viewModel.state).exerciseSections[0].isFinished)
+    }
+
+    @Test func uploadConflictUpdatesExistingSetAndAllowsFinish() async throws {
+        let workoutRepository = FakeWorkoutRepository()
+        workoutRepository.nextUploadError = .conflict
+        let backupRepository = FakeBackupRepository()
+        let viewModel = makeViewModel(workoutRepository: workoutRepository, backupRepository: backupRepository)
+
+        await viewModel.start(programDayId: ProgramSamples.upperDayId)
+        let row = try firstRow(viewModel)
+        await viewModel.updateDraft(setId: row.id, weightText: "80", repsText: "8", rpe: nil)
+        await viewModel.completeSet(setId: row.id)
+        await viewModel.finishExercise(programExerciseId: ProgramSamples.benchProgramExerciseId)
+        await viewModel.finishSession()
+
+        #expect(try rowState(viewModel, id: row.id).syncState == .uploaded)
+        #expect(workoutRepository.updatedSets.map(\.id) == [row.id])
+        #expect(workoutRepository.completedSessions.map(\.sessionId) == [workoutRepository.session.id])
+        #expect(backupRepository.clearCount == 1)
     }
 
     @Test func restoreMovesToFirstUnfinishedExercise() async throws {
@@ -291,6 +310,7 @@ private final class FakeWorkoutRepository: WorkoutRepositoryProviding {
     )
     var createdSessions: [(programDayId: UUID, startedAt: Date)] = []
     var uploadedSets: [WorkoutSet] = []
+    var updatedSets: [WorkoutSet] = []
     var deletedSetIds: [UUID] = []
     var completedSessions: [(sessionId: UUID, endedAt: Date)] = []
     var lastLoggedSets: [UUID: WorkoutSet] = [:]
@@ -316,7 +336,8 @@ private final class FakeWorkoutRepository: WorkoutRepositoryProviding {
     }
 
     func updateSet(_ set: WorkoutSet) async throws -> WorkoutSet {
-        set
+        updatedSets.append(set)
+        return set
     }
 
     func deleteSet(id: UUID) async throws {

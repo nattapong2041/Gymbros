@@ -1,7 +1,7 @@
 # GymTrack — Source of Truth
 
 > Living document. Update as decisions evolve.  
-> Last updated: 2026-05-11
+> Last updated: 2026-05-12
 
 ---
 
@@ -521,7 +521,8 @@ App Store: phase-level releases
 ```text
 ✅ Sprint 1 — Foundation + Data          7h actual
 ✅ Sprint 2 — Custom Program Builder     10h actual
-⏳ Sprint 3 — Logger + Timer             next up
+✅ Sprint 3 — Logger + Timer             complete
+⏳ Sprint 4 — Today + History + Navigation + Anti-Guilt UX next up
 ```
 
 ---
@@ -567,36 +568,36 @@ App Store: phase-level releases
 
 ---
 
-### Sprint 3 — Logger + Timer
+### Sprint 3 — Logger + Timer ✅ DONE
 
 **Effort:** Complex
 
 ```text
 Spec: .claude/sprints/S03-logger-timer/spec.md
 
-☐ WorkoutSessionView as a paged TabView, one exercise per page
-☐ WorkoutExercisePageView per exercise: header, set list, Add Set, Finish Exercise
-☐ Top progress header: Day name · X / N · K done
-☐ WorkoutSessionViewModel with in-memory active session
-☐ ActiveSessionBackup using UserDefaults JSON (versioned, includes
+✓ WorkoutSessionView as a paged TabView, one exercise per page
+✓ WorkoutExercisePageView per exercise: header, set list, Add Set, Finish Exercise
+✓ Top progress header: Day name · X / N · K done
+✓ WorkoutSessionViewModel with in-memory active session
+✓ ActiveSessionBackup using UserDefaults JSON (versioned, includes
   finishedExerciseIds and currentExerciseIndex)
-☐ Per-exercise default weight from ProgramExercise.targetWeight (new column)
+✓ Per-exercise default weight from ProgramExercise.targetWeight (new column)
   → last-logged fallback → blank
-☐ Set 1 pre-fills from default weight; set 2+ pre-fills weight and reps from
+✓ Set 1 pre-fills from default weight; set 2+ pre-fills weight and reps from
   the previous set's actual logged values
-☐ SetRowView: weight + reps + RPE + checkbox
-☐ Add set, copy last values
-☐ Swipe/delete set
-☐ Background async upload per set
-☐ RestTimerRingView with haptic — triggers on set completion
-☐ Free swipe between unfinished exercise pages (supports supersets /
+✓ SetRowView: weight + reps + RPE + checkbox
+✓ Add set, copy last values
+✓ Swipe/delete set
+✓ Background async upload per set
+✓ RestTimerRingView with haptic — triggers on set completion
+✓ Free swipe between unfinished exercise pages (supports supersets /
   alternating exercises informally; no formal grouping in Sprint 3)
-☐ Finish Exercise locks the page, marks it finished, and auto-advances to
+✓ Finish Exercise locks the page, marks it finished, and auto-advances to
   the next unfinished page
-☐ Finished pages are read-only for the rest of the session — no resume prompt
-☐ Finish Workout enables only when every exercise is finished
-☐ Finish session → mark complete remotely → clear backup
-☐ Session-level Restore prompt only; restore jumps to the first unfinished
+✓ Finished pages are read-only for the rest of the session — no resume prompt
+✓ Finish Workout enables only when every exercise is finished
+✓ Finish session → mark complete remotely → clear backup
+✓ Session-level Restore prompt only; restore jumps to the first unfinished
   exercise
 
 Important scope note:
@@ -982,8 +983,8 @@ Running/cardio:
 |---|---|---:|---:|---|
 | 1 | Foundation + Data | ✅ | 7 | Complete |
 | 2 | Custom Program Builder | ✅ | 10 | Complete |
-| 3 | Logger + Timer | ⏳ | — | Next |
-| 4 | Today + History + Anti-Guilt | ☐ | — | CI/CD setup |
+| 3 | Logger + Timer | ✅ | — | Complete |
+| 4 | Today + History + Anti-Guilt | ⏳ | — | Next |
 | 5 | Next Best Session v1 / Smart Comeback | ☐ | — | Differentiator |
 | 6 | Onboarding + Templates + i18n | ☐ | — | App Store polish foundation |
 | 7 | App Store Ship | ☐ | — | 1.0 release |
@@ -1797,6 +1798,14 @@ Parallel worktrees:
 - Formal superset grouping (paired pages with a `group_id` column) deferred — added to Open Decisions.
 - Color policy now follows the whole-app system color reset above.
 
+### 2026-05-12 — Sprint 3 complete
+
+- Logger + Timer implementation is complete and smoke-tested on `iPhone 17e`.
+- User can create a workout session, resume an unfinished session, add/delete sets, skip unfinished exercises by finishing the exercise page, and finish the workout session.
+- Start Workout is wired from `DayBuilderView` through `WorkoutSessionScreen` and `WorkoutSessionViewModel`.
+- Automated verification passed: build, targeted workout tests, full test suite, color grep, and `git diff --check`.
+- Next up: Sprint 4 — Today + History + Navigation + Anti-Guilt UX.
+
 ### 2026-05-11 — Source-of-truth consolidation
 
 - Reframed product around: **“the gym app that adapts to your real life.”**
@@ -1889,7 +1898,7 @@ Parallel worktrees:
 
 **North-star metric:** % of new users who complete 2 workout sessions within 14 days.
 
-**Next up:** Sprint 3 — Logger + Timer.
+**Next up:** Sprint 4 — Today + History + Navigation + Anti-Guilt UX.
 
 ---
 

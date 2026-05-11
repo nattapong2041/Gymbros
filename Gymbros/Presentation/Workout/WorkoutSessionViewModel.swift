@@ -219,11 +219,6 @@ final class WorkoutSessionViewModel {
             transientError = .notFound
             return
         }
-        guard data.exerciseSections[sectionIndex].sets.contains(where: { $0.isCompleted && $0.syncState == .uploaded }) else {
-            transientError = .validation(.missingRequiredField)
-            return
-        }
-
         data.exerciseSections[sectionIndex].isFinished = true
         data.exerciseSections[sectionIndex].finishedAt = now()
         data.currentExerciseIndex = nextUnfinishedExerciseIndex(after: sectionIndex, in: data) ?? sectionIndex
@@ -371,6 +366,27 @@ final class WorkoutSessionViewModel {
             }
         } catch {
             let mapped = appError(error, operation: "uploadWorkoutSet")
+            if mapped == .conflict {
+                await updateExistingSet(set, setId: setId)
+                return
+            }
+            updateRow(setId: setId, save: true) { row in
+                row.syncState = .failed(mapped)
+                row.isCompleted = true
+            }
+            transientError = mapped.visibleOrNil
+        }
+    }
+
+    private func updateExistingSet(_ set: WorkoutSet, setId: UUID) async {
+        do {
+            _ = try await workoutRepository.updateSet(set)
+            updateRow(setId: setId, save: true) { row in
+                row.syncState = .uploaded
+                row.isCompleted = true
+            }
+        } catch {
+            let mapped = appError(error, operation: "updateWorkoutSetAfterConflict")
             updateRow(setId: setId, save: true) { row in
                 row.syncState = .failed(mapped)
                 row.isCompleted = true

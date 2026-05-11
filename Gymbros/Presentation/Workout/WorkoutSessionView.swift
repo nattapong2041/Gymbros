@@ -1,8 +1,6 @@
 import SwiftUI
 
 struct WorkoutSessionView: View {
-    // In Task 4, this will be the real ViewModel.
-    // For Task 2, we use a simple state container for previews.
     let state: ViewState<WorkoutSessionData>
     var activeTimer: RestTimerState?
     var isFinishing: Bool = false
@@ -14,7 +12,7 @@ struct WorkoutSessionView: View {
     // Actions
     var onRetry: () -> Void
     var onFinish: () -> Void
-    var onAddSet: (UUID) -> Void // programExerciseId
+    var onAddSet: (UUID) -> Void // setId
     var onUpdateSet: (UUID, String, String, Double?) -> Void // setId
     var onCompleteSet: (UUID) -> Void // setId
     var onRetryUpload: (UUID) -> Void // setId
@@ -72,8 +70,13 @@ struct WorkoutSessionView: View {
                     .font(.system(size: 48))
                     .foregroundStyle(.secondary)
                 
-                Text("workout.error.message")
+                Text(LocalizedStringKey(error.titleKey))
                     .font(.headline)
+                    .multilineTextAlignment(.center)
+
+                Text(LocalizedStringKey(error.messageKey))
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
                     .multilineTextAlignment(.center)
                 
                 Button("workout.retry", action: onRetry)

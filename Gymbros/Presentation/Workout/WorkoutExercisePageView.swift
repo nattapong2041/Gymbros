@@ -4,7 +4,7 @@ struct WorkoutExercisePageView: View {
     let section: WorkoutExerciseSection
     
     // Actions
-    var onAddSet: (UUID) -> Void // programExerciseId
+    var onAddSet: (UUID) -> Void // setId
     var onUpdateSet: (UUID, String, String, Double?) -> Void // setId
     var onCompleteSet: (UUID) -> Void // setId
     var onRetryUpload: (UUID) -> Void // setId
@@ -41,8 +41,8 @@ struct WorkoutExercisePageView: View {
                         }
                     }
                     
-                    if !section.isFinished {
-                        Button(action: { onAddSet(section.programExercise.id) }) {
+                    if !section.isFinished, let lastSetId = section.sets.last?.id {
+                        Button(action: { onAddSet(lastSetId) }) {
                             HStack {
                                 Image(systemName: "plus.circle.fill")
                                 Text("workout.set.add")
@@ -70,9 +70,22 @@ struct WorkoutExercisePageView: View {
                 .font(.system(.title2, design: .rounded).bold())
             
             HStack(spacing: 12) {
-                Label("\(section.programExercise.targetSets) sets", systemImage: "list.bullet")
-                Label("\(section.programExercise.targetRepsMin)-\(section.programExercise.targetRepsMax) reps", systemImage: "repeat")
-                Label("\(section.programExercise.targetRestSeconds)s rest", systemImage: "timer")
+                Label(
+                    String(format: String(localized: "programExercise.setsFormat"), section.programExercise.targetSets),
+                    systemImage: "list.bullet"
+                )
+                Label(
+                    String(
+                        format: String(localized: "programExercise.repsFormat"),
+                        section.programExercise.targetRepsMin,
+                        section.programExercise.targetRepsMax
+                    ),
+                    systemImage: "repeat"
+                )
+                Label(
+                    String(format: String(localized: "programExercise.restFormat"), section.programExercise.targetRestSeconds),
+                    systemImage: "timer"
+                )
             }
             .font(.system(.caption, design: .rounded))
             .foregroundStyle(.secondary)
@@ -120,7 +133,7 @@ struct WorkoutExercisePageView: View {
             .padding(.horizontal)
         } else {
             Button(action: { onFinishExercise(section.programExercise.id) }) {
-                Text("workout.exercise.finish")
+                Text("workout.exercise.finish_or_skip")
                     .font(.system(.headline, design: .rounded))
                     .foregroundStyle(.white)
                     .padding()
@@ -134,8 +147,7 @@ struct WorkoutExercisePageView: View {
     }
     
     private var canFinish: Bool {
-        // Requires at least one set to be completed and uploaded
-        section.sets.contains { $0.isCompleted && $0.syncState == .uploaded }
+        true
     }
 }
 

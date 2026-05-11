@@ -5,6 +5,7 @@ struct DayBuilderView: View {
     @State private var isShowingExercisePicker = false
     @State private var editingForm: ProgramExerciseForm?
     @State private var isShowingRenameAlert = false
+    @State private var isShowingWorkout = false
     @State private var renamedDayName = ""
 
     var body: some View {
@@ -59,6 +60,16 @@ struct DayBuilderView: View {
                 }
                 .navigationTitle(data.day.name)
                 .toolbar {
+                    ToolbarItem(placement: .primaryAction) {
+                        if data.programExercises.isEmpty == false {
+                            Button {
+                                isShowingWorkout = true
+                            } label: {
+                                Label("workout.start", systemImage: "play.fill")
+                            }
+                        }
+                    }
+
                     ToolbarItem(placement: .topBarTrailing) {
                         Button {
                             renamedDayName = data.day.name
@@ -83,6 +94,9 @@ struct DayBuilderView: View {
         }
         .task {
             await viewModel.loadDay()
+        }
+        .navigationDestination(isPresented: $isShowingWorkout) {
+            WorkoutSessionScreen(programDayId: viewModel.dayId)
         }
         .alert("dayBuilder.renameDay.title", isPresented: $isShowingRenameAlert) {
             TextField("programDetail.dayName.placeholder", text: $renamedDayName)
