@@ -8,6 +8,9 @@ struct WorkoutSessionView: View {
     var isFinishing: Bool = false
     var pendingRestore: Bool = false
     
+    // Selection for TabView
+    @Binding var currentExerciseIndex: Int
+    
     // Actions
     var onRetry: () -> Void
     var onFinish: () -> Void
@@ -16,6 +19,7 @@ struct WorkoutSessionView: View {
     var onCompleteSet: (UUID) -> Void // setId
     var onRetryUpload: (UUID) -> Void // setId
     var onDeleteSet: (UUID) -> Void // setId
+    var onFinishExercise: (UUID) -> Void // programExerciseId
     var onStopTimer: () -> Void
     var onSkipTimer: () -> Void
     var onRestore: () -> Void
@@ -28,17 +32,17 @@ struct WorkoutSessionView: View {
                 .navigationBarTitleDisplayMode(.inline)
                 .toolbar {
                     ToolbarItem(placement: .topBarTrailing) {
-                        if case .success = state {
+                        if case .success(let data) = state {
                             Button(action: onFinish) {
                                 if isFinishing {
                                     ProgressView().controlSize(.small)
                                 } else {
-                                    Text("workout.finish") // workout.finish
+                                    Text("workout.finish")
                                         .fontWeight(.bold)
-                                        .foregroundStyle(.blue)
+                                        .foregroundStyle(canFinishWorkout(data) ? .blue : .secondary)
                                 }
                             }
-                            .disabled(isFinishing)
+                            .disabled(isFinishing || !canFinishWorkout(data))
                         }
                     }
                 }
@@ -68,74 +72,44 @@ struct WorkoutSessionView: View {
                     .font(.system(size: 48))
                     .foregroundStyle(.secondary)
                 
-                Text("workout.error.message") // workout.error.message
+                Text("workout.error.message")
                     .font(.headline)
                     .multilineTextAlignment(.center)
                 
-                Button("workout.retry", action: onRetry) // workout.retry
+                Button("workout.retry", action: onRetry)
                     .buttonStyle(.borderedProminent)
             }
             .padding()
             
         case .empty:
             ContentUnavailableView(
-                "workout.empty.title", // workout.empty.title
+                "workout.empty.title",
                 systemImage: "dumbbell",
-                description: Text("workout.empty.description") // workout.empty.description
+                description: Text("workout.empty.description")
             )
             
         case .success(let data):
-            ScrollView {
-                LazyVStack(spacing: 24, pinnedViews: [.sectionHeaders]) {
-                    ForEach(data.exerciseSections) { section in
-                        Section {
-                            VStack(spacing: 0) {
-                                ForEach(section.sets) { rowState in
-                                    SetRowView(
-                                        state: rowState,
-                                        onUpdate: { w, r, rpe in
-                                            onUpdateSet(rowState.id, w, r, rpe)
-                                        },
-                                        onComplete: {
-                                            onCompleteSet(rowState.id)
-                                        },
-                                        onRetry: {
-                                            onRetryUpload(rowState.id)
-                                        },
-                                        onDelete: {
-                                            onDeleteSet(rowState.id)
-                                        }
-                                    )
-                                    
-                                    if rowState.id != section.sets.last?.id {
-                                        Divider()
-                                            .padding(.leading, 36)
-                                    }
-                                }
-                                
-                                Button(action: { onAddSet(section.programExercise.id) }) {
-                                    HStack {
-                                        Image(systemName: "plus.circle.fill")
-                                        Text("workout.set.add") // workout.set.add
-                                    }
-                                    .font(.system(.subheadline, design: .rounded).bold())
-                                    .foregroundStyle(.blue)
-                                    .frame(maxWidth: .infinity)
-                                    .frame(height: 48) // HIG
-                                }
-                                .padding(.top, 8)
-                            }
-                            .padding(.horizontal)
-                        } header: {
-                            exerciseHeader(section)
-                        }
+            VStack(spacing: 0) {
+                progressHeader(data)
+                
+                TabView(selection: $currentExerciseIndex) {
+                    ForEach(data.exerciseSections.indices, id: \.self) { index in
+                        WorkoutExercisePageView(
+                            section: data.exerciseSections[index],
+                            onAddSet: onAddSet,
+                            onUpdateSet: onUpdateSet,
+                            onCompleteSet: onCompleteSet,
+                            onRetryUpload: onRetryUpload,
+                            onDeleteSet: onDeleteSet,
+                            onFinishExercise: onFinishExercise
+                        )
+                        .tag(index)
                     }
-                    
-                    // Bottom spacing for "Finish" button if it was at the bottom
-                    Color.clear.frame(height: 100)
                 }
+                .tabViewStyle(.page(indexDisplayMode: .never))
+                .id(data.exerciseSections.count) // Ensure TabView re-renders if sections change
             }
-            .background(Color.gymBackground)
+            .background(Color(uiColor: .systemGroupedBackground))
         }
     }
     
@@ -143,21 +117,39 @@ struct WorkoutSessionView: View {
         if case .success(let data) = state {
             return data.day.name
         }
-        return "workout.title" // workout.title
+        return "workout.title"
     }
     
-    private func exerciseHeader(_ section: WorkoutExerciseSection) -> some View {
-        VStack(alignment: .leading, spacing: 4) {
-            Text(section.exercise?.name ?? "Exercise")
-                .font(.system(.headline, design: .rounded))
+    private func progressHeader(_ data: WorkoutSessionData) -> some View {
+        HStack {
+            VStack(alignment: .leading, spacing: 2) {
+                Text(data.day.name)
+                    .font(.system(.subheadline, design: .rounded).bold())
+                
+                Text(String(format: NSLocalizedString("workout.progress.count", comment: ""), currentExerciseIndex + 1, data.exerciseSections.count))
+                    .font(.system(.caption, design: .rounded))
+                    .foregroundStyle(.secondary)
+            }
             
-            Text("\(section.programExercise.targetSets) × \(section.programExercise.targetRepsMin)-\(section.programExercise.targetRepsMax) • \(section.programExercise.targetRestSeconds)s")
-                .font(.system(.caption, design: .rounded))
-                .foregroundStyle(.secondary)
+            Spacer()
+            
+            let finishedCount = data.exerciseSections.filter { $0.isFinished }.count
+            Text(String(format: NSLocalizedString("workout.progress.done", comment: ""), finishedCount))
+                .font(.system(.caption, design: .rounded).bold())
+                .padding(.horizontal, 8)
+                .padding(.vertical, 4)
+                .background(Color.blue.opacity(0.1))
+                .foregroundStyle(.blue)
+                .clipShape(Capsule())
         }
         .padding()
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(Color.gymBackground)
+        .background(Color(uiColor: .secondarySystemGroupedBackground))
+        .overlay(Divider(), alignment: .bottom)
+    }
+    
+    private func canFinishWorkout(_ data: WorkoutSessionData) -> Bool {
+        // Spec: Finish Workout enables only when every exercise is finished
+        !data.exerciseSections.isEmpty && data.exerciseSections.allSatisfy { $0.isFinished }
     }
     
     private var restoreOverlay: some View {
@@ -225,9 +217,11 @@ struct WorkoutSessionView: View {
 }
 
 #Preview("Success") {
+    @Previewable @State var index = 0
     NavigationStack {
         WorkoutSessionView(
             state: .success(WorkoutSessionData.mock),
+            currentExerciseIndex: $index,
             onRetry: {},
             onFinish: {},
             onAddSet: { _ in },
@@ -235,6 +229,7 @@ struct WorkoutSessionView: View {
             onCompleteSet: { _ in },
             onRetryUpload: { _ in },
             onDeleteSet: { _ in },
+            onFinishExercise: { _ in },
             onStopTimer: {},
             onSkipTimer: {},
             onRestore: {},
@@ -244,9 +239,11 @@ struct WorkoutSessionView: View {
 }
 
 #Preview("With Timer") {
+    @Previewable @State var index = 0
     WorkoutSessionView(
         state: .success(WorkoutSessionData.mock),
         activeTimer: RestTimerState.mock,
+        currentExerciseIndex: $index,
         onRetry: {},
         onFinish: {},
         onAddSet: { _ in },
@@ -254,6 +251,7 @@ struct WorkoutSessionView: View {
         onCompleteSet: { _ in },
         onRetryUpload: { _ in },
         onDeleteSet: { _ in },
+        onFinishExercise: { _ in },
         onStopTimer: {},
         onSkipTimer: {},
         onRestore: {},
@@ -262,9 +260,11 @@ struct WorkoutSessionView: View {
 }
 
 #Preview("Restore Prompt") {
+    @Previewable @State var index = 0
     WorkoutSessionView(
         state: .loading,
         pendingRestore: true,
+        currentExerciseIndex: $index,
         onRetry: {},
         onFinish: {},
         onAddSet: { _ in },
@@ -272,6 +272,7 @@ struct WorkoutSessionView: View {
         onCompleteSet: { _ in },
         onRetryUpload: { _ in },
         onDeleteSet: { _ in },
+        onFinishExercise: { _ in },
         onStopTimer: {},
         onSkipTimer: {},
         onRestore: {},
@@ -280,8 +281,10 @@ struct WorkoutSessionView: View {
 }
 
 #Preview("Empty") {
+    @Previewable @State var index = 0
     WorkoutSessionView(
         state: .empty,
+        currentExerciseIndex: $index,
         onRetry: {},
         onFinish: {},
         onAddSet: { _ in },
@@ -289,6 +292,7 @@ struct WorkoutSessionView: View {
         onCompleteSet: { _ in },
         onRetryUpload: { _ in },
         onDeleteSet: { _ in },
+        onFinishExercise: { _ in },
         onStopTimer: {},
         onSkipTimer: {},
         onRestore: {},
@@ -297,8 +301,10 @@ struct WorkoutSessionView: View {
 }
 
 #Preview("Error") {
+    @Previewable @State var index = 0
     WorkoutSessionView(
         state: .error(.api(.server, statusCode: 500)),
+        currentExerciseIndex: $index,
         onRetry: {},
         onFinish: {},
         onAddSet: { _ in },
@@ -306,6 +312,7 @@ struct WorkoutSessionView: View {
         onCompleteSet: { _ in },
         onRetryUpload: { _ in },
         onDeleteSet: { _ in },
+        onFinishExercise: { _ in },
         onStopTimer: {},
         onSkipTimer: {},
         onRestore: {},

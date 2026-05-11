@@ -40,7 +40,7 @@ struct RestTimerRingView: View {
                     Text(timeString(from: remaining))
                         .font(.gymNumber(size: 44))
                     
-                    Text("REST")
+                    Text("workout.timer.rest")
                         .font(.system(.caption, design: .rounded).bold())
                         .foregroundStyle(.secondary)
                 }
@@ -49,7 +49,7 @@ struct RestTimerRingView: View {
             
             HStack(spacing: 20) {
                 Button(action: onStop) {
-                    Text("Stop")
+                    Text("workout.timer.stop")
                         .font(.system(.body, design: .rounded).bold())
                         .foregroundStyle(.red)
                         .frame(maxWidth: .infinity)
@@ -57,9 +57,10 @@ struct RestTimerRingView: View {
                         .background(Color.gymSurface)
                         .clipShape(RoundedRectangle(cornerRadius: 12))
                 }
+                .accessibilityLabel("accessibility.workout.timer.stop")
                 
                 Button(action: onSkip) {
-                    Text("Skip")
+                    Text("workout.timer.skip")
                         .font(.system(.body, design: .rounded).bold())
                         .foregroundStyle(.blue)
                         .frame(maxWidth: .infinity)
@@ -67,6 +68,7 @@ struct RestTimerRingView: View {
                         .background(Color.blue.opacity(0.15))
                         .clipShape(RoundedRectangle(cornerRadius: 12))
                 }
+                .accessibilityLabel("accessibility.workout.timer.skip")
             }
             .padding(.horizontal)
         }

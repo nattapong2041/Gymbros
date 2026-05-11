@@ -1,0 +1,166 @@
+import SwiftUI
+
+struct WorkoutExercisePageView: View {
+    let section: WorkoutExerciseSection
+    
+    // Actions
+    var onAddSet: (UUID) -> Void // programExerciseId
+    var onUpdateSet: (UUID, String, String, Double?) -> Void // setId
+    var onCompleteSet: (UUID) -> Void // setId
+    var onRetryUpload: (UUID) -> Void // setId
+    var onDeleteSet: (UUID) -> Void // setId
+    var onFinishExercise: (UUID) -> Void // programExerciseId
+    
+    var body: some View {
+        ScrollView {
+            VStack(spacing: 24) {
+                exerciseHeader
+                
+                VStack(spacing: 0) {
+                    ForEach(section.sets) { rowState in
+                        SetRowView(
+                            state: rowState,
+                            isReadOnly: section.isFinished,
+                            onUpdate: { w, r, rpe in
+                                onUpdateSet(rowState.id, w, r, rpe)
+                            },
+                            onComplete: {
+                                onCompleteSet(rowState.id)
+                            },
+                            onRetry: {
+                                onRetryUpload(rowState.id)
+                            },
+                            onDelete: {
+                                onDeleteSet(rowState.id)
+                            }
+                        )
+                        
+                        if rowState.id != section.sets.last?.id {
+                            Divider()
+                                .padding(.leading, 36)
+                        }
+                    }
+                    
+                    if !section.isFinished {
+                        Button(action: { onAddSet(section.programExercise.id) }) {
+                            HStack {
+                                Image(systemName: "plus.circle.fill")
+                                Text("workout.set.add")
+                            }
+                            .font(.system(.subheadline, design: .rounded).bold())
+                            .foregroundStyle(.blue)
+                            .frame(maxWidth: .infinity)
+                            .frame(height: 48)
+                        }
+                        .padding(.top, 8)
+                    }
+                }
+                .padding(.horizontal)
+                
+                footerAction
+            }
+            .padding(.bottom, 32)
+        }
+        .background(Color(uiColor: .systemGroupedBackground))
+    }
+    
+    private var exerciseHeader: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text(section.exercise?.name ?? String(localized: "workout.exercise.unknownExercise"))
+                .font(.system(.title2, design: .rounded).bold())
+            
+            HStack(spacing: 12) {
+                Label("\(section.programExercise.targetSets) sets", systemImage: "list.bullet")
+                Label("\(section.programExercise.targetRepsMin)-\(section.programExercise.targetRepsMax) reps", systemImage: "repeat")
+                Label("\(section.programExercise.targetRestSeconds)s rest", systemImage: "timer")
+            }
+            .font(.system(.caption, design: .rounded))
+            .foregroundStyle(.secondary)
+            
+            if let targetWeight = section.programExercise.targetWeight {
+                HStack(spacing: 4) {
+                    Text("workout.exercise.target_weight")
+                    Text("\(targetWeight, specifier: "%.1f")")
+                        .fontWeight(.bold)
+                    Text("kg")
+                }
+                .font(.system(.caption, design: .rounded))
+                .padding(.horizontal, 8)
+                .padding(.vertical, 4)
+                .background(Color.blue.opacity(0.1))
+                .foregroundStyle(.blue)
+                .clipShape(Capsule())
+            }
+            
+            if let notes = section.programExercise.notes, !notes.isEmpty {
+                Text(notes)
+                    .font(.system(.footnote, design: .rounded))
+                    .foregroundStyle(.secondary)
+                    .padding(.top, 4)
+            }
+        }
+        .padding()
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(Color(uiColor: .secondarySystemGroupedBackground))
+    }
+    
+    @ViewBuilder
+    private var footerAction: some View {
+        if section.isFinished {
+            HStack(spacing: 8) {
+                Image(systemName: "checkmark.circle.fill")
+                Text("workout.exercise.finished")
+            }
+            .font(.system(.headline, design: .rounded))
+            .foregroundStyle(.green)
+            .padding()
+            .frame(maxWidth: .infinity)
+            .background(Color.green.opacity(0.1))
+            .clipShape(RoundedRectangle(cornerRadius: 12))
+            .padding(.horizontal)
+        } else {
+            Button(action: { onFinishExercise(section.programExercise.id) }) {
+                Text("workout.exercise.finish")
+                    .font(.system(.headline, design: .rounded))
+                    .foregroundStyle(.white)
+                    .padding()
+                    .frame(maxWidth: .infinity)
+                    .background(canFinish ? Color.blue : Color.secondary.opacity(0.3))
+                    .clipShape(RoundedRectangle(cornerRadius: 12))
+            }
+            .disabled(!canFinish)
+            .padding(.horizontal)
+        }
+    }
+    
+    private var canFinish: Bool {
+        // Requires at least one set to be completed and uploaded
+        section.sets.contains { $0.isCompleted && $0.syncState == .uploaded }
+    }
+}
+
+#Preview("Active") {
+    WorkoutExercisePageView(
+        section: WorkoutSessionData.mock.exerciseSections[0],
+        onAddSet: { _ in },
+        onUpdateSet: { _, _, _, _ in },
+        onCompleteSet: { _ in },
+        onRetryUpload: { _ in },
+        onDeleteSet: { _ in },
+        onFinishExercise: { _ in }
+    )
+}
+
+#Preview("Finished") {
+    var section = WorkoutSessionData.mock.exerciseSections[0]
+    section.isFinished = true
+    return WorkoutExercisePageView(
+        section: section,
+        onAddSet: { _ in },
+        onUpdateSet: { _, _, _, _ in },
+        onCompleteSet: { _ in },
+        onRetryUpload: { _ in },
+        onDeleteSet: { _ in },
+        onFinishExercise: { _ in }
+    )
+}

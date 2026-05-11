@@ -5,11 +5,12 @@ extension WorkoutSessionData {
         let sessionId = UUID()
         let userId = UUID()
         let programDayId = UUID()
-        let exerciseId = UUID()
-        let programExerciseId = UUID()
         
-        let exercise = Exercise(
-            id: exerciseId,
+        let benchId = UUID()
+        let squatId = UUID()
+        
+        let bench = Exercise(
+            id: benchId,
             ownerUserId: userId,
             slug: "bench-press",
             name: "Bench Press",
@@ -21,17 +22,44 @@ extension WorkoutSessionData {
             createdAt: Date()
         )
         
-        let programExercise = ProgramExercise(
-            id: programExerciseId,
+        let squat = Exercise(
+            id: squatId,
+            ownerUserId: userId,
+            slug: "squat",
+            name: "Squat",
+            movementPattern: .squat,
+            primaryMuscle: .quads,
+            secondaryMuscles: [.glutes, .back],
+            equipment: .barbell,
+            isCompound: true,
+            createdAt: Date()
+        )
+        
+        let programBench = ProgramExercise(
+            id: UUID(),
             programDayId: programDayId,
-            exerciseId: exerciseId,
+            exerciseId: benchId,
             targetSets: 3,
             targetRepsMin: 8,
             targetRepsMax: 12,
             targetRestSeconds: 90,
             targetWeight: 60,
             exerciseOrder: 1,
-            notes: "Keep chest up",
+            notes: "Focus on form",
+            createdAt: Date()
+        )
+        
+        let programSquat = ProgramExercise(
+            id: UUID(),
+            programDayId: programDayId,
+            exerciseId: squatId,
+            targetSets: 3,
+            targetRepsMin: 5,
+            targetRepsMax: 8,
+            targetRestSeconds: 180,
+            targetWeight: 100,
+            exerciseOrder: 2,
+            notes: "Deep breaths",
             createdAt: Date()
         )
         
@@ -51,11 +79,11 @@ extension WorkoutSessionData {
             createdAt: Date()
         )
         
-        let sets = [
+        let benchSets = [
             WorkoutSetRowState(
                 id: UUID(),
-                exerciseId: exerciseId,
-                programExerciseId: programExerciseId,
+                exerciseId: benchId,
+                programExerciseId: programBench.id,
                 setNumber: 1,
                 weightText: "60",
                 repsText: "10",
@@ -66,46 +94,71 @@ extension WorkoutSessionData {
             ),
             WorkoutSetRowState(
                 id: UUID(),
-                exerciseId: exerciseId,
-                programExerciseId: programExerciseId,
+                exerciseId: benchId,
+                programExerciseId: programBench.id,
                 setNumber: 2,
                 weightText: "60",
-                repsText: "9",
-                rpe: 9.0,
+                repsText: "10",
+                rpe: 8.5,
                 targetRestSeconds: 90,
-                syncState: .uploading,
+                syncState: .uploaded,
                 isCompleted: true
             ),
             WorkoutSetRowState(
                 id: UUID(),
-                exerciseId: exerciseId,
-                programExerciseId: programExerciseId,
+                exerciseId: benchId,
+                programExerciseId: programBench.id,
                 setNumber: 3,
                 weightText: "60",
-                repsText: "",
-                rpe: nil,
+                repsText: "10",
+                rpe: 9.0,
                 targetRestSeconds: 90,
+                syncState: .uploaded,
+                isCompleted: true
+            )
+        ]
+        
+        let squatSets = [
+            WorkoutSetRowState(
+                id: UUID(),
+                exerciseId: squatId,
+                programExerciseId: programSquat.id,
+                setNumber: 1,
+                weightText: "100",
+                repsText: "5",
+                rpe: 7.0,
+                targetRestSeconds: 180,
                 syncState: .pending,
                 isCompleted: false
             )
         ]
         
-        let section = WorkoutExerciseSection(
-            programExercise: programExercise,
-            exercise: exercise,
-            sets: sets,
-            isFinished: false,
-            finishedAt: nil,
-            defaultWeight: 60
-        )
+        let sections = [
+            WorkoutExerciseSection(
+                programExercise: programBench,
+                exercise: bench,
+                sets: benchSets,
+                isFinished: true,
+                finishedAt: Date(),
+                defaultWeight: 60
+            ),
+            WorkoutExerciseSection(
+                programExercise: programSquat,
+                exercise: squat,
+                sets: squatSets,
+                isFinished: false,
+                finishedAt: nil,
+                defaultWeight: 100
+            )
+        ]
         
         return WorkoutSessionData(
             session: session,
             day: day,
-            exerciseSections: [section],
-            exerciseLookup: [exerciseId: exercise],
+            exerciseSections: sections,
+            exerciseLookup: [benchId: bench, squatId: squat],
             startedAt: Date(),
-            currentExerciseIndex: 0
+            currentExerciseIndex: 1
         )
     }
 

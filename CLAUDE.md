@@ -224,14 +224,10 @@ Log raw errors only in debug/developer channels. Logs may include operation cont
 
 ## Design System
 
-Two custom named colors defined in `Assets.xcassets` and aliased in `Core/AppTheme.swift`:
+The app currently uses SwiftUI system and semantic colors only (e.g. `.systemBackground`, `.secondarySystemBackground`, `.primary`, `.secondary`, `.blue`, `.green`, `.red`, `.orange`, `.purple`). 
 
-| Color | Hex | Semantic use |
-|---|---|---|
-| `AccentColor` / `.gymAccent` | `#C8FF00` electric lime | Primary CTAs, progress, completion, normal training |
-| `GymPurple` / `.gymPurple` | `#9B7FE8` purple | Comeback mode, PRs, deload, milestones |
-
-All other colors use SwiftUI semantic colors (`systemBackground`, `secondarySystemBackground`, `.primary`, `.secondary`).
+**Brand Colors (Future Use):**
+The custom colors `AccentColor` (electric lime) and `GymPurple` (purple) are defined in the asset catalog for future brand identity. However, to ensure rapid MVP delivery and system-wide accessibility/contrast compliance, they must **not** be used in the current UI. Use adaptive system colors instead.
 
 Minimum tap target: **48pt** (sweaty hands).
 

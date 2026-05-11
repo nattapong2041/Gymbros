@@ -8,7 +8,7 @@
 
 ## CURRENT STATUS
 
-**Status:** Tasks 0–3 complete (commit `754efff`). Spec realigned 2026-05-11 to a paged one-exercise-at-a-time flow with per-exercise finish, free-swipe between unfinished pages, and a new `program_exercises.target_weight` column. **Realignment Fix-up F1, F2, and F3 are complete; F4–F6 remain pending before Task 4 (Wire + Verify).**
+**Status:** Tasks 0–3 complete (commit `754efff`). Spec realigned 2026-05-11 to a paged one-exercise-at-a-time flow with per-exercise finish, free-swipe between unfinished pages, and a new `program_exercises.target_weight` column. **Realignment Fix-up F1, F2, F3, F4, and F5 are complete; F6 remains pending before Task 4 (Wire + Verify).**
 
 **Done:**
 - Sprint 3 spec created at `.claude/sprints/S03-logger-timer/spec.md` and realigned 2026-05-11.
@@ -23,6 +23,7 @@
 - F1 added nullable `program_exercises.target_weight` locally and remotely on Supabase dev project `mkeoidoakzmsgjslihvf`, plus optional target-weight model/repository/program-builder UI support.
 - F2 reset the whole app to SwiftUI system/semantic colors only and removed active `Color.gymAccent`, `Color.gymPurple`, and `Color.gymAccentText` usage.
 - F3 refactored workout state, backup snapshots, default-weight resolution, set carry-forward, per-exercise finish, and targeted tests for the paged workout flow.
+- F4 refactored `WorkoutSessionView` to a paged `TabView`, extracted `WorkoutExercisePageView`, and updated `SetRowView` for read-only support.
 
 **Last commit SHA:** dcbd8f1
 
@@ -49,7 +50,7 @@
 - Task 1 does not wire runtime navigation or SwiftUI views; Task 4 owns that after the Realignment Fix-up section is complete.
 - F3 targeted `xcodebuild test` was attempted with sandbox escalation but is currently blocked by unrelated top-level syntax errors in `Gymbros/Presentation/Programs/ExercisePickerView.swift` and `Gymbros/Presentation/Programs/ProgramDetailView.swift`. F3-owned files pass `swiftc -parse` and `git diff --check`.
 
-**Next step:** Finish Realignment Fix-up F4 (logger view refactor), then F5 and F6 sequentially, then proceed to Task 4 (Wire + Verify).
+**Next step:** Finish Realignment Fix-up F6 (final verification), then proceed to Task 4 (Wire + Verify).
 
 ---
 
@@ -371,7 +372,7 @@ Result: blocked before F3 tests could run by unrelated top-level syntax errors i
 
 ---
 
-### F4 — Logger view refactor to paged TabView
+- [x] F4 — Logger view refactor to paged TabView
 
 **Owner:** UI worker. Sequential after F3.
 
@@ -411,7 +412,7 @@ xcodebuild -project Gymbros.xcodeproj -scheme Gymbros -destination 'platform=iOS
 
 ---
 
-### F5 — Localization additions
+- [x] F5 — Localization additions
 
 **Owner:** Localization worker. Sequential after F4.
 

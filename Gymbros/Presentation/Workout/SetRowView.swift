@@ -2,6 +2,7 @@ import SwiftUI
 
 struct SetRowView: View {
     let state: WorkoutSetRowState
+    var isReadOnly: Bool = false
     
     // Actions handed down from the parent view or VM
     var onUpdate: (String, String, Double?) -> Void
@@ -36,6 +37,7 @@ struct SetRowView: View {
                 .background(Color.gymSurface)
                 .clipShape(RoundedRectangle(cornerRadius: 8))
                 .frame(minWidth: 60)
+                .disabled(isReadOnly)
             }
             
             // Reps Input
@@ -53,6 +55,7 @@ struct SetRowView: View {
                 .background(Color.gymSurface)
                 .clipShape(RoundedRectangle(cornerRadius: 8))
                 .frame(minWidth: 60)
+                .disabled(isReadOnly)
             }
             
             // RPE Picker (using Menu for HIG compliance and tap target)
@@ -77,13 +80,16 @@ struct SetRowView: View {
                     .background(Color.gymSurface)
                     .clipShape(RoundedRectangle(cornerRadius: 8))
             }
+            .disabled(isReadOnly)
             .contentShape(Rectangle()) // Ensure entire area is tappable
             
             Spacer(minLength: 0)
             
             // Sync & Completion
             HStack(spacing: 8) {
-                syncIndicator
+                if !isReadOnly {
+                    syncIndicator
+                }
                 
                 Button(action: onComplete) {
                     Image(systemName: state.isCompleted ? "checkmark.circle.fill" : "circle")
@@ -92,14 +98,17 @@ struct SetRowView: View {
                         .frame(width: 48, height: 48) // HIG 48pt tap target
                         .contentShape(Rectangle())
                 }
+                .disabled(isReadOnly)
             }
         }
         .padding(.vertical, 4)
         .swipeActions(edge: .trailing, allowsFullSwipe: true) {
-            Button(role: .destructive, action: onDelete) {
-                Label("Delete", systemImage: "trash")
+            if !isReadOnly {
+                Button(role: .destructive, action: onDelete) {
+                    Label("Delete", systemImage: "trash")
+                }
+                .tint(.red)
             }
-            .tint(.red)
         }
     }
     
