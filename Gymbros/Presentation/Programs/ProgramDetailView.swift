@@ -30,7 +30,7 @@ struct ProgramDetailView: View {
                             } label: {
                                 HStack(spacing: 12) {
                                     Image(systemName: "calendar")
-                                        .foregroundStyle(Color.gymAccentText)
+                                        .foregroundStyle(.blue)
 
                                     VStack(alignment: .leading, spacing: 2) {
                                         Text(day.name)
@@ -49,6 +49,7 @@ struct ProgramDetailView: View {
                                 } label: {
                                     Label("common.delete", systemImage: "trash")
                                 }
+                                .tint(.red)
 
                                 Button {
                                     dayToRename = day
@@ -75,7 +76,7 @@ struct ProgramDetailView: View {
                                     Text("programDetail.addDay.action")
                                 }
                                 .font(.subheadline.bold())
-                                .foregroundStyle(Color.gymAccentText)
+                                .foregroundStyle(.blue)
                             }
                             .buttonStyle(.borderless)
                         }
@@ -106,6 +107,7 @@ struct ProgramDetailView: View {
                             } label: {
                                 Label("common.delete", systemImage: "trash")
                             }
+                            .tint(.red)
                         } label: {
                             Image(systemName: "ellipsis.circle")
                         }
@@ -144,12 +146,14 @@ struct ProgramDetailView: View {
                     Task { await viewModel.renameDay(day, name: renamedDayName) }
                 }
             }
+            .tint(.blue)
             Button("common.cancel", role: .cancel) {}
         }
         .alert("programs.delete.confirmation.title", isPresented: $isShowingDeleteProgramConfirmation) {
             Button("common.delete", role: .destructive) {
                 Task { await viewModel.deleteProgram() }
             }
+            .tint(.red)
             Button("common.cancel", role: .cancel) {}
         } message: {
             Text("programs.delete.confirmation.message")
@@ -174,7 +178,7 @@ struct ProgramDetailView: View {
                 if program.isActive {
                     HStack {
                         Image(systemName: "star.fill")
-                            .foregroundStyle(Color.gymAccent)
+                            .foregroundStyle(.green)
                         Text("programs.active.badge")
                             .font(.subheadline.bold())
                     }

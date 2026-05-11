@@ -29,7 +29,7 @@ struct RestTimerRingView: View {
                 Circle()
                     .trim(from: 0, to: progress)
                     .stroke(
-                        Color.gymAccent,
+                        Color.blue,
                         style: StrokeStyle(lineWidth: 12, lineCap: .round)
                     )
                     .rotationEffect(.degrees(-90))
@@ -61,10 +61,10 @@ struct RestTimerRingView: View {
                 Button(action: onSkip) {
                     Text("Skip")
                         .font(.system(.body, design: .rounded).bold())
-                        .foregroundStyle(Color.gymAccentText)
+                        .foregroundStyle(.blue)
                         .frame(maxWidth: .infinity)
                         .frame(height: 54)
-                        .background(Color.gymAccent.opacity(0.15))
+                        .background(Color.blue.opacity(0.15))
                         .clipShape(RoundedRectangle(cornerRadius: 12))
                 }
             }

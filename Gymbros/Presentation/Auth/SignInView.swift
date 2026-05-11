@@ -11,7 +11,7 @@ struct SignInView: View {
             VStack(spacing: 12) {
                 Image(systemName: "dumbbell.fill")
                     .font(.system(size: 60))
-                    .foregroundStyle(Color.gymAccent)
+                    .foregroundStyle(.blue)
 
                 Text("GymBros")
                     .font(.largeTitle.bold())

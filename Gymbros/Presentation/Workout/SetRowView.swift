@@ -88,7 +88,7 @@ struct SetRowView: View {
                 Button(action: onComplete) {
                     Image(systemName: state.isCompleted ? "checkmark.circle.fill" : "circle")
                         .font(.system(size: 28))
-                        .foregroundStyle(state.isCompleted ? Color.gymAccent : .secondary)
+                        .foregroundStyle(state.isCompleted ? .green : .secondary)
                         .frame(width: 48, height: 48) // HIG 48pt tap target
                         .contentShape(Rectangle())
                 }
@@ -99,6 +99,7 @@ struct SetRowView: View {
             Button(role: .destructive, action: onDelete) {
                 Label("Delete", systemImage: "trash")
             }
+            .tint(.red)
         }
     }
     

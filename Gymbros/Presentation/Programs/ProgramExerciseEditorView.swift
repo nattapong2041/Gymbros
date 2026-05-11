@@ -18,7 +18,7 @@ struct ProgramExerciseEditorView: View {
                             Spacer()
                             Text(verbatim: "\(form.targetSets)")
                                 .font(.gymNumber(size: 20))
-                                .foregroundStyle(Color.gymAccent)
+                                .foregroundStyle(.primary)
                         }
                     }
                 } header: {
@@ -97,6 +97,7 @@ struct ProgramExerciseEditorView: View {
                         dismiss()
                     }
                     .disabled(form.validate() != nil)
+                    .tint(.blue)
                 }
             }
         }

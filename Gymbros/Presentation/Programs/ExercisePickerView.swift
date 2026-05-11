@@ -124,8 +124,8 @@ struct ExercisePickerView: View {
             .font(.subheadline.weight(.medium))
             .padding(.horizontal, 12)
             .padding(.vertical, 6)
-            .background(selection.wrappedValue == nil ? Color(.secondarySystemBackground) : Color.gymAccent.opacity(0.15))
-            .foregroundStyle(selection.wrappedValue == nil ? Color.primary : Color.gymAccentText)
+            .background(selection.wrappedValue == nil ? Color(.secondarySystemBackground) : Color.blue.opacity(0.15))
+            .foregroundStyle(selection.wrappedValue == nil ? Color.primary : Color.blue)
             .clipShape(Capsule())
         }
     }
@@ -146,7 +146,7 @@ struct ExercisePickerRow: View {
                     if exercise.isCompound {
                         Image(systemName: "bolt.fill")
                             .font(.caption2)
-                            .foregroundStyle(Color.gymAccentText)
+                            .foregroundStyle(.orange)
                     }
                 }
 
@@ -163,7 +163,7 @@ struct ExercisePickerRow: View {
 
             Image(systemName: "plus.circle.fill")
                 .font(.title3)
-                .foregroundStyle(Color.gymAccentText)
+                .foregroundStyle(.blue)
         }
         .padding(.vertical, 4)
     }

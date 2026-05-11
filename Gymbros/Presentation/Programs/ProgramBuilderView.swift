@@ -44,6 +44,7 @@ struct ProgramBuilderView: View {
                             }
                         }
                         .disabled(!viewModel.canSave)
+                        .tint(.blue)
                     }
                 }
             }

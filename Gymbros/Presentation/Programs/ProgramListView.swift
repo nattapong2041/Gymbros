@@ -41,6 +41,7 @@ struct ProgramListView: View {
             Button("common.delete", role: .destructive) {
                 Task { await viewModel.deleteProgram(program) }
             }
+            .tint(.red)
             Button("common.cancel", role: .cancel) {}
         } message: { program in
             Text("programs.delete.confirmation.message \(program.name)")
@@ -77,7 +78,6 @@ struct ProgramListView: View {
                 }
                 .buttonStyle(.borderedProminent)
                 .controlSize(.large)
-                .tint(.gymAccent)
             }
         case .success(let programs):
             List {
@@ -91,6 +91,7 @@ struct ProgramListView: View {
                             } label: {
                                 Label("common.delete", systemImage: "trash")
                             }
+                            .tint(.red)
 
                             if !program.isActive {
                                 Button {
@@ -98,7 +99,7 @@ struct ProgramListView: View {
                                 } label: {
                                     Label("programs.setActive.action", systemImage: "star.fill")
                                 }
-                                .tint(.gymAccent)
+                                .tint(.blue)
                             }
                         }
                 }
@@ -136,8 +137,8 @@ struct ProgramRow: View {
                         .font(.caption2.bold())
                         .padding(.horizontal, 6)
                         .padding(.vertical, 2)
-                        .background(Color.gymAccent)
-                        .foregroundStyle(.black)
+                        .background(Color.green.opacity(0.16))
+                        .foregroundStyle(.green)
                         .clipShape(Capsule())
                 }
             }

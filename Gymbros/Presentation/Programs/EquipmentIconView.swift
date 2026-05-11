@@ -7,17 +7,17 @@ struct EquipmentIconView: View {
     var body: some View {
         ZStack {
             Circle()
-                .fill(Color.gymAccent.opacity(0.1))
+                .fill(Color.blue.opacity(0.12))
                 .frame(width: size, height: size)
 
             if let symbolName = equipment?.symbolName {
                 Image(systemName: symbolName)
                     .font(.system(size: size * 0.42, weight: .semibold))
-                    .foregroundStyle(Color.gymAccentText)
+                    .foregroundStyle(.blue)
             } else if let equipment {
                 Text(equipment.shortTitleKey)
                     .font(.system(size: size * 0.24, weight: .bold))
-                    .foregroundStyle(Color.gymAccentText)
+                    .foregroundStyle(.blue)
                     .minimumScaleFactor(0.7)
                     .lineLimit(1)
             } else {

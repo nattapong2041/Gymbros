@@ -8,7 +8,7 @@
 
 ## CURRENT STATUS
 
-**Status:** Tasks 0–3 complete (commit `754efff`). Spec realigned 2026-05-11 to a paged one-exercise-at-a-time flow with per-exercise finish, free-swipe between unfinished pages, and a new `program_exercises.target_weight` column. **Realignment Fix-up F1 and F3 are complete; F2 remains in progress/pending, and F4–F6 remain pending before Task 4 (Wire + Verify).**
+**Status:** Tasks 0–3 complete (commit `754efff`). Spec realigned 2026-05-11 to a paged one-exercise-at-a-time flow with per-exercise finish, free-swipe between unfinished pages, and a new `program_exercises.target_weight` column. **Realignment Fix-up F1, F2, and F3 are complete; F4–F6 remain pending before Task 4 (Wire + Verify).**
 
 **Done:**
 - Sprint 3 spec created at `.claude/sprints/S03-logger-timer/spec.md` and realigned 2026-05-11.
@@ -21,9 +21,10 @@
 - UI components follow HIG with 48pt tap targets and semantic colors.
 - Build verified on `iPhone 17e`.
 - F1 added nullable `program_exercises.target_weight` locally and remotely on Supabase dev project `mkeoidoakzmsgjslihvf`, plus optional target-weight model/repository/program-builder UI support.
+- F2 reset the whole app to SwiftUI system/semantic colors only and removed active `Color.gymAccent`, `Color.gymPurple`, and `Color.gymAccentText` usage.
 - F3 refactored workout state, backup snapshots, default-weight resolution, set carry-forward, per-exercise finish, and targeted tests for the paged workout flow.
 
-**Last commit SHA:** 754efff
+**Last commit SHA:** dcbd8f1
 
 **Realignment 2026-05-11 — deltas to apply before Task 4 wiring:**
 - Add nullable `program_exercises.target_weight` (schema + Swift model + builder UI).
@@ -48,7 +49,7 @@
 - Task 1 does not wire runtime navigation or SwiftUI views; Task 4 owns that after the Realignment Fix-up section is complete.
 - F3 targeted `xcodebuild test` was attempted with sandbox escalation but is currently blocked by unrelated top-level syntax errors in `Gymbros/Presentation/Programs/ExercisePickerView.swift` and `Gymbros/Presentation/Programs/ProgramDetailView.swift`. F3-owned files pass `swiftc -parse` and `git diff --check`.
 
-**Next step:** Finish Realignment Fix-up F2 (color audit), then F4, F5, and F6 sequentially, then proceed to Task 4 (Wire + Verify).
+**Next step:** Finish Realignment Fix-up F4 (logger view refactor), then F5 and F6 sequentially, then proceed to Task 4 (Wire + Verify).
 
 ---
 
@@ -296,11 +297,11 @@ xcodebuild -project Gymbros.xcodeproj -scheme Gymbros -destination 'platform=iOS
 - `Gymbros/Data/*`
 - `Gymbros/Presentation/Workout/WorkoutSessionViewModel.swift` (F3)
 
-- [ ] Remove `Color.gymAccent`, `Color.gymPurple`, and `Color.gymAccentText` from active app UI usage.
-- [ ] Remove `Color.gymAccentText` from `AppTheme.swift`. Keep only semantic aliases such as `gymSurface` / `gymBackground` if they remain useful; do not add new custom brand color helpers.
-- [ ] Replace custom color callers with default SwiftUI styling or semantic/system colors: `.primary`, `.secondary`, system backgrounds, `.blue` for explicit primary action tint, `.green` for success/completion, `.orange` for warning/recovery, `.red` for destructive/error, and `.purple` only for comeback/PR/milestone semantics.
-- [ ] Do not edit `AccentColor.colorset` or `GymPurple.colorset` now; custom brand colors are deferred, not retuned in this sprint.
-- [ ] Grep for forbidden color forms:
+- [x] Remove `Color.gymAccent`, `Color.gymPurple`, and `Color.gymAccentText` from active app UI usage.
+- [x] Remove `Color.gymAccentText` from `AppTheme.swift`. Keep only semantic aliases such as `gymSurface` / `gymBackground` if they remain useful; do not add new custom brand color helpers.
+- [x] Replace custom color callers with default SwiftUI styling or semantic/system colors: `.primary`, `.secondary`, system backgrounds, `.blue` for explicit primary action tint, `.green` for success/completion, `.orange` for warning/recovery, `.red` for destructive/error, and `.purple` only for comeback/PR/milestone semantics.
+- [x] Do not edit `AccentColor.colorset` or `GymPurple.colorset` now; custom brand colors are deferred, not retuned in this sprint.
+- [x] Grep for forbidden color forms:
   ```bash
   rg -n "gymAccent|gymPurple|gymAccentText|Color\\(\"AccentColor\"|Color\\(\"GymPurple\"|Color\\(red:|#[0-9A-Fa-f]{6}" Gymbros/ --type swift
   ```
@@ -312,7 +313,7 @@ xcodebuild -project Gymbros.xcodeproj -scheme Gymbros -destination 'platform=iOS
 xcodebuild -project Gymbros.xcodeproj -scheme Gymbros -destination 'platform=iOS Simulator,name=iPhone 17e' build
 ```
 
-**Handoff notes:** Add when complete.
+**Handoff notes:** Complete. Removed `Color.gymAccent` and `Color.gymAccentText` from `AppTheme`, leaving only semantic background/surface aliases and `Font.gymNumber`. Replaced active custom color usage across Auth, Programs, and Workout UI with SwiftUI defaults plus system `.blue`, `.green`, `.orange`, `.red`, and semantic system backgrounds. Primary save/add CTAs use system blue where an explicit cue is useful, destructive delete actions keep `role: .destructive` and red tint where supported, and add-exercise row equipment icons use system blue. `AccentColor` and `GymPurple` assets were not edited. Forbidden-color grep returned zero active Swift hits, and `xcodebuild -project Gymbros.xcodeproj -scheme Gymbros -destination 'platform=iOS Simulator,name=iPhone 17e' build` succeeded after rerunning with sandbox escalation for Xcode/SwiftPM cache access.
 
 ---
 

@@ -35,7 +35,7 @@ struct WorkoutSessionView: View {
                                 } else {
                                     Text("workout.finish") // workout.finish
                                         .fontWeight(.bold)
-                                        .foregroundStyle(Color.gymAccentText)
+                                        .foregroundStyle(.blue)
                                 }
                             }
                             .disabled(isFinishing)
@@ -74,8 +74,6 @@ struct WorkoutSessionView: View {
                 
                 Button("workout.retry", action: onRetry) // workout.retry
                     .buttonStyle(.borderedProminent)
-                    .tint(Color.gymAccent)
-                    .foregroundStyle(.black)
             }
             .padding()
             
@@ -121,7 +119,7 @@ struct WorkoutSessionView: View {
                                         Text("workout.set.add") // workout.set.add
                                     }
                                     .font(.system(.subheadline, design: .rounded).bold())
-                                    .foregroundStyle(Color.gymAccentText)
+                                    .foregroundStyle(.blue)
                                     .frame(maxWidth: .infinity)
                                     .frame(height: 48) // HIG
                                 }
@@ -170,7 +168,7 @@ struct WorkoutSessionView: View {
                 VStack(spacing: 12) {
                     Image(systemName: "arrow.clockwise.icloud")
                         .font(.system(size: 40))
-                        .foregroundStyle(Color.gymAccent)
+                        .foregroundStyle(.blue)
                     
                     Text("workout.restore.title") // workout.restore.title
                         .font(.headline)
@@ -185,10 +183,10 @@ struct WorkoutSessionView: View {
                     Button(action: onRestore) {
                         Text("workout.restore.action") // workout.restore.action
                             .font(.headline)
-                            .foregroundStyle(.black)
+                            .foregroundStyle(.white)
                             .frame(maxWidth: .infinity)
                             .frame(height: 50)
-                            .background(Color.gymAccent)
+                            .background(Color.blue)
                             .clipShape(RoundedRectangle(cornerRadius: 12))
                     }
                     

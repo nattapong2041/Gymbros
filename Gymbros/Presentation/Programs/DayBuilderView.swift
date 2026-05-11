@@ -33,6 +33,7 @@ struct DayBuilderView: View {
                                 } label: {
                                     Label("common.delete", systemImage: "trash")
                                 }
+                                .tint(.red)
                             }
                         }
                         .onMove { source, destination in
@@ -50,7 +51,7 @@ struct DayBuilderView: View {
                                     Text("dayBuilder.addExercise.action")
                                 }
                                 .font(.subheadline.bold())
-                                .foregroundStyle(Color.gymAccentText)
+                                .foregroundStyle(.blue)
                             }
                             .buttonStyle(.borderless)
                         }
@@ -88,6 +89,7 @@ struct DayBuilderView: View {
             Button("common.save") {
                 Task { await viewModel.renameDay(renamedDayName) }
             }
+            .tint(.blue)
             Button("common.cancel", role: .cancel) {}
         }
         .transientErrorAlert(error: Binding(
@@ -130,7 +132,7 @@ struct DayBuilderView: View {
                 isShowingExercisePicker = true
             }
             .buttonStyle(.borderedProminent)
-            .tint(.gymAccent)
+            .tint(.blue)
         }
     }
 }
