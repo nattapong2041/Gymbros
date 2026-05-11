@@ -8,7 +8,7 @@
 
 ## CURRENT STATUS
 
-**Status:** Task 1 complete. Repository, shared workout state, layered active-session backup, concrete ViewModel, and focused tests are implemented. Tasks 2 and 3 are ready to continue in parallel; Task 4 should wire the UI after those handoffs.
+**Status:** Task 1 and Task 2 complete. ViewModel, data layer, and UI components are implemented. Task 3 (Localization) is ready for parallel work or continuation; Task 4 should wire the UI after localization handoff.
 
 **Done:**
 - Sprint 3 spec created at `.claude/sprints/S03-logger-timer/spec.md`.
@@ -16,8 +16,9 @@
 - Plan uses the no-protocol parallel strategy: spec + plan are the contract.
 - Task 0 spec lock completed: ViewModel/state shapes, repository contract, localization key families, and ownership boundaries are confirmed.
 - Task 1 implemented `WorkoutRepositoryProviding`, repository session/set methods, `WorkoutSessionViewModel`, `WorkoutSessionState`, `ActiveSessionBackupStore`, and focused Swift Testing coverage.
-- Task 1 architecture cleanup moved `ActiveSessionBackupStore` from `Presentation/Workout` to `Data/Local`.
-- Task 1 backup refactor now uses `Data/Local -> Data/Repository -> WorkoutSessionViewModel`; backup DTOs live in `Data/Local`, while editable row state remains in `Presentation/Workout`.
+- Task 2 implemented `WorkoutSessionView`, `SetRowView`, `RestTimerRingView`, and `WorkoutSessionMockData` with full preview coverage.
+- UI components follow HIG with 48pt tap targets and semantic colors.
+- Build verified on `iPhone 17e`.
 
 **Last commit SHA:** 754efff
 
@@ -155,20 +156,20 @@ xcodebuild test -project Gymbros.xcodeproj -scheme Gymbros -destination 'platfor
 - `Gymbros/App/RootView.swift`
 - `Gymbros/Presentation/Programs/*View.swift`
 
-- [ ] Build `WorkoutSessionView` success layout with day title, exercise sections, set rows, Add Set actions, rest timer, and Finish Workout action.
-- [ ] Build loading state.
-- [ ] Build empty state for a day with no exercises.
-- [ ] Build error state with localized retry action.
-- [ ] Build restore prompt UI with Restore and Discard actions.
-- [ ] Build `SetRowView` with set number, weight input, reps input, RPE input, completion control, sync state, retry action, and delete support.
-- [ ] Build `RestTimerRingView` with ring, remaining time, and stop/skip action.
-- [ ] Ensure 48pt minimum tap targets for primary controls.
-- [ ] Add accessibility labels for icon-only buttons.
-- [ ] Add previews for loading, empty, error, restore, normal success, upload failed, and active timer states.
-- [ ] Use only mock/sample data and existing models; do not depend on Task 1 wiring.
-- [ ] Search for hardcoded user-facing strings in the new workout views and replace them with localization keys.
-- [ ] Run a build or preview-compatible compile check.
-- [ ] Update `CURRENT STATUS` and handoff notes with view initializer expectations and mock-only paths to remove or bypass.
+- [x] Build `WorkoutSessionView` success layout with day title, exercise sections, set rows, Add Set actions, rest timer, and Finish Workout action.
+- [x] Build loading state.
+- [x] Build empty state for a day with no exercises.
+- [x] Build error state with localized retry action.
+- [x] Build restore prompt UI with Restore and Discard actions.
+- [x] Build `SetRowView` with set number, weight input, reps input, RPE input, completion control, sync state, retry action, and delete support.
+- [x] Build `RestTimerRingView` with ring, remaining time, and stop/skip action.
+- [x] Ensure 48pt minimum tap targets for primary controls.
+- [x] Add accessibility labels for icon-only buttons.
+- [x] Add previews for loading, empty, error, restore, normal success, upload failed, and active timer states.
+- [x] Use only mock/sample data and existing models; do not depend on Task 1 wiring.
+- [x] Search for hardcoded user-facing strings in the new workout views and replace them with localization keys.
+- [x] Run a build or preview-compatible compile check.
+- [x] Update `CURRENT STATUS` and handoff notes with view initializer expectations and mock-only paths to remove or bypass.
 
 **Verification command:**
 
@@ -176,7 +177,7 @@ xcodebuild test -project Gymbros.xcodeproj -scheme Gymbros -destination 'platfor
 xcodebuild -project Gymbros.xcodeproj -scheme Gymbros -destination 'platform=iOS Simulator,name=iPhone 17e' build
 ```
 
-**Handoff notes:** Add notes here before marking Task 2 complete.
+**Handoff notes:** Task 2 implemented `WorkoutSessionMockData.swift`, `SetRowView.swift`, `RestTimerRingView.swift`, and `WorkoutSessionView.swift`. Previews are available for all states. UI uses localization keys like `workout.*`, `workout.set.*`, and `workout.timer.*` (to be defined in Task 3). `WorkoutSessionView` is designed to be wired to `WorkoutSessionViewModel` in Task 4; it currently accepts a `ViewState<WorkoutSessionData>` and various closures for actions. Build succeeded on `iPhone 17e`.
 
 ---
 
