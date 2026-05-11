@@ -8,21 +8,22 @@
 ## Table of Contents
 
 1. [Vision & Identity](#1-vision--identity)
-2. [Target Users](#2-target-users)
+2. [Target Users & Pain Points](#2-target-users--pain-points)
 3. [Core Value Proposition](#3-core-value-proposition)
 4. [Tech Stack](#4-tech-stack)
 5. [Design System](#5-design-system)
 6. [App Architecture](#6-app-architecture)
-7. [Agile Roadmap](#7-agile-roadmap)
-8. [Core Algorithms](#8-core-algorithms)
-9. [Program Templates](#9-program-templates)
-10. [Monetization](#10-monetization)
-11. [Product Metrics](#11-product-metrics)
-12. [Marketing Plan](#12-marketing-plan)
-13. [Development Workflow & CI/CD](#13-development-workflow--cicd)
-14. [Decisions Made (and Rejected)](#14-decisions-made-and-rejected)
-15. [Open Decisions](#15-open-decisions)
-16. [Decision Log](#16-decision-log)
+7. [Re-engagement Strategy](#7-re-engagement-strategy)
+8. [Agile Roadmap](#8-agile-roadmap)
+9. [Core Algorithms](#9-core-algorithms)
+10. [Program Templates](#10-program-templates)
+11. [Monetization](#11-monetization)
+12. [B2B Gym Partnership Track](#12-b2b-gym-partnership-track)
+13. [Marketing Plan](#13-marketing-plan)
+14. [Development Workflow & CI/CD](#14-development-workflow--cicd)
+15. [Decisions Made (and Rejected)](#15-decisions-made-and-rejected)
+16. [Open Decisions](#16-open-decisions)
+17. [Decision Log](#17-decision-log)
 
 ---
 
@@ -30,88 +31,59 @@
 
 **App name:** GymBros *(placeholder — will rename before App Store launch)*
 
-**Positioning:** The gym companion for people with real lives.
+**Positioning:** The gym app that adapts to your real life.
 
-**Tagline TH:** "มาแค่นี้พอ เราจะดูแลส่วนที่เหลือ"
-**Tagline EN:** "Just show up. We'll handle the rest."
+**Tagline TH:** "ขาดไป 2 อาทิตย์? บาดเจ็บ? ยิมแน่น? เราจัดการให้"
+**Tagline EN:** "Missed 2 weeks? Injured? Gym crowded? We've got you."
 
-**Product truth:** Users do not live around the gym. They have work, family, errands, stress, and days where life wins. When they finally make it to the gym, they should not have to manage another system in their head.
+**The shift:** We're not "a coach not a tracker" (Fitbod/Slate/Load Muscle already claim this). We are **the app that handles when life breaks the plan.** Every other tracker assumes you show up perfectly. We don't.
 
-**Problem:** Busy lifters often like training, but gym decisions become messy when real life interrupts:
-- What should I do today?
-- I missed 1–2 days — do I continue or rearrange the plan?
-- I missed 4 days or a week — should I deload, resume, or restart?
-- When should I progress?
-- After a deload, what comes next?
+**Problem:** 50% of gym members quit within 6 months; 80% within 90 days. Not because they're lazy — because every app pretends real life doesn't happen. Missed sessions, comebacks, injuries, crowded gyms, decision fatigue, invisible progress.
 
-Most gym apps record what happened. GymTrack removes the decision load before and after the workout so the user can just show up and execute.
-
-**What makes us different:** GymTrack is not for people whose life revolves around training. It is for people who want training to fit into real life. Open app → know today's workout, load, and next step → execute → done.
+**What makes us different:** When life breaks the plan, we have an answer. Open app → app already knows what changed → execute → done.
 
 ---
 
-## 2. Target Users
+## 2. Target Users & Pain Points
 
-**Primary:** Thai gym-goers, 18–35, iPhone, who want to train consistently but have full lives outside the gym. They may aim for 3–5×/week, but work, family, errands, travel, or fatigue often reduce that to 1–3×/week.
+### Primary user
 
-**Their reality:**
-- They are not lazy; they are busy.
-- They like lifting, but do not want to manage a training spreadsheet in their head.
-- Missed days create confusion, not just guilt.
-- The hardest question is often not "Should I go?" but "Now that I am here, what exactly should I do?"
+Gym-goer, 18–35, iPhone. Wants 3–5×/week, actually trains 1–3×/week. Has tried Hevy/Strong but quit because logging without guidance felt pointless. Globally distributed, but Thai is the launch market (App Store algorithm favours Thai apps to Thai users, based on prior app data).
 
-**Not for (yet):** Competitive powerlifters, cardio athletes, or people who want to micromanage every programming variable themselves.
+### Not for (yet)
+Competitive powerlifters · cardio athletes · CrossFit-specific training
 
-**Secondary (V3):** Personal trainers managing 5–15 Thai clients.
+### Secondary (Phase 4+)
+Personal trainers managing 5–15 clients · Independent Thai gyms with churn problems
 
-**Insight:** Most people do not need more gym management. They need less of it.
+### The seven pain points we solve (and competition status)
+
+| # | Pain | Existing apps | Our answer |
+|---|---|---|---|
+| 1 | 50% quit at 6 months, 80% at 90 days | Nobody owns this | **Comeback handling = headline feature** |
+| 2 | Coming back after a break is hard | None handle this well | SmartSessionAdvisor + ComebackRampService |
+| 3 | Injury = manually delete exercises | #1 reported missing feature in Hevy reviews | Sprint 8 injury substitution |
+| 4 | Decision fatigue at the gym | Hevy/Strong don't tell you what to lift | "Zero decisions" Today screen |
+| 5 | Invisible progress | All have charts, but hidden behind paywalls | Free plain-language progress |
+| 6 | No recovery-aware programming | Gap — Fitbod, Boostcamp don't integrate HRV | Sprint 10 HRV/sleep adjustments |
+| 7 | Premium paywalls hide basic insights | Hevy hides volume-per-muscle behind paywall | Generous free tier |
+
+### Pain points we deliberately don't solve
+- Form check / video analysis (separate product domain)
+- Nutrition / macros (separate product domain — partner integration later)
+- Social / community / streaks (kills anti-guilt principle)
+- Group classes / cardio (not our user)
 
 ---
 
 ## 3. Core Value Proposition
 
 ```
-Most gym apps: log what you did
-GymTrack:     tell you exactly what to do today — even when life disrupted the plan
-```
-
-### Core Promise
-
-```
-Your life is already busy.
-GymTrack handles the gym decisions.
-```
-
-### The Job To Be Done
-
-When a busy lifter finally arrives at the gym, help them answer:
-1. What workout should I do today?
-2. What weight / reps should I use?
-3. Should I progress, hold, deload, or ramp back up?
-4. If I missed days, how do I continue without re-planning everything?
-
-### The Shining Feature: Next Best Session Engine
-
-```
-Normal week:
-  "Do Upper B today. Try 77.5kg on bench."
-
-Missed 1–2 days:
-  "No problem. Continue with Lower A today."
-
-Missed 4–6 days:
-  "Pick up here. No need to rearrange the week."
-
-Missed 7+ days:
-  "Comeback session today: reduce load, reduce volume, rebuild safely."
-
-After deload / comeback:
-  "You are ready to resume progression. Here is the next step."
-```
-
-The product is not one algorithm in isolation. The value is the full decision-removal loop:
-```
-Open app → know what to do → train → app decides what comes next
+Apple Fitness: how many calories you burned
+Hevy / Strong: log it yourself, figure it out yourself
+Fitbod / Slate: AI plan assuming you train perfectly every week
+GymTrack:      what to lift today, even after 2 weeks off,
+               even with a shoulder tweak, even with 4hr sleep
 ```
 
 ---
@@ -125,57 +97,57 @@ Open app → know what to do → train → app decides what comes next
 | Storage (later) | SwiftData + Supabase | ONLY if user feedback demands it |
 | Cloud | Supabase (Postgres) | Relational data, SQL queries |
 | Auth | Supabase + Apple Sign-In | One tap |
-| Auth later | Google Sign-In optional, Apple Sign-In remains | If a third-party login is added, keep Apple Sign-In available for App Review compliance |
-| AI V1 | Rule-based Swift | Offline, Thai, free |
-| AI V2 | Firebase AI Logic (Gemini) | Thai coaching, Pro only |
-| Payments | StoreKit 2 + RevenueCat | Native subscriptions |
-| Health | HealthKit (post-1.0 unless beta feedback demands it) | Nice-to-have, not core differentiation |
-| i18n | String Catalogs | Thai is primary language. English is user-selectable in Settings. |
-| Crashes early beta | Apple built-in | Enough while validating the core loop |
-| Crashes before App Store launch | Crashlytics | Free, mobile-native, needed before public release |
+| AI V1 | Rule-based Swift | Offline, multi-lang, free |
+| AI V2 | DEFERRED — see Future/Optional in Section 8 |
+| Payments | StoreKit 2 + RevenueCat | Native subscriptions, regional pricing |
+| Health | HealthKit (workout + HRV + sleep) | Calories, rings, recovery |
+| i18n | String Catalogs | Both Thai + English are first-class |
+| Crashes V1 | Apple built-in | Free |
+| Crashes V2 | Crashlytics | Add when scale demands |
 | Analytics | TelemetryDeck | Privacy-first, Swift native |
 | CI/CD | Xcode Cloud | Auto TestFlight on push to main |
+| Notifications | UserNotifications (smart, opt-in only) | 1/week max, pattern-based |
 
 ---
 
 ## 5. Design System
 
-### Localization Strategy
+### Localization Strategy (UPDATED)
 
 ```
-Thai = primary language of the app
-English = alternative, user switches in Settings
+Both Thai and English are FIRST-CLASS languages.
+Neither is a translation of the other — both written native.
 
 How it works:
   String keys:        English format in code (e.g. "start_workout")
-                      → readable for development, language-agnostic
-  Default display:    Follows device language
-  Device locale:      If device is set to Thai → Thai
-                      If device is set to anything else → English
-  User override:      Settings → Language → ภาษาไทย / English
-  String Catalogs:    sourceLanguage = "en" (key format)
-                      Locales: "th" (complete) + "en" (complete)
-                      Thai strings are never optional — must always exist
+  Default display:    Device locale
+                      → Thai device → Thai
+                      → Anything else → English
+  User override:      Settings → Language (ภาษาไทย / English)
+  String Catalogs:    sourceLanguage = "en"
+                      Locales: "th" (complete, native copy)
+                              "en" (complete, native copy)
 
-Why device locale first?
-  It is the fastest correct default for V1. Thai users with Thai devices get Thai.
-  Everyone else gets English. Sprint 6 adds an easy Settings override.
+Why the shift from Thai-default?
+  Old plan: app opens in Thai regardless of device
+  New plan: respect device locale, English first-class
+  Reason:   Worldwide ambition. Thai users still get Thai.
+            International users get a native-feeling English app.
+            Thai-first marketing still drives Thai acquisition.
+
+Bilingual copy in UI:
+  Critical moments (comeback card, welcome back, PR achievement)
+  show both languages side-by-side, never one as a footnote.
 ```
 
 ### Approach
 
-SwiftUI native design system following the [Apple Human Interface Guidelines](https://developer.apple.com/design/human-interface-guidelines). No Figma. Paper sketches for 4 key screens.
+SwiftUI native design system. No Figma. Paper sketches for 4 key screens.
 
 ### Color Strategy
 
 ```
-Mandate: Full support for both Light and Dark modes is required for all screens.
-
 Base:   SwiftUI semantic colors (automatic dark/light mode)
-        .systemBackground, .secondarySystemBackground
-        .primary, .secondary
-        These handle 90% of all color needs.
-```
 Custom: TWO named colors defined in Assets.xcassets
         → AccentColor (primary interactive)
         → GymPurple   (special states)
@@ -183,80 +155,66 @@ Custom: TWO named colors defined in Assets.xcassets
 
 ### The Two Custom Colors
 
-Inspired by image reference (black → purple → green gradient palette):
-
 ```swift
-// Assets.xcassets → AccentColor (electric lime)
-// Light mode:  #C8FF00
-// Dark mode:   #C8FF00
-// Used for:    All primary buttons, toggles, progress rings,
-//              checkmarks, links, completion states
-//              "You did it" moments
+// AccentColor — electric lime #C8FF00
+// Used for: primary buttons, toggles, progress rings, checkmarks,
+//           normal training, completion ("you did it")
 
-// Assets.xcassets → GymPurple
-// Light mode:  #9B7FE8
-// Dark mode:   #9B7FE8
-// Used for:    Comeback mode cards, PR badges, deload indicators,
-//              milestone achievements, "special" states
-//              "This is different" moments
+// GymPurple — #9B7FE8
+// Used for: comeback cards, PR badges, deload indicators,
+//           milestones, "welcome back" moments
+//           Anything where the message is "this is different"
 ```
 
 ### Color Semantic Map
 
 ```
-Lime   (#C8FF00) →  Completion  · Progress  · Primary CTA   · Normal training
-Purple (#9B7FE8) →  Comeback    · PRs       · Deload        · Milestones
-Red    (system)  →  Destructive · Delete    · Warning
-Green  (system)  →  Success (use sparingly — lime is our green)
+Lime   (#C8FF00) → Completion · Progress · Primary CTA · Normal training
+Purple (#9B7FE8) → Comeback   · PRs      · Deload      · Milestones
+Red    (system)  → Destructive · Delete  · Warning
+Green  (system)  → Sparingly — lime is our green
 ```
 
-### Why This Works for a Gym App
+### Custom Components
 
 ```
-Psychologically:
-  Lime    = "go", "push", "you're progressing"
-  Purple  = "this session is different", "you achieved something"
-
-In context:
-  Normal suggestion card     → lime accent
-  "PR broken" badge          → purple
-  Comeback mode card         → purple border + "start lighter"
-  Rest timer ring            → lime countdown
-  Deload week card           → purple (rest is special, not failure)
-```
-
-### AppTheme.swift
-
-```swift
-import SwiftUI
-
-extension Color {
-    // Primary interactive — electric lime
-    static let gymAccent = Color("AccentColor")
-
-    // Special states — purple
-    static let gymPurple = Color("GymPurple")
-
-    // Convenience aliases
-    static let gymSurface = Color(.secondarySystemBackground)
-    static let gymBackground = Color(.systemBackground)
-}
-
-extension Font {
-    // Chunky numbers for weights and reps
-    static let gymNumber = Font.title.bold().monospaced()
-    static let gymNumberLarge = Font.largeTitle.bold().monospaced()
-}
-```
-
-### Custom Components (Only 2)
-
-```
-SetRowView         weight + reps + RPE + checkbox
-RestTimerRingView  circular countdown ring (lime stroke on dark)
+SetRowView           weight + reps + RPE + checkbox
+RestTimerRingView    circular countdown ring (lime stroke on dark)
+ComebackCardView     purple gradient card with bilingual copy
+EasingBackBadge      small purple pill, appears on exercise rows in comeback mode
+HowDidThatFeelPicker 3-button feeling input (Easy / Just right / Hard)
+                     replaces RPE during comeback for accuracy
 ```
 
 ### Tap Targets: 48pt minimum — sweaty hands
+
+### Anti-Guilt UX (concrete features, not vibes)
+
+```
+✓ "Welcome back" banner after 7+ days, purple, big, bilingual
+✓ Streak shown ONLY if streak intact — never display broken streaks
+✓ Last workout date in soft grey, never red/orange
+✓ "Fresh start" framing replaces any "you missed X days"
+✓ Empty states say "Ready when you are" not "You haven't worked out"
+✓ No daily reminders, ever
+✓ Max 1 push notification per week, ever (and opt-in only)
+```
+
+### Copy Principles
+
+```
+✅ Assumptive       "Welcome back" not "Are you back?"
+✅ Concrete         "80% means 80kg today" not "starting light"
+✅ Forward-looking  "2-week ramp" not "you missed 2 weeks"
+✅ Quiet confidence "We've got you" not "You'll be fine!"
+✅ Bilingual where it matters, never translation footnote
+
+❌ Apologetic       "Sorry it's been a while..."
+❌ Demanding        "It's been too long..."
+❌ Vague            "Take it easy today"
+❌ Performative     "You can do this! 💪🔥"
+❌ Pity             "We know life gets busy..."
+```
 
 ---
 
@@ -280,34 +238,105 @@ GymTrack/
 ├── Model/              Profile, Exercise, Program, ProgramDay,
 │                       ProgramExercise, WorkoutSession, WorkoutSet
 │   └── Enums/          MovementPattern, MuscleGroup, Equipment,
-│                       ExperienceLevel, Goal, WeightUnit, TrainingPhase
+│                       ExperienceLevel, Goal, WeightUnit
 ├── Data/
 │   ├── Remote/         SupabaseClient.swift, AuthService.swift
 │   ├── Repository/     ProfileRepo, ExerciseRepo, ProgramRepo, WorkoutRepo
-│   └── Services/       ProgressiveOverloadEngine, SmartSessionAdvisor,
-│                       ComebackRampService, StallDetector, DeloadAdvisor
+│   └── Services/       SmartSessionAdvisor, ComebackRampService,
+│                       ProgressiveOverloadEngine, StallDetector,
+│                       DeloadAdvisor, InjurySubstitutionService (S8),
+│                       RecoveryAdvisor (S10), SmartNotificationEngine (S11)
 ├── Presentation/
 │   ├── Auth/           SignInView
-│   ├── Today/          TodayView + ViewModel
+│   ├── Today/          TodayView + ViewModel + ComebackCardView
 │   ├── Workout/        WorkoutSessionView + ViewModel + Components/
+│   │                   (incl. EasingBackBadge, HowDidThatFeelPicker)
 │   ├── Programs/       ProgramListView, ProgramBuilderView,
 │   │                   ProgramDetailView, DayBuilderView, ExercisePickerView
 │   ├── History/        HistoryView, SessionDetailView + ViewModel
 │   ├── Progress/       ProgressView + ViewModel
 │   ├── Onboarding/     OnboardingView + ViewModel
 │   └── Settings/       SettingsView
-└── Resources/          Localizable.xcstrings, Assets.xcassets
+└── Resources/          Localizable.xcstrings, Assets.xcassets,
+                        Programs/ (template JSON bundles)
 ```
 
 ### Future Migration Path: SwiftData
 
 **Triggers:** 5+ "lost workout" reports / >5% sessions without finish event / building watch app (Sprint 11)
 
-**Migration cost:** ~3–4 days (repos abstract the data source — swap without touching ViewModels)
+**Migration cost:** ~3–4 days (repos abstract the data source)
 
 ---
 
-## 7. Agile Roadmap
+## 7. Re-engagement Strategy
+
+### The honest truth
+
+**Software cannot force someone to the gym.** Apps don't make people go — people decide to go, then use apps. Our re-engagement strategy lowers friction when they're already considering it, and stays visible enough that they remember we exist.
+
+### Three-layer re-engagement
+
+```
+Layer 1 — Passive presence (always on, no permission needed)
+  Home Screen Widget          Sprint 11
+  Lock Screen Widget (iOS 16+) Sprint 11
+  Apple Watch Complication    Sprint 11
+  
+Layer 2 — Surgical notifications (opt-in, max 1/week)
+  Smart pattern-based pushes  Sprint 11
+  Triggered by usage gap, not time
+  Every push has "less often" button
+  
+Layer 3 — Optional integrations (Phase 3+)
+  Calendar block integration  Future
+  Geofence soft-detect        Future (silent badge, not push)
+```
+
+### Smart notification rules (Sprint 11)
+
+```
+Default state:        OFF on install
+Permission ask:       Only after first 3 workouts logged
+                      (earned trust, not forced)
+Max frequency:        1 per week, EVER
+Trigger condition:    User has trained ≥2 sessions but gone ≥7 days quiet
+Content pattern:      Bilingual, concrete, non-guilty
+                      "You usually train Mondays around 7pm. 
+                       30 mins today?"
+Never sent:           If user has notifications disabled at OS level
+                      If user dismissed previous push without opening
+                      During 11pm-7am local time
+"Less often" button:  Halves frequency to 1 per 2 weeks
+"Stop" button:        Disables notifications entirely
+```
+
+### What we deliberately don't build
+
+```
+❌ Daily reminders          (kills retention industry-wide)
+❌ Streak notifications     (violates anti-guilt principle)
+❌ Friend / social pings    (social was cut from product)
+❌ "You missed X days"      (guilt-trip, opposite of brand)
+❌ Re-engagement emails     (email is dead for gym audience)
+```
+
+### Conversion model
+
+```
+NOT: push → workout
+BUT: widget visible all week
+   → user has gym thought on Tuesday
+   → opens app
+   → finds zero-friction workout ready (or comeback card if returning)
+   → goes
+```
+
+Widget is the workhorse. Push is the surgical strike. Neither is daily.
+
+---
+
+## 8. Agile Roadmap
 
 ### Release Channels
 
@@ -316,52 +345,37 @@ TestFlight: every sprint push to main (CI/CD auto-deploys)
 App Store:  every phase complete (batched for marketing stories)
 ```
 
----
+### Sprint progress
 
-### PHASE 1 — "Usable" → TestFlight (4 sprints)
-
-**Goal:** Dev creates their own Upper/Lower program and logs workouts. Full loop tested.
-
----
-
-**Sprint 1 — Foundation + Data** | Effort: Medium
 ```
-Spec: /sprints/S01-foundation-data/spec.md
-Plan: /sprints/S01-foundation-data/plan.md
-
-☐ Xcode project + folder structure
-☐ Supabase schema.sql + seed exercises
-☐ All Codable model structs + enums
-☐ SupabaseClient + Apple Sign-In auth
-☐ Repositories (Profile, Exercise, Program, Workout)
-☐ ~100 system exercises seeded with canonical names
-☐ Localizable.xcstrings — Thai (primary) + English (fallback)
-☐ Login screen strings localized (first real usage)
-☐ App language follows device locale automatically (Thai device → Thai, all other device languages → English)
-
-Done: Signs in. Data layer ready. Exercises in Supabase.
-      Localization infrastructure ready — every sprint adds strings from now on.
+✅ Sprint 1 — Foundation + Data    (7 hours)
+✅ Sprint 2 — Custom Program Builder (10 hours)
+⏳ Sprint 3 — next up
 ```
 
 ---
 
-**Sprint 2 — Custom Program Builder** | Effort: Complex
+### PHASE 1 — "Real Life Works" → TestFlight (5 sprints, 3 remaining)
+
+**Goal:** Full loop including the differentiator. Open app after 2 weeks off → app handles it gracefully.
+
+---
+
+**Sprint 1 — Foundation + Data** ✅ DONE | Effort: Medium (7h actual)
+```
+Spec: /specs/S01-foundation-data.md
+Status: Complete. Auth, Supabase schema, 95 exercises seeded,
+        all Codable models, repositories, sign-in screen.
+```
+
+---
+
+**Sprint 2 — Custom Program Builder** ✅ DONE | Effort: Complex (10h actual)
 ```
 Spec: /specs/S02-custom-program-builder.md
-
-☐ ProgramListView — list programs + "Create New"
-☐ ProgramBuilderView — create/edit program (name, description)
-☐ Add/remove/rename program days
-☐ DayBuilderView — manage exercises per day
-☐ ExercisePickerView — search/filter exercise library
-☐ Set targets per exercise: sets, rep range, target rest seconds
-☐ Reorder exercises within a day (drag handle)
-☐ Mark program as active (one at a time)
-☐ Delete program (with confirmation)
-
-Test: Create Upper/Lower 4-day program (dev's own routine)
-
-Done: Dev creates their full Upper/Lower plan, navigates it.
+Status: Complete. ProgramListView, ProgramBuilderView,
+        DayBuilderView, ExercisePickerView, set targets,
+        reorder, active toggle, delete.
 ```
 
 ---
@@ -376,82 +390,98 @@ Spec: /specs/S03-logger-timer.md
 ☐ SetRowView — weight + reps + RPE + checkbox
 ☐ Add set (copies last values), swipe to delete
 ☐ Background async upload per set (fire-and-forget)
-☐ RestTimerRingView — bottom sheet, lime ring, haptic, records target vs actual rest
+☐ RestTimerRingView — bottom sheet, lime ring, haptic
 ☐ Finish → mark complete in Supabase → clear backup
+☐ HealthKit: start/end HKWorkoutSession
 ☐ Crash recovery: "Restore?" prompt on relaunch
 
 Done: Log full Upper A. Rest timer works.
-      Crash recovery tested.
+      Apple Fitness rings fill. Crash recovery tested.
 ```
 
 ---
 
-**Sprint 4 — Today + History + Navigation** | Effort: Medium
+**Sprint 4 — Today + History + Nav + Anti-Guilt UX** | Effort: Medium
 ```
 Spec: /specs/S04-today-history-nav.md
 
 ☐ TodayView — greeting, today's workout card, "Start" CTA
 ☐ TodayViewModel — active program + next day logic
+☐ Anti-guilt features (concrete, not vibes):
+  ☐ "Welcome back" banner after 7+ days
+  ☐ Streak shown only if intact
+  ☐ Last workout date soft grey
+  ☐ Empty states reframe as "Ready when you are"
 ☐ HistoryView — past sessions, newest first
-☐ SessionDetailView — sets per exercise for a session
+☐ SessionDetailView — sets per exercise
 ☐ Tab navigation: Today / Programs / History / Settings
-☐ Settings → Sign out calls Supabase Auth signOut and returns to login
-☐ Settings → Legal section reserves Privacy Policy and Account Deletion entries for App Store readiness
-☐ Basic onboarding — goal, days/week, experience
-☐ First-run choice: "Start with a recommended plan" or "Build my own"
-☐ V1 starter plans: Full Body 2 Days + PPL 3 Days
-☐ Empty states (no program, no sessions)
 
-Done: Full loop. New user can choose a starter plan or build their own.
-      Open → today's workout → start → log → finish → see in history.
-      CI/CD set up.
+Done: Full loop. Anti-guilt UX visible. CI/CD set up.
 ```
 
-**→ RELEASE: TestFlight to 20 beta testers**
 **→ SET UP Xcode Cloud CI/CD here**
 
 ---
 
-### PHASE 2 — "Smart" → App Store 1.0 (3 sprints)
+**Sprint 5 — Smart Comeback (THE DIFFERENTIATOR)** | Effort: Complex
+```
+Spec: /specs/S05-smart-comeback.md (to be written)
 
-**Goal:** App tells you what to lift. Handles missed days. Public launch.
+This sprint ships the feature that defines the product.
+After this sprint, open app after 14 days off → purple card,
+ramped workout, "How did that feel?" picker.
+
+☐ SmartSessionAdvisor service (pure Swift, 100% tested)
+   Day-bucket logic: 0-2 / 3-6 / 7-13 / 14-20 / 21-41 / 42+
+☐ ComebackRampService (pure Swift, 100% tested)
+   Per-exercise ramp based on RPE feedback
+☐ Basic ProgressiveOverloadEngine (RPE-based)
+☐ ComebackCardView — purple gradient, bilingual TH/EN
+☐ WorkoutSessionView comeback mode:
+  ☐ "Easing back" badges on exercise rows
+  ☐ Previous PR strikethrough
+  ☐ HowDidThatFeelPicker replaces RPE (Easy/Just right/Hard)
+☐ TelemetryDeck events: comeback_triggered, comeback_completed,
+                        comeback_exit
+☐ Haptics: light on set complete (vs normal medium),
+           double-haptic burst on baseline-reached moment
+
+Done: Force last workout date to 15 days ago → purple card appears,
+      weights ramped, full comeback flow works end to end.
+```
+
+**→ RELEASE: TestFlight to 10 Thai + 10 international beta testers**
 
 ---
 
-**Sprint 5 — The Brain** | Effort: Complex
-```
-Spec: /specs/S05-brain.md
+### PHASE 2 — "Polished" → App Store 1.0 (2 sprints)
 
-☐ ProgressiveOverloadEngine (service + 100% tests)
-☐ StallDetector (service + 100% tests)
-☐ DeloadAdvisor (service + 100% tests)
-☐ SmartSessionAdvisor (service + 100% tests)
-☐ ComebackRampService (service + 100% tests)
-☐ Lime suggestion card in TodayView
-☐ Purple comeback card in TodayView
-
-Done: "Try 77.5kg on Bench today."
-      "14 days off — start at 65kg."
-```
+**Goal:** Onboarding, both languages 100% complete, public launch.
 
 ---
 
-**Sprint 6 — Onboarding + Localization + Polish** | Effort: Medium
+**Sprint 6 — Onboarding + Templates + i18n + Brain Polish** | Effort: Medium
 ```
 Spec: /specs/S06-onboarding-i18n.md
 
-☐ Expand onboarding polish — clearer copy, smoother first-run path
-☐ String Catalogs — all text in Thai (complete) + English (complete)
-☐ Settings → Language toggle can override device language (ภาษาไทย / English)
-☐ UserDefaults stores language preference
-☐ TelemetryDeck — V1 product metrics events
+☐ OnboardingView — 3 questions → recommend template
+☐ 3 starter templates as JSON bundles (see Section 10):
+  ☐ Upper/Lower 4 days
+  ☐ PPL 3 days
+  ☐ Full Body 2 days
+☐ Template → clone to user's account → fully editable
+☐ "Browse Templates" entry in ProgramListView
+☐ String Catalogs — Thai (complete) + English (complete)
+☐ Both languages first-class, native copy in each
+☐ Default to device locale (Thai device → Thai, else → English)
+☐ Settings → Language toggle override
+☐ StallDetector service + tests
+☐ DeloadAdvisor service + tests
+☐ TelemetryDeck — 10 core events instrumented
 ☐ App icon + launch screen
-☐ Anti-guilt UX — never show "streak broken"
-☐ Pro fake-door learning: surface locked premium features before monetization build
 
-Done: New user → starter plan or custom plan → Today.
-      App follows device language. Settings lets user switch language.
-      Core product metrics are measurable.
+Done: New user → 3 questions → picks template → first workout.
+      Both languages feel native. Brain handles stalls and deloads.
 ```
 
 ---
@@ -460,40 +490,45 @@ Done: New user → starter plan or custom plan → Today.
 ```
 Spec: /specs/S07-app-store-ship.md
 
-☐ Screenshots (TH + EN)
-☐ App Store description (Thai primary)
-☐ Public privacy policy URL
-☐ In-app Privacy Policy link from Settings
-☐ In-app account deletion initiation from Settings
-☐ App Store Connect privacy questionnaire
-☐ Add Crashlytics before public release
-☐ Final TestFlight → fix bugs
+☐ Screenshots (TH + EN, both for App Store)
+☐ App Store description (both languages, native copy each)
+☐ Privacy policy
+☐ Final TestFlight → fix bugs from beta feedback
 ☐ Submit for review
-☐ CHECKPOINT: review "lost workout" beta feedback
+☐ CHECKPOINT: review "lost workout" beta feedback for SwiftData decision
 
-Done: App live. Public users. Stability monitoring in place.
+Done: App live. Free download. Public users in TH + worldwide.
 ```
 
 **→ RELEASE: App Store 1.0**
 
 ---
 
-### PHASE 3 — "Personal" → App Store 1.1 (2 sprints)
+### PHASE 3 — "Adaptive" → App Store 1.1 (3 sprints)
 
-**Sprint 8 — Templates + Substitution** | Effort: Medium
+**Goal:** Handle injuries, gym variability, and recovery state. Make the "real life adaptation" promise complete.
+
+---
+
+**Sprint 8 — Injury Substitution + Mid-Workout Swap + More Templates** | Effort: Medium
 ```
-☐ Full 5-template library as JSON bundles (see Section 9)
-☐ "Browse Templates" in ProgramListView
-☐ Clone template → user owns the copy → fully editable
-☐ Custom exercises — user can add private exercises to their own library
-☐ Custom exercise fields: name, movement pattern, primary muscle, secondary muscles, equipment, compound/accessory
-☐ Custom exercises appear in ExercisePickerView alongside system exercises
-☐ Exercise substitution (movement pattern matching)
-☐ Mid-workout swap ("gym crowded" one tap)
-☐ Full onboarding quiz (5 questions → template match)
+☐ "Report injury" flow: select body part, app filters exercises
+☐ Movement-pattern matching for substitutions
+   (data model already supports this from Sprint 1)
+☐ Mid-workout "swap this exercise" button (gym crowded use case)
+☐ Persistent injury flag affects future workouts until cleared
+☐ 2 more starter templates added:
+  ☐ PPL 6 days
+  ☐ Bro Split 5 days
+☐ Full onboarding quiz (5 questions → template match,
+                       upgraded from 3 questions in Sprint 6)
 
-Done: Users pick from 5 templates. Mid-workout swap works.
-      Users can add missing exercises without waiting for the system library.
+Why this matters: Injury handling is the #1 reported missing
+feature in Hevy reviews. Our data model is ready for it from
+Sprint 1. ~1 sprint of UI work on top of existing model.
+
+Done: Report shoulder injury → next workout swaps OHP for
+      machine chest press. Mid-workout swap works.
 ```
 
 ---
@@ -503,102 +538,144 @@ Done: Users pick from 5 templates. Mid-workout swap works.
 ☐ Swift Charts: weight over time per exercise
 ☐ Volume per week bar chart
 ☐ PR history timeline
-☐ Plain-language: "Bench +15% in 8 weeks" (purple text)
+☐ Plain-language wins (purple text):
+  "Bench +15% in 8 weeks"
+  "You're back to baseline after your break — well done"
+☐ Volume per muscle group (FREE in our app —
+   Hevy paywalls this; ours doesn't)
 
 Done: ProgressView with real charts. Progress visible.
 ```
 
-**→ RELEASE: App Store 1.1**
+---
+
+**Sprint 10 — HRV / Recovery Integration** | Effort: Medium
+```
+☐ Read HRV + sleep from HealthKit
+☐ Recovery score calculation (low/normal/high)
+☐ RecoveryAdvisor service + tests
+☐ If recovery low → suggest deload OR shorter session
+☐ Purple "your body says rest" card variant
+☐ "I slept 4 hours, today is lighter" banner
+
+Why this matters: Competitor gap. Fitbod, Boostcamp, Hevy
+don't integrate HRV cleanly. Apple Watch data is already
+there from Sprint 3. ~1 sprint of integration.
+
+Done: Wear Watch overnight with bad sleep → app deloads today.
+```
+
+**→ RELEASE: App Store 1.1 — "Adapts to real life"**
 
 ---
 
 ### PHASE 4 — "Revenue" → App Store 1.2 (2 sprints)
 
-**Sprint 10 — Subscription + Paywall** | Effort: Complex
-```
-☐ RevenueCat + StoreKit 2 (฿129/mo, ฿990/yr)
-☐ Paywall UI + feature gating
-☐ Muscle heatmap (Pro)
-
-Done: Users subscribe. Pro features unlock.
-```
-
 ---
 
-**Sprint 11 — Watch + Widget** | Effort: Complex
+**Sprint 11 — Subscription + Paywall + Watch + Widget + Smart Notifications** | Effort: Complex
 ```
 ☐ MIGRATION CHECKPOINT: add SwiftData if watch needs it
-☐ HealthKit integration if still valuable after beta feedback
-☐ watchOS: rest timer (lime ring on wrist)
-☐ Widget: today's workout + streak
-☐ PR sharing card (IG Story — purple/lime branded)
-☐ Gate Watch + Widget behind Pro
+☐ RevenueCat + StoreKit 2 setup
+☐ Pricing tiers (see Section 11):
+  ☐ Pro ฿99/mo / ฿790/yr
+  ☐ Pro Student ฿49/mo (.ac.th email verification)
+  ☐ Pro Lifetime ฿2,990 (cap at 1,000 sales)
+☐ Paywall UI with comeback feature as #1 hook
+☐ watchOS rest timer (lime ring on wrist)
+☐ Home Screen Widget — today's workout
+☐ Lock Screen Widget — glanceable today's lift
+☐ Apple Watch complication
+☐ SmartNotificationEngine (max 1/week, opt-in, pattern-based)
+☐ "Less often" / "Stop" buttons on every push
+☐ Watch + Widget + advanced features gated behind Pro
 
-Done: Watch timer. Widget on home. PR sharing live.
-```
-
-**→ RELEASE: App Store 1.2 — Pro subscription live**
-
----
-
-### PHASE 5 — "AI + Platform" → App Store 2.0 (2 sprints)
-
-**Sprint 12 — Gemini AI Coaching (Conditional)** | Effort: Complex
-```
-Trigger only if user demand or retention data justifies it:
-  - users repeatedly ask coaching questions
-  - AI can improve retention, explanation, or conversion
-  - product data shows the core loop is already working
-
-☐ Firebase AI Logic + Gemini
-☐ Chat UI — Thai coaching
-☐ Session context injection
-☐ Gate behind Pro
-
-Done: Pro asks AI in Thai, gets contextual answer.
+Done: Subscriptions live. Re-engagement layer active.
+      Pro users see comeback widget complication on Watch.
 ```
 
 ---
 
-**Sprint 13 — PT Pro + Phase Planning** | Effort: Complex
+**Sprint 12 — PT Pro** | Effort: Complex
 ```
-☐ PT Pro (฿390/mo)
-☐ Client management + assign programs
-☐ Bulk/Cut phase selector
-☐ TDEE guidance + Apple Health link
+☐ PT Pro tier (฿390/mo, includes up to 20 clients,
+                ฿15/client beyond 20)
+☐ PT account creation flow
+☐ Client invite (SMS / LINE share link)
+☐ PT dashboard:
+  ☐ Client list with last-trained, days quiet, key lifts trend
+  ☐ "3 clients haven't trained in 5+ days" alerts
+  ☐ One-tap "nudge all" → sends LINE/iMessage template
+☐ Program assignment:
+  ☐ One-click clone PT's template to client
+  ☐ Client owns the copy, PT can edit with notification
+☐ PT-only notes per client (injuries, history)
+☐ Bangkok in-person distribution begins
+   (see Section 12 for PT distribution playbook)
 
-Done: PT manages clients. Phase affects suggestions.
+Done: 5 Bangkok PTs onboarded, managing 50+ free-tier users.
+      B2B revenue line live.
 ```
 
-**→ RELEASE: App Store 2.0**
+**→ RELEASE: App Store 1.2 — Pro + PT Pro live**
+
+---
+
+### FUTURE / OPTIONAL — only if Pro conversion is healthy
+
+Deprioritized from original roadmap:
+
+```
+- AI chat (Gemini / on-device)
+  Reason: Rule-based engine IS our AI. Adds API costs,
+          latency, English bias. Competitors do it badly.
+          Revisit only if Pro users specifically request.
+
+- Phase planning (Bulk/Cut/Maintain)
+  Reason: <5% of users care. Defer until users ask.
+
+- Muscle heatmap
+  Reason: Slate has it. Hevy paywalls it. Not a differentiator.
+
+- B2B gym partnership platform
+  Reason: Separate product track. See Section 12 for
+          when/how to build.
+
+- Form check / video analysis
+  Reason: Separate product domain.
+
+- Nutrition integration
+  Reason: Partner via HealthKit later, don't build.
+```
 
 ---
 
 ### Sprint Tracking
 
-| Sprint | Name | Status | Notes |
-|--------|------|--------|-------|
-| 1 | Foundation + Data | ✅ | Complete. Database live. |
-| 2 | Custom Program Builder | ☐ | |
-| 3 | Logger + Timer | ☐ | |
-| 4 | Today + History + Nav | ☐ | |
-| 5 | The Brain | ☐ | |
-| 6 | Onboarding + i18n | ☐ | |
-| 7 | App Store Ship | ☐ | |
-| 8 | Templates + Substitution | ☐ | |
-| 9 | Progress Graphs | ☐ | |
-| 10 | Subscription + Paywall | ☐ | |
-| 11 | Watch + Widget | ☐ | |
-| 12 | Gemini AI | ☐ | |
-| 13 | PT Pro + Phases | ☐ | |
+| Sprint | Name | Status | Hours | Notes |
+|--------|------|--------|-------|-------|
+| 1 | Foundation + Data | ✅ | 7 | spec: S01 |
+| 2 | Custom Program Builder | ✅ | 10 | spec: S02 |
+| 3 | Logger + Timer | ⏳ | — | spec: S03 next |
+| 4 | Today + History + Nav + Anti-Guilt | ☐ | — | |
+| 5 | Smart Comeback (DIFFERENTIATOR) | ☐ | — | spec: S05 to write |
+| 6 | Onboarding + Templates + i18n | ☐ | — | |
+| 7 | App Store Ship | ☐ | — | |
+| 8 | Injury Sub + Mid-Workout Swap | ☐ | — | |
+| 9 | Progress Graphs | ☐ | — | |
+| 10 | HRV / Recovery | ☐ | — | |
+| 11 | Subscription + Watch + Widget + Notifications | ☐ | — | |
+| 12 | PT Pro | ☐ | — | |
+
+**Velocity note:** Sprints 1-2 averaged 8.5 hours. That's roughly 3-5x typical solo dev pace. Algorithm-heavy sprints (5, 8, 10) will likely take 15-20 hours each — budget accordingly.
 
 ---
 
-## 8. Core Algorithms
+## 9. Core Algorithms
 
 All in `Data/Services/`. Pure Swift. No I/O. 100% unit tested.
 
-### Progressive Overload
+### Progressive Overload (Sprint 5 basic, Sprint 6 polish)
 ```
 RPE ≤ 7 + all reps  → +2.5kg (lime suggestion card)
 RPE 7.5–8.5         → same weight, +1 rep
@@ -606,410 +683,303 @@ RPE ≥ 9             → deload 10%
 3× same weight+reps → stall detected
 ```
 
-### Smart Session Advisor
+### Smart Session Advisor (Sprint 5)
 ```
 0–2 days   → continue normally
 3–6 days   → reschedule missed days, pick up where left off
-7–13 days  → comeback -10%wt -1set RPE ≤ 7  (purple card)
-14–20 days → comeback -20%wt -1set RPE ≤ 7  (purple card)
-21–41 days → comeback -30%wt ramp 10%/session
-42+ days   → near-restart -50%wt slow ramp
+7–13 days  → comeback -10%wt -1set RPE ≤ 7  (purple card, 90%)
+14–20 days → comeback -20%wt -1set RPE ≤ 7  (purple card, 80%)
+21–41 days → comeback -30%wt ramp 10%/session (purple card, 70%)
+42+ days   → near-restart -50%wt slow ramp (purple card, 60%)
 ```
 
-### Comeback Ramp (per exercise)
+### Comeback Ramp per exercise (Sprint 5)
 ```
-RPE < 6.5   → ramp +15%
-RPE 6.5–7.5 → ramp +10%
-RPE 7.5–8.5 → hold, +reps
-RPE ≥ 8.5   → reduce 5%
-Exit: weight ≥ baseline AND RPE ≤ 7.5 → 1 consolidation → resume overload
+"How did that feel?" picker maps to internal RPE:
+  Easy 😌       → RPE 6.0
+  Just right 🎯 → RPE 7.5
+  Hard 😤       → RPE 9.0
+
+Next session decision:
+  RPE < 6.5   → ramp +15%
+  RPE 6.5–7.5 → ramp +10%
+  RPE 7.5–8.5 → hold weight, +reps
+  RPE ≥ 8.5   → reduce 5%
+
+Exit comeback mode:
+  weight ≥ baseline AND RPE ≤ 7.5
+  → 1 consolidation session at baseline
+  → resume normal progressive overload
+  → "you're all the way back" moment fires
 ```
 
----
-
-## 9. Program Templates
-
-Templates ship as JSON bundles in Sprint 8. Each template is cloned into the user's account on selection.
-
-Dev's routine (Sprint 2 test case): **Upper/Lower 4 Days**
-
----
-
-### Template 1: Upper/Lower 4 Days
-**Target:** Intermediate, 4×/week, balanced strength + muscle
-
+### Injury Substitution (Sprint 8)
 ```
-Day 1 — Upper A (Strength)
-  Barbell Bench Press        4×5    rest 3min
-  Barbell Bent Over Row      4×5    rest 3min
-  Barbell Overhead Press     3×8    rest 2min
-  Machine Lat Pulldown       3×10   rest 90s
-  Cable Tricep Pushdown      3×12   rest 60s
-  Dumbbell Bicep Curl        3×12   rest 60s
+User reports: shoulder, knee, lower back, wrist, elbow, hip, ankle
 
-Day 2 — Lower A (Strength)
-  Barbell Back Squat         4×5    rest 3min
-  Romanian Deadlift          3×8    rest 2min
-  Leg Press                  3×10   rest 90s
-  Leg Curl (Lying)           3×12   rest 60s
-  Calf Raise (Standing)      4×15   rest 60s
+Algorithm:
+  For each exercise in today's workout:
+    if exercise.primary_muscle ∈ affected_muscles
+       OR exercise.secondary_muscles ∩ affected_muscles ≠ ∅:
+      candidates = exercises WHERE
+        movement_pattern = original.movement_pattern
+        AND primary_muscle NOT IN affected_muscles
+        AND all secondary_muscles NOT IN affected_muscles
+      sub = candidates.first (sorted by user-history familiarity)
+      replace original with sub, badge "Substituted"
+```
 
-Day 3 — Upper B (Hypertrophy)
-  Barbell Incline Bench      4×8    rest 2min
-  Cable Row (Seated)         4×10   rest 2min
-  Dumbbell Shoulder Press    3×10   rest 90s
-  Machine Lat Pulldown       3×12   rest 90s
-  Dumbbell Lateral Raise     3×15   rest 60s
-  Cable Tricep Extension     3×15   rest 60s
-  Dumbbell Hammer Curl       3×12   rest 60s
+### Recovery Advisor (Sprint 10)
+```
+Inputs (HealthKit):
+  hrv_today_ms, hrv_baseline_ms, sleep_hours, sleep_baseline_hours
 
-Day 4 — Lower B (Hypertrophy)
-  Barbell Deadlift           4×5    rest 3min
-  Dumbbell Bulgarian SS      3×10   rest 90s
-  Leg Extension              3×12   rest 60s
-  Leg Curl (Seated)          3×12   rest 60s
-  Barbell Hip Thrust         3×12   rest 90s
-  Calf Raise (Seated)        3×15   rest 60s
+Score:
+  hrv_ratio = hrv_today / hrv_baseline
+  sleep_ratio = sleep_hours / sleep_baseline
+  combined = (hrv_ratio * 0.6) + (sleep_ratio * 0.4)
+
+Decision:
+  combined ≥ 0.9 → normal training, no adjustment
+  combined 0.75–0.9 → "today's workout is normal but listen to body"
+  combined 0.6–0.75 → suggest -10% weight OR -1 set per exercise
+  combined < 0.6 → suggest deload session or rest day
 ```
 
 ---
 
-### Template 2: PPL 6 Days
-**Target:** Intermediate-Advanced, 6×/week, maximum volume
+## 10. Program Templates
 
-```
-Day 1 — Push A
-  Barbell Bench Press        4×5    rest 3min
-  Barbell Overhead Press     3×8    rest 2min
-  Barbell Incline Bench      3×10   rest 90s
-  Dumbbell Lateral Raise     4×15   rest 60s
-  Cable Tricep Pushdown      4×15   rest 60s
+Templates ship in Sprint 6 (3 starter) and Sprint 8 (2 additional). Each cloned to user account on selection.
 
-Day 2 — Pull A
-  Barbell Deadlift           4×5    rest 3min
-  Barbell Bent Over Row      4×8    rest 2min
-  Machine Lat Pulldown       3×10   rest 90s
-  Cable Face Pull            3×15   rest 60s
-  Dumbbell Bicep Curl        4×12   rest 60s
+### Starter (Sprint 6)
+1. **Upper/Lower 4 days** — Intermediate, balanced strength + muscle
+2. **PPL 3 days** — Beginner-Intermediate, each pattern once
+3. **Full Body 2 days** — Beginner or time-constrained, minimum effective dose
 
-Day 3 — Legs A
-  Barbell Back Squat         4×6    rest 3min
-  Romanian Deadlift          3×10   rest 2min
-  Leg Press                  3×12   rest 90s
-  Leg Extension              3×15   rest 60s
-  Leg Curl (Lying)           3×12   rest 60s
-  Calf Raise (Standing)      4×15   rest 60s
+### Additional (Sprint 8)
+4. **PPL 6 days** — Intermediate-Advanced, maximum volume
+5. **Bro Split 5 days** — Intermediate, dedicated muscle focus
 
-Day 4 — Push B
-  Barbell Incline Bench      4×8    rest 2min
-  Dumbbell Shoulder Press    4×10   rest 90s
-  Machine Chest Press        3×12   rest 90s
-  Cable Lateral Raise        4×15   rest 60s
-  Dumbbell Skull Crusher     3×15   rest 60s
-
-Day 5 — Pull B
-  Cable Row (Seated)         4×10   rest 2min
-  Machine Lat Pulldown       4×12   rest 90s
-  Cable Face Pull            3×15   rest 60s
-  Dumbbell Rear Delt Fly     3×15   rest 60s
-  Dumbbell Hammer Curl       4×12   rest 60s
-
-Day 6 — Legs B
-  Romanian Deadlift          4×8    rest 2min
-  Dumbbell Bulgarian SS      3×10   rest 90s
-  Hack Squat                 3×12   rest 90s
-  Leg Curl (Seated)          4×12   rest 60s
-  Barbell Hip Thrust         3×12   rest 90s
-  Calf Raise (Seated)        4×15   rest 60s
-```
-
----
-
-### Template 3: Bro Split 5 Days
-**Target:** Intermediate, 5×/week, dedicated muscle focus
-
-```
-Day 1 — Chest
-  Barbell Bench Press        4×8    rest 2min
-  Barbell Incline Bench      3×10   rest 90s
-  Dumbbell Incline Press     3×12   rest 90s
-  Machine Chest Fly          3×15   rest 60s
-  Cable Crossover            3×15   rest 60s
-
-Day 2 — Back
-  Barbell Deadlift           4×5    rest 3min
-  Barbell Bent Over Row      4×8    rest 2min
-  Machine Lat Pulldown       3×10   rest 90s
-  Cable Row (Seated)         3×12   rest 90s
-  Dumbbell Shrug             4×15   rest 60s
-
-Day 3 — Shoulders
-  Barbell Overhead Press     4×8    rest 2min
-  Dumbbell Shoulder Press    3×10   rest 90s
-  Dumbbell Lateral Raise     4×15   rest 60s
-  Dumbbell Rear Delt Fly     3×15   rest 60s
-  Cable Face Pull            3×15   rest 60s
-
-Day 4 — Arms
-  Barbell Curl               4×10   rest 90s
-  Dumbbell Hammer Curl       3×12   rest 60s
-  Cable Bicep Curl           3×15   rest 60s
-  Cable Tricep Pushdown      4×12   rest 60s
-  Barbell Skull Crusher      3×12   rest 60s
-  Cable Tricep Extension     3×15   rest 60s
-
-Day 5 — Legs
-  Barbell Back Squat         4×6    rest 3min
-  Romanian Deadlift          3×10   rest 2min
-  Leg Press                  3×12   rest 90s
-  Leg Extension              3×15   rest 60s
-  Leg Curl (Lying)           3×12   rest 60s
-  Calf Raise (Standing)      4×15   rest 60s
-```
-
----
-
-### Template 4: PPL 3 Days
-**Target:** Beginner-Intermediate, 3×/week, each pattern once
-
-```
-Day 1 — Push
-  Barbell Bench Press        3×8    rest 2min
-  Barbell Overhead Press     3×8    rest 2min
-  Dumbbell Lateral Raise     3×15   rest 60s
-  Cable Tricep Pushdown      3×12   rest 60s
-
-Day 2 — Pull
-  Barbell Bent Over Row      3×8    rest 2min
-  Machine Lat Pulldown       3×10   rest 90s
-  Cable Face Pull            3×15   rest 60s
-  Dumbbell Bicep Curl        3×12   rest 60s
-
-Day 3 — Legs
-  Barbell Back Squat         3×8    rest 2min
-  Romanian Deadlift          3×10   rest 90s
-  Leg Press                  3×12   rest 90s
-  Leg Extension              3×12   rest 60s
-  Leg Curl (Seated)          3×12   rest 60s
-  Calf Raise (Standing)      3×15   rest 60s
-```
-
----
-
-### Template 5: Full Body 2 Days
-**Target:** Beginner or time-constrained, 2×/week minimum effective dose
-
-```
-Day A — Full Body A
-  Barbell Back Squat         3×8    rest 2min
-  Barbell Bench Press        3×8    rest 2min
-  Barbell Bent Over Row      3×8    rest 2min
-  Barbell Overhead Press     2×10   rest 90s
-  Plank                      3×45s  rest 60s
-
-Day B — Full Body B
-  Barbell Deadlift           3×6    rest 3min
-  Barbell Incline Bench      3×8    rest 2min
-  Machine Lat Pulldown       3×10   rest 90s
-  Dumbbell Lateral Raise     3×15   rest 60s
-  Hanging Knee Raise         3×12   rest 60s
-```
-
----
+*(Full exercise breakdowns for all 5 templates preserved from prior version — see Sprint 6 spec.)*
 
 ### Template Implementation Notes
 
 ```
-Storage:  JSON files in app bundle (not Supabase)
-          /Resources/programs/upper-lower-4day.json
-          /Resources/programs/ppl-6day.json
-          etc.
+Storage:  JSON files in app bundle
+          /Resources/Programs/upper-lower-4day.json
+          /Resources/Programs/ppl-3day.json
+          /Resources/Programs/full-body-2day.json
+          /Resources/Programs/ppl-6day.json
+          /Resources/Programs/bro-split-5day.json
 
-On user selection (Sprint 8):
+On user selection (Sprint 6 / 8):
   App reads JSON → creates Program + ProgramDays + ProgramExercises
   in Supabase → user owns the copy → can edit freely
 
 Exercise matching:
-  JSON references exercise by stable system slug
-  On clone, app queries exercise table: WHERE slug = ?
+  JSON references exercise by name_en
+  On clone, app queries exercise table: WHERE name_en = ?
   Graceful fallback if exercise not found
 ```
 
 ---
 
-## 10. Monetization
+## 11. Monetization
 
-### Model
-
-```
-Launch model:
-  30-day full Pro trial
-  → limited Free plan after trial
-  → Pro unlocks the full "coach" experience
-
-Why:
-  GymTrack's value compounds over multiple sessions and missed-week comebacks.
-  A 30-day trial gives inconsistent lifters enough time to feel the core value.
-```
+### Tier Structure
 
 | Tier | Price | Includes |
-|---|---:|---|
-| Trial | 30 days | Full Pro experience |
-| Free | ฿0 | Manual logger, custom programs, rest timer, basic history, 1 starter template, basic next-session suggestion, 1 free comeback rescue |
-| Pro | ฿129/mo · ฿990/yr | Unlimited smart suggestions, unlimited comeback mode, stall detection, deload guidance, full template library, graphs, heatmap, watch, widget, export, AI |
-| PT Pro | ฿390/mo | Client management, assign programs, dashboard |
+|---|---|---|
+| **Free** | ฿0 | Logger · custom programs · 3 templates · basic comeback ("80% on return" card) · HealthKit · rest timer · history · both languages |
+| **Pro Monthly** | ฿99/mo | All free + injury substitution · advanced comeback ramp · HRV/recovery adjustments · Watch + Widget · all 5+ templates · mid-workout swap · progress graphs + volume analytics · CSV export · smart notifications |
+| **Pro Annual** | ฿790/yr | Same as Pro Monthly, 33% discount |
+| **Pro Student** | ฿49/mo or ฿390/yr | Same as Pro, requires .ac.th email verification |
+| **Pro Lifetime** | ฿2,990 one-time | Same as Pro, capped at 1,000 sales then closed |
+| **PT Pro** | ฿390/mo / ฿3,900/yr | Pro + client management (up to 20) · bulk nudges · client dashboard · PT-only notes · ฿15/client beyond 20 |
 
-### Paywall Strategy
-
-```
-Do not paywall before the user understands the product.
-
-Flow:
-  Sign in
-  → onboarding
-  → starter plan or custom plan
-  → Today screen / first recommendation
-  → "Try Pro free for 1 month"
-
-Free should feel useful.
-Pro should feel like:
-  "GymTrack thinks for me."
-```
-
-### Monetization Learning Before Sprint 10
-
-Track demand before building the full subscription system:
-- fake-door taps on Pro features
-- which locked features users try most
-- whether smart suggestions or progress features create the strongest upgrade intent
-- conversion by users who experienced comeback mode vs users who did not
-
-## 11. Product Metrics
-
-### North-Star Metric
+### Pricing rationale
 
 ```
-% of new users who complete 2 workout sessions within 14 days of signup
+฿99/mo       Below Spotify Thailand ฿149/mo psychological anchor
+฿790/yr      Under Hevy ($35 ≈ ฿1,225) and Strong ($30 ≈ ฿1,050)
+             Above Slate ($20 ≈ ฿700) — we deliver more
+฿49 student  Mirrors Spotify Thailand student tier (฿79)
+             Thai gym demographic skews 18-35, students are a big slice
+฿2,990 LTD   For indie fans who hate subscriptions
+             Funds development upfront, builds advocate base
+฿390 PT      0.2-0.6% of typical Bangkok PT gross revenue
+             Trivial ROI if it saves 3 hours/month admin
 ```
 
-Why this metric:
-- One session can be curiosity.
-- Two completed sessions show the user understood the flow and returned.
-- It matches the target user better than daily app opens because they may only train 1–3×/week.
+### International pricing
 
-### Activation Funnel
+StoreKit + RevenueCat automatic regional pricing. Base ฿790/yr → roughly $19.99/$24.99 in US/EU.
 
-```
-sign_up_completed
-onboarding_completed
-program_created_or_selected
-first_workout_started
-first_workout_finished
-second_workout_finished
-```
-
-### Training Retention
+### What's paywalled vs free — the philosophy
 
 ```
-week_2_workout_completion
-completed_2_sessions_within_14_days
-completed_workouts_in_3_consecutive_calendar_weeks
-D7 / D30 return
+FREE:    Things every user needs to feel the product's value
+         (logger, custom programs, basic comeback, language polish)
+         
+         The basic comeback card on Today is FREE — this is the viral
+         hook. Let everyone experience the differentiator.
+
+PRO:     Things that compound for active users
+         (injury sub, HRV, advanced ramp curves, Watch, Widget)
+         
+         The advanced comeback features are paywalled — ramp curves,
+         baseline-tracking, full periodization through the comeback.
+
+PT PRO:  Things only PTs need (client management)
 ```
 
-### Comeback Metrics
+### Revenue projections
 
 ```
-inactive_7d_returned
-inactive_14d_returned
-comeback_card_shown
-comeback_workout_started
-comeback_workout_finished
-second_workout_after_comeback_finished
+PHASE / YEAR              MILESTONE                  REVENUE
+──────────────────────────────────────────────────────────────────
+Year 1 Q1-Q2 (S1-S7)      Free, 5K MAU TH+intl      ฿0 (acquisition)
+Year 1 Q3 (S11)           Pro launch, 1.5% conv     75 × ฿99 = ฿7K/mo
+Year 1 Q4 (S12)           PT Pro, 20 PTs            +20 × ฿390 = ฿8K/mo
+                                                    + ~150 free users joined
+Year 2                    50K MAU @ 3% Pro          1,500 × ฿99 = ฿148K/mo
+                          100 PTs                   100 × ฿390 = ฿39K/mo
+                          5 gym pilots              5 × ฿2K = ฿10K/mo
+                                                    TOTAL ~฿200K/mo
+                                                    = ฿2.4M/yr (~$70K)
+Year 3                    International scale       3x Year 2
+                          + Android (if built)      ฿7-10M/yr (~$200-300K)
 ```
 
-Primary comeback metric:
-```
-Comeback recovery rate =
-users inactive 7+ days who complete 2 sessions after returning
-```
+Realistic ceiling: indie-scale business. Not venture-scale. That's fine — it pays well, you own it, no investor pressure.
 
-### Smart Suggestion Effectiveness
+---
 
-```
-suggestion_shown
-suggestion_accepted
-suggestion_edited
-suggestion_ignored
-session_completed_after_suggestion
-next_session_completed_after_suggestion
-```
+## 12. B2B Gym Partnership Track
 
-### Reliability Metrics
+Separate product line, defined now to avoid scope creep into B2C roadmap. **Build only when 5+ Thai gyms ask unprompted.**
+
+### The opportunity
 
 ```
-workout_started
-workout_finished
-workout_restored
-unfinished_session_detected
-upload_failed
-session_finish_missing
+Thai gym landscape:
+  2,499 registered fitness businesses in Thailand (2024)
+  396 new ones in 2024 alone (33% YoY growth)
+  99.4% small business / independent
+  
+Their #1 problem:
+  50% member churn (industry standard)
+  ฿1,300-4,300/month membership × half churning = real money lost
+  
+What we offer:
+  Auto-detect inactive members → trigger comeback campaign
+  Gym admin dashboard: see who's slipping
+  Co-branded onboarding (gym logo on welcome screen)
+  Members get the GymTrack app at no cost to them
 ```
 
-Migration watch:
-```
-5+ "lost workout" reports
-or >5% sessions without finish event
-→ reconsider storage strategy / SwiftData migration
-```
-
-### V1 TelemetryDeck Event Set
+### Pricing
 
 ```
-sign_up_completed
-onboarding_completed
-program_created
-template_selected
-workout_started
-workout_finished
-suggestion_shown
-suggestion_accepted
-comeback_card_shown
-workout_restored
+฿20/member/month, minimum 50 members
+= ฿1,000/mo minimum per gym
+= ฿12,000/yr per gym minimum
+
+TAM (Thailand only):
+  2,499 gyms × avg ฿2,000/mo = ฿60M/yr potential
+  Realistic 5-year capture at 5% = ฿3M/yr
 ```
 
-Add later:
+### When to build
+
 ```
-second_workout_finished
-inactive_7d_returned
-inactive_14d_returned
-comeback_workout_finished
-session_finish_missing
-paywall_viewed
-pro_feature_tapped
+Trigger conditions (need ALL three):
+  ☐ PT Pro is healthy (50+ paying PTs in TH)
+  ☐ 5+ Thai gym owners have asked unprompted
+  ☐ Core B2C app is stable post App Store launch
+
+Estimated build effort:
+  ~2 sprints (gym admin web dashboard + member tagging + 
+              co-branded onboarding)
+  
+Distribution:
+  Direct in-person sales in Bangkok
+  PT Pro users become referrers ("my gym should use this")
+```
+
+### What it's NOT
+
+```
+❌ A gym CRM (Mindbody / Glofox / FitDEGREE territory)
+❌ Class booking
+❌ Billing / payments
+❌ Door access / check-in
+
+Stay narrow: we're the retention-and-comeback layer ON TOP of
+their existing gym software. Not a replacement for it.
 ```
 
 ---
 
-## 12. Marketing Plan
+## 13. Marketing Plan
 
-**Core message:** Your life is already busy. GymTrack handles the gym decisions.
+### Pre-launch (Phase 1 TestFlight)
 
-**Pre-launch content themes (Thai):**
-- "งานยุ่ง ขาดยิม 4 วัน วันนี้เล่นอะไรดี?"
-- "ควรเพิ่มน้ำหนักเมื่อไหร่?"
-- "หยุดเล่นยิม 1 อาทิตย์ กลับมายังไง ไม่ต้องเดา"
-- "ชีวิตยุ่งได้ แต่โปรแกรมไม่ต้องพัง"
+```
+Channels:
+  TH:  TikTok, Facebook groups, LINE OA
+  Intl: Reddit (r/Fitness, r/iOSdev), Twitter/X, IndieHackers
+  
+Content angle:
+  "หยุดเล่นยิม 2 อาทิตย์ กลับมายังไง" / "How to come back after 2 weeks off"
+  Build the brand BEFORE the app — own the comeback narrative
+  
+TestFlight beta:
+  10 Thai + 10 international (mixed feedback streams)
+  First 50 users get 3-month Pro free
+```
 
-**Launch:** TestFlight 20 → Product Hunt → Thai communities → 10 micro-influencers (free Pro) → first 50 users get 3-month Pro.
+### Launch (App Store 1.0)
 
-**Growth:** PR share card (purple/lime branded) → IG story loop. Facebook Group. PTs as distribution. B2B gym deals.
+```
+Product Hunt launch (English-speaking world)
+Thai community pushes:
+  - Pantai fitness section
+  - Fitness Facebook groups
+  - LINE OpenChat for gym-goers
+10 Thai micro-influencers (free Pro for 1 year)
+```
 
-**Positioning rule:** Do not market GymTrack as only a tracker, muscle map, or generic AI coach. Lead with reduced gym decision load for people with real lives.
+### Growth (Phase 3+)
+
+```
+The comeback share card:
+  After successful comeback (return to baseline weight),
+  app generates a shareable card showing the curve:
+  "I came back. Lost nothing." → purple/lime branded
+  IG Story / TikTok loop
+  
+PT-led distribution:
+  Each PT brings 5-15 clients onto free tier
+  
+B2B gym deals (Year 2+):
+  Direct sales to Bangkok gyms
+  Each gym = 50-500 new users
+```
+
+### Anti-marketing principles
+
+```
+❌ Don't compete on tracker features (Hevy wins, doesn't matter)
+❌ Don't claim to be "AI-powered" (Fitbod claims this, also doesn't matter)
+✅ Own ONE narrative: "real life happens, the app handles it"
+✅ Make the comeback the brand
+```
 
 ---
 
-## 13. Development Workflow & CI/CD
+## 14. Development Workflow & CI/CD
 
 ### The Full Loop
 
@@ -1025,7 +995,7 @@ pro_feature_tapped
 9. LOOP   Mark ✅ → next sprint
 ```
 
-### CI/CD: Xcode Cloud (after Sprint 4)
+### CI/CD: Xcode Cloud (Sprint 4)
 
 Push to `main` → Build + Test + Archive → TestFlight auto-deploy.
 
@@ -1037,144 +1007,151 @@ feature/   → one branch per sprint
 git push main → CI/CD ships to TestFlight
 ```
 
+### Velocity expectations
+
+```
+Simple sprints (3-4 hours):  none on roadmap
+Medium sprints (8-12 hours): S4, S6, S8, S9, S10
+Complex sprints (15-25 hours): S3, S5, S11, S12
+
+Algorithm-heavy = more testing = more time. Budget extra.
+```
+
 ---
 
-## 14. Decisions Made (and Rejected)
+## 15. Decisions Made (and Rejected)
 
 | Area | Chosen | Rejected | Why |
 |---|---|---|---|
 | Framework | SwiftUI | Flutter, RN | watchOS, Foundation Models |
-| Backend | Supabase | Firestore | Relational data, new skill |
+| Backend | Supabase | Firestore | Relational data |
 | Storage V1 | Supabase + in-memory | SwiftData hybrid | Over-engineered for V1 |
 | Models | ONE Codable struct | DTO + @Model split | No mapping code |
-| AI V1 | Rule-based | AI-first | Offline, Thai, free |
+| AI V1 | Rule-based | AI-first | Offline, multi-lang, free |
+| AI chat (Gemini) | DEFERRED | Sprint 12 build | API costs, English bias, not core |
 | Design | SwiftUI native | Figma | Solo dev, 3× faster |
+| Crash V1 | Apple built-in | Sentry, Crashlytics | Free |
+| Analytics | TelemetryDeck | Firebase/PostHog | Privacy, Swift |
 | Architecture | MVVM + Repo + Service | UseCase/Coordinator | Lean |
 | Folders | Layer + feature Presentation | Full feature-based | Solo dev clarity |
-| Positioning | "Gym companion for people with real lives" | "Thai tracker", "for inconsistent people only" | Broader, less judgmental, and directly matches the user pain: reduce gym decision load when life interrupts |
-| Social | Cut | Build social | Hevy owns this |
-| Onboarding | Basic onboarding in Phase 1 | Wait until Sprint 6 | Product promise needs guided first-run |
-| V1 templates | 2 starter plans in Phase 1 | Templates only in Sprint 8 | Reduce blank-state friction without removing customization |
-| Analytics | TelemetryDeck | Firebase Analytics V1 | Privacy-first, enough for V1 product metrics |
-| Crash tracking | Apple early beta → Crashlytics before public launch | Sentry V1 | Lean early, stronger public-release monitoring |
-| HealthKit | Delay unless beta feedback demands it | Ship in Sprint 3 | Nice-to-have, not core wedge |
-| Monetization | 30-day full Pro trial + limited Free | Free core coach forever | Trial matches time-to-value; coach remains monetizable |
-| Free plan | Useful logger + small coach taste | Plain logger only | Preserve differentiation after trial |
-| AI | Conditional later phase | Mandatory roadmap item | Build only if user demand/data justify it |
+| Positioning | "Adapts to real life" | "Consistency coach" | More specific, owns comeback |
+| Differentiator | Comeback handling (S5) | Was S5 of Phase 2 | Ship in Phase 1, headline feature |
+| Default locale | Device locale | Thai-always | Worldwide ambition |
+| Both languages | First-class native | EN as fallback | Worldwide quality |
+| Social | Cut | Build social | Hevy owns this, violates anti-guilt |
+| Streaks | Cut | Build streaks | Violates anti-guilt principle |
+| Daily reminders | Cut | Build reminders | Kills retention industry-wide |
+| Push frequency | Max 1/week, opt-in | Daily nudges | Respect over engagement-hacking |
 | CI/CD | Xcode Cloud | GitHub Actions | Simplest, free |
-| Release | Sprint→TestFlight, Phase→App Store | Sprint→App Store | Marketing + review risk |
-| Custom programs | V1 Sprint 2 | V3 only | Dev tests own routine |
-| Pre-built templates | Phase 3 Sprint 8 | V1 | Custom-first |
-| Accent color | #C8FF00 Lime | All other options | Gym energy, unique |
+| Release cadence | Sprint→TestFlight, Phase→App Store | Sprint→App Store | Marketing + review risk |
+| Custom programs | Sprint 2 ✅ | Templates only | Dev tests own routine |
+| Pre-built templates | Sprint 6 (3) + Sprint 8 (+2) | Sprint 8 only | First-time users need easy path |
+| Injury substitution | Sprint 8 | Future | #1 reported missing feature |
+| HRV integration | Sprint 10 | Future | Competitor gap, data already there |
+| PT Pro | Sprint 12 | Sprint 13 | Highest revenue leverage |
+| Phase planning | Future/Optional | Sprint 13 | <5% care, defer |
+| Muscle heatmap | Future/Optional | Phase 4 | Not a differentiator |
+| B2B gym partnership | Separate product, build later | Phase 5 add-on | Different motion entirely |
+| Accent color | #C8FF00 Lime | Many alternatives | Gym energy, unique |
 | Secondary color | #9B7FE8 Purple | None | Comeback/PR semantic |
+| Pricing | ฿99/mo, ฿790/yr | ฿129/฿990 | Below Spotify TH anchor |
+| Lifetime tier | ฿2,990 one-time, cap 1,000 | Subscription only | Funds dev, builds advocates |
+| Student tier | ฿49/mo, .ac.th verify | Same price for all | Mirrors Spotify TH |
 
 ---
 
-## 15. Open Decisions
+## 16. Open Decisions
 
-All major strategic decisions resolved. ✅
-
-Monitor after beta:
-- whether 2 starter plans are enough for first-run success
-- whether users understand the Free vs Pro boundary
-- whether users describe the value as "I don't have to think about the gym anymore"
-- whether missed-day / deload / next-step guidance is the strongest retention driver
-- whether HealthKit is requested often enough to pull forward
-- whether AI coaching has real demand or should remain deferred
-
-> Add new open decisions here as they arise during development.
+```
+☐ Final app name (placeholder "GymBros" until Sprint 7)
+☐ Default unit kg (toggle to lb in Settings) — confirmed kg-default,
+  add lb toggle by Sprint 11 paywall context
+☐ Whether to include sound on haptic moments (currently haptic-only)
+☐ Lifetime tier exact cap — 1,000 placeholder, may go lower (500)
+```
 
 ---
 
-## 16. Decision Log
+## 17. Decision Log
 
-### 2026-05-11 (session 10)
-- **Core concept refined:** GymTrack is for people with real lives, not only "inconsistent lifters." The app exists to reduce gym decision load for busy people.
-- **User pain clarified:** users do not know what to do after missed days, when to progress, when to deload, or what happens after a deload.
-- **Product promise refined:** "Your life is already busy. GymTrack handles the gym decisions."
-- **Shining feature defined:** the `Next Best Session Engine` combines today's workout, progression, missed-day handling, deload guidance, and post-deload next steps into one decision-removal loop.
-- **Positioning rule:** lead with "know exactly what to do today, even when life disrupts the plan," not with generic tracking, muscle maps, or "AI coach" language.
-- **Target-user language updated:** less judgmental than "inconsistent lifter"; focus on busy lifters with work, family, errands, and competing priorities.
+### 2026-05-11 (session 8 — strategic refinement after Sprints 1-2)
 
-### 2026-05-10 (session 8)
-- **Exercise names:** store one canonical exercise `name` in Supabase; do not translate system exercise names for V1. User-created exercises use the exact name the user enters.
-- **Custom exercises:** use one `exercises` table with nullable `owner_user_id`; system exercises have no owner and user-created exercises belong to one profile.
-- **Rest tracking:** program exercises store editable `target_rest_seconds`; workout sets can snapshot target rest and record actual rest taken when users exceed the timer.
-- **Apple Sign-In data:** collect Apple user ID + email; save name only when Apple provides it; do not force real email or extra profile fields at signup
-- **V1 first-run flow:** keep custom program builder early, but add basic onboarding plus two starter plans (Full Body 2 Days, PPL 3 Days)
-- **HealthKit:** move out of Sprint 3; revisit after beta feedback / later watch work
-- **Monetization:** switch to 30-day full Pro trial → limited Free plan → Pro subscription
-- **Free plan:** manual logger, custom programs, timer, basic history, 1 starter template, basic next-session suggestion, 1 free comeback rescue
-- **Pro boundary:** unlimited smart suggestions, unlimited comeback mode, stall/deload guidance, full templates, graphs, heatmap, watch/widget, export, AI
-- **Analytics:** keep TelemetryDeck for V1 product analytics
-- **Crash tracking:** Apple built-in during early beta; add Crashlytics before public App Store launch
-- **Product metrics:** add north-star, activation, retention, comeback, suggestion, and reliability metrics
-- **AI:** keep in roadmap but make conditional on user demand / retention value
-
-### 2026-05-10 (session 9)
-- **Logout placement:** Sprint 1 auth plumbing has `AuthService.signOut()`, but the visible UI belongs in Settings. A temporary Settings screen can expose sign-out before Sprint 4 tab navigation lands.
-- **Google Sign-In:** optional later auth expansion. If added, Apple Sign-In must remain available as an equivalent sign-in option for App Review compliance.
-- **App Store privacy:** before App Store 1.0, ship a public privacy policy URL, link it from Settings, complete App Store Connect privacy disclosures, and provide in-app account deletion initiation.
+- **Repositioned**: "the gym app that adapts to your real life" — comeback handling moved from Phase 2 → Phase 1 Sprint 5 as THE differentiator, not a Phase 2 reveal
+- **Sprint 1-2 complete**: 7h + 10h actual (~3-5x typical solo pace — fast enough to outpace established competitors, watch out for AI-first new entrants)
+- **Templates restructured**: 3 starter templates ship in Sprint 6 with onboarding (Upper/Lower, PPL 3d, Full Body 2d), 2 more in Sprint 8
+- **Anti-guilt UX**: promoted from principle to concrete features in Sprint 4 (welcome back banner, streak hiding when broken, fresh-start framing)
+- **Injury substitution**: added as Sprint 8 — #1 reported missing feature in Hevy reviews, data model already supports it from Sprint 1
+- **HRV/recovery integration**: added as Sprint 10 — competitor gap (Fitbod, Boostcamp, Hevy don't integrate cleanly), HealthKit data already there
+- **PT Pro moved**: from old Sprint 13 → Sprint 12, highest revenue leverage, Bangkok in-person distribution advantage
+- **Gemini AI chat**: deprioritized to Future/Optional (rule-based engine IS our AI, API costs + English bias not worth it)
+- **Phase planning (Bulk/Cut)**: deprioritized to Future/Optional (<5% of users care)
+- **Muscle heatmap**: deprioritized (not a differentiator)
+- **Worldwide focus**: confirmed. Default to device locale (was Thai-always). Both TH + EN are first-class native, not translation. Thai is still launch market via App Store algorithm bias. PT Pro stays Bangkok-focused for face-to-face distribution
+- **Pricing**: ฿99/mo, ฿790/yr (down from ฿129/฿990 — below Spotify TH ฿149 anchor); added ฿49/mo student tier (.ac.th verify); added ฿2,990 lifetime (cap 1,000)
+- **Re-engagement strategy defined**: widget-first (passive, always on), max 1 push/week (opt-in, pattern-based), no daily reminders ever, no streaks ever
+- **B2B gym partnership track**: defined as separate product line in Section 12, build trigger requires PT Pro health + 5 unprompted gym requests + stable B2C launch
+- **Roadmap**: 13 → 12 sprints to fight competitive velocity
+- **Two open decisions remain**: final app name, sound vs haptic-only for special moments
 
 ### 2026-05-08 (session 7)
+
 - **App name:** GymBros (placeholder, will rename before App Store launch)
-- **Default unit:** kg. Toggle to lb deferred — add to Settings in a later sprint if needed.
-- **Localization:** Thai is primary for Thai devices. Non-Thai device languages use English. Sprint 6 adds Settings language override.
-- **Open decisions:** all resolved ✅
+- **Default unit:** kg. Toggle to lb deferred — add to Settings in a later sprint if needed
+- **Localization (now superseded):** Thai-primary regardless of locale
+- **Open decisions:** all resolved at that time ✅ (since revisited)
 
 ### 2026-05-08 (session 6)
+
 - **Accent color locked:** #C8FF00 electric lime (primary), #9B7FE8 purple (comeback/PRs/deload)
 - **Color semantics defined:** Lime = progress/go, Purple = special/different states
-- **Program templates defined:** 5 templates (Upper/Lower, PPL6, Bro Split, PPL3, Full Body 2-day)
-- **Dev's starter routine:** Upper/Lower 4 days (Sprint 2 test case)
-- **Templates storage:** JSON bundles in app, cloned to Supabase on user selection (Sprint 8)
-- **Two remaining open decisions:** App name, default units
+- **Program templates defined:** 5 templates
+- **Dev's starter routine:** Upper/Lower 4 days
+- **Templates storage:** JSON bundles in app, cloned to Supabase on user selection
 
 ### 2026-05-08 (session 5)
+
 - Custom programs added to Phase 1 (Sprint 2)
 - Pre-built templates moved to Phase 3
 - Phase 1 expanded to 4 sprints
 
 ### 2026-05-08 (session 4)
+
 - Storage simplified: Supabase + in-memory + UserDefaults
 - One Codable struct per entity
 
 ### 2026-05-08 (session 3)
+
 - Roadmap: 13 sprints across 5 phases
 - Architecture: Core / Model / Data / Presentation
 - CI/CD: Xcode Cloud
 
 ### 2026-05-08 (session 2)
+
 - Reframed: "Consistency coach"
 - Social + videos cut
 
 ### 2026-05-06
+
 - Document created, SwiftUI + Supabase + rule-based AI
 
 ---
 
 ## Appendix — Quick Reference
 
-**What we are:** The gym companion for people with real lives.
+**What we are:** The gym app that handles when life breaks the plan.
 
-**Who we serve:** Busy lifters who want to train consistently but do not want to manage the training system themselves.
+**Who we serve:** Inconsistent gym-goers, 18-35, worldwide with Thai-first launch.
 
-**The gap:** Life disrupts training. Most apps log the aftermath. GymTrack tells users exactly what to do today, when to progress, when to deload, and what comes next after missed time.
+**The gap:** Every other tracker assumes you show up perfectly. We don't.
 
-**Core promise:** Your life is already busy. GymTrack handles the gym decisions.
+**Headline feature:** Smart Comeback — open app after 2 weeks off, app already knows what to do (Sprint 5).
 
-**Shining feature:** `Next Best Session Engine` — open the app and know today's workout, load, and next step.
+**Colors:** Lime (#C8FF00) for normal progress. Purple (#9B7FE8) for comeback / PRs / "this is different" moments. SwiftUI for everything else.
 
-**Colors:** Lime (#C8FF00) for progress. Purple (#9B7FE8) for special states. SwiftUI for everything else.
-
-**Storage V1:** Supabase + in-memory + UserDefaults. SwiftData later if needed.
+**Pricing:** ฿99/mo Pro · ฿790/yr · ฿49 student · ฿2,990 lifetime · ฿390 PT Pro.
 
 **Architecture:** Presentation → Data → Model → Core. Services pure. Tests mandatory.
 
-**North-star metric:** % of new users who complete 2 workout sessions within 14 days.
+**Re-engagement:** Widget (passive) + max 1 push per week (surgical) + zero daily reminders ever.
 
-**Monetization:** 30-day full Pro trial → limited Free → Pro unlocks the full coach.
-
-**Analytics:** TelemetryDeck for product behavior. Apple built-in early beta → Crashlytics before public launch.
-
-**Sprint 1:** spec at /sprints/S01-foundation-data/spec.md, plan at /sprints/S01-foundation-data/plan.md — ready to hand to Claude Code.
+**Next up:** Sprint 3 — Logger + Timer. Spec ready at /specs/S03-logger-timer.md.
