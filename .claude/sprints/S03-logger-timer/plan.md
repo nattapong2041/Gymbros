@@ -8,7 +8,7 @@
 
 ## CURRENT STATUS
 
-**Status:** Task 1 and Task 2 complete. ViewModel, data layer, and UI components are implemented. Task 3 (Localization) is ready for parallel work or continuation; Task 4 should wire the UI after localization handoff.
+**Status:** Tasks 1, 2, and 3 complete. ViewModel, data layer, UI components, and localization are implemented. Task 4 (Wiring) is ready to integrate and verify the full workout flow.
 
 **Done:**
 - Sprint 3 spec created at `.claude/sprints/S03-logger-timer/spec.md`.
@@ -17,6 +17,7 @@
 - Task 0 spec lock completed: ViewModel/state shapes, repository contract, localization key families, and ownership boundaries are confirmed.
 - Task 1 implemented `WorkoutRepositoryProviding`, repository session/set methods, `WorkoutSessionViewModel`, `WorkoutSessionState`, `ActiveSessionBackupStore`, and focused Swift Testing coverage.
 - Task 2 implemented `WorkoutSessionView`, `SetRowView`, `RestTimerRingView`, and `WorkoutSessionMockData` with full preview coverage.
+- Task 3 implemented `Localizable.xcstrings` keys for workout logger, timer, restore, sync, and accessibility in English and Thai.
 - UI components follow HIG with 48pt tap targets and semantic colors.
 - Build verified on `iPhone 17e`.
 
@@ -197,19 +198,19 @@ xcodebuild -project Gymbros.xcodeproj -scheme Gymbros -destination 'platform=iOS
 - `Gymbros/Presentation/Workout/SetRowView.swift`
 - `Gymbros/Presentation/Workout/RestTimerRingView.swift`
 
-- [ ] Add `workout.*` keys for screen title, loading, empty, retry, start, finish, finishing, and validation.
-- [ ] Add `workout.restore.*` keys for restore prompt, restore action, discard action, and corrupt backup copy.
-- [ ] Add `workout.set.*` keys for set number, weight, reps, RPE, complete, add set, delete set, and validation.
-- [ ] Add `workout.timer.*` keys for rest, remaining time, complete, stop, and skip.
-- [ ] Add `workout.sync.*` keys for pending, uploading, uploaded, failed, and retry.
-- [ ] Add `accessibility.workout.*` keys for icon-only logger buttons.
-- [ ] Verify every new key has English and Thai values.
-- [ ] Search new workout view files for hardcoded user-facing strings if Task 2 is available.
-- [ ] Update `CURRENT STATUS` and handoff notes with key families added and any missing copy.
+- [x] Add `workout.*` keys for screen title, loading, empty, retry, start, finish, finishing, and validation.
+- [x] Add `workout.restore.*` keys for restore prompt, restore action, discard action, and corrupt backup copy.
+- [x] Add `workout.set.*` keys for set number, weight, reps, RPE, complete, add set, delete set, and validation.
+- [x] Add `workout.timer.*` keys for rest, remaining time, complete, stop, and skip.
+- [x] Add `workout.sync.*` keys for pending, uploading, uploaded, failed, and retry.
+- [x] Add `accessibility.workout.*` keys for icon-only logger buttons.
+- [x] Verify every new key has English and Thai values.
+- [x] Search new workout view files for hardcoded user-facing strings if Task 2 is available.
+- [x] Update `CURRENT STATUS` and handoff notes with key families added and any missing copy.
 
 **Verification:** Inspect string catalog and run a hardcoded string search after Task 2 exists.
 
-**Handoff notes:** Add notes here before marking Task 3 complete.
+**Handoff notes:** Task 3 added all required workout localization keys to `Localizable.xcstrings`. Key families cover the main workout view, restore prompts, set row inputs/actions, rest timer controls, and sync status indicators. Accessibility labels for icon-only buttons (timer stop/skip, set completion) are also included. All keys have complete English and Thai translations.
 
 ---
 
