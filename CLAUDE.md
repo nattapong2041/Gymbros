@@ -268,69 +268,35 @@ Sprints 1–4 complete Phase 1 ("Usable"). See `.claude/GYMTRACK.md` §7 for the
 
 ### Task decomposition for parallel execution
 
-Use this four-phase protocol pattern only for feature work that is intentionally split across parallel agents. For simple screens, use a concrete `@Observable` ViewModel directly to keep delivery fast.
+For complex feature sprints split across parallel agents, use `.agents/skills/gymbros-parallel-sprint/SKILL.md`. The preferred default is no-protocol parallelization: the sprint `spec.md` and `plan.md` are the coordination contract, with **Spec Lock**, **Repo + ViewModel**, **View + Mock Data**, **Localization**, then **Wire + Verify** tasks. For simple screens, use a concrete `@Observable` ViewModel directly to keep delivery fast.
+
+Do not create feature ViewModel protocols by default. Only use a protocol when the user explicitly requests it or when an existing repo pattern genuinely requires a shared compile-time contract before wiring.
 
 ```
-Phase 1 — Models (sequential)
-  └── Task: Codable structs + enums + unit tests
-           Output: types every downstream task shares
+Task 0 — Spec Lock (sequential)
+  └── Define screen states, data shapes, concrete ViewModel surface,
+      localization key families, acceptance tests, and task ownership.
 
-Phase 1b — Contract (sequential, part of the same task or its own)
-  └── Define the ViewModel protocol that the View will code against
-      This is a Swift protocol listing state properties + async action methods
-      Both parallel agents use this as their shared interface
+Task 1 — Repo + ViewModel (parallel)
+  └── Repository, payloads, services, concrete @Observable ViewModel,
+      ViewState/AppError handling, persistence/recovery, and tests.
 
-Phase 2 — Parallel (dispatch both at once once Phase 1 is committed)
-  ├── Agent 1 — Data + ViewModel
-  │     Repository (Supabase queries) + real @Observable ViewModel
-  │     ViewModel conforms to the protocol from Phase 1b
-  │
-  └── Agent 2 — View + Stub
-        SwiftUI View coded entirely against the protocol (not the concrete class)
-        Includes a lightweight PreviewViewModel (struct, no async) for #Preview
-        View must compile and preview without Agent 1's files existing
+Task 2 — View + Mock Data (parallel)
+  └── SwiftUI views, local mock/sample data, previews, accessibility,
+      loading/error/empty/success states, and localized key usage.
 
-Phase 3 — Wire (sequential, after both agents report done)
-  └── Task: swap stub for real ViewModel in the View's @State initializer
-            run full build + tests + simulator smoke check
-            commit
-```
+Task 3 — Localization (parallel)
+  └── Localizable.xcstrings keys and complete Thai/English copy.
 
-**The protocol pattern** (use this shape only when parallel View/ViewModel work needs a shared contract):
-
-```swift
-// Phase 1b — define this before parallel work starts
-protocol ProgramBuilderProtocol: Observable {
-    var programs: [Program] { get }
-    var isLoading: Bool { get }
-    func loadPrograms() async
-    func createProgram(name: String) async throws
-}
-
-// Phase 2 Agent 1 — real implementation
-@Observable final class ProgramBuilderViewModel: ProgramBuilderProtocol { ... }
-
-// Phase 2 Agent 2 — stub for previews only
-@Observable final class PreviewProgramBuilderViewModel: ProgramBuilderProtocol {
-    var programs: [Program] = Program.samples
-    var isLoading = false
-    func loadPrograms() async {}
-    func createProgram(name: String) async throws {}
-}
-
-// View — typed against protocol, never the concrete class
-struct ProgramBuilderView<VM: ProgramBuilderProtocol>: View {
-    @State var vm: VM
-    ...
-}
-
-// Phase 3 wiring — one line change in call site
-ProgramBuilderView(vm: ProgramBuilderViewModel())
+Task 4 — Wire + Verify (sequential)
+  └── Connect real ViewModel to views, remove or isolate mock runtime paths,
+      run tests, smoke test, update plan status, and commit when requested.
 ```
 
 **Rules:**
-- Agent 2 (View) must produce a buildable, previewable file with zero imports from Agent 1's files
-- Agent 1 (Data+VM) must not touch any UI files
+- Each parallel task must declare owned files, forbidden files, dependencies, verification command, and handoff notes in the sprint plan
+- Agent 1 (Repo + ViewModel) must not touch UI files except unavoidable compile fixes documented in the plan
+- Agent 2 (View + Mock Data) must produce buildable, previewable UI without depending on Agent 1 wiring
 - The wire task is the only place the two sides touch
 - Mark each task `[x]` in the plan immediately when done; update `CURRENT STATUS` block
 
@@ -341,4 +307,4 @@ ProgramBuilderView(vm: ProgramBuilderViewModel())
 - **Module name:** `Gymbros` (not `GymBros`) — use `@testable import Gymbros` in all tests.
 - **Test framework:** Swift Testing (`import Testing`, `#expect(...)`, `@Suite`, `@Test`) — not XCTest.
 
-Current status: **Sprint 1 in progress** — spec at `.claude/sprints/S01-foundation-data/spec.md`, plan at `.claude/sprints/S01-foundation-data/plan.md`.
+Current status: **Sprint 3 ready to implement** — spec at `.claude/sprints/S03-logger-timer/spec.md`, plan at `.claude/sprints/S03-logger-timer/plan.md`.
