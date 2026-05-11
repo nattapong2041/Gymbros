@@ -8,7 +8,7 @@
 
 ## CURRENT STATUS
 
-**Status:** Task 1 complete. Repository, shared workout state, active-session backup, concrete ViewModel, and focused tests are implemented. Tasks 2 and 3 are ready to continue in parallel; Task 4 should wire the UI after those handoffs.
+**Status:** Task 1 complete. Repository, shared workout state, data-local active-session backup, concrete ViewModel, and focused tests are implemented. Tasks 2 and 3 are ready to continue in parallel; Task 4 should wire the UI after those handoffs.
 
 **Done:**
 - Sprint 3 spec created at `.claude/sprints/S03-logger-timer/spec.md`.
@@ -16,8 +16,9 @@
 - Plan uses the no-protocol parallel strategy: spec + plan are the contract.
 - Task 0 spec lock completed: ViewModel/state shapes, repository contract, localization key families, and ownership boundaries are confirmed.
 - Task 1 implemented `WorkoutRepositoryProviding`, repository session/set methods, `WorkoutSessionViewModel`, `WorkoutSessionState`, `ActiveSessionBackupStore`, and focused Swift Testing coverage.
+- Task 1 architecture cleanup moved `ActiveSessionBackupStore` from `Presentation/Workout` to `Data/Local`.
 
-**Last commit SHA:** 86e61a5
+**Last commit SHA:** f0cb7e8
 
 **Known deviations / constraints:**
 - Use simulator `iPhone 17e` in all `xcodebuild` commands.
@@ -84,9 +85,9 @@ Task 4 is sequential integration after Tasks 1-3 are complete or explicitly hand
 
 **Files likely touched:**
 - `Gymbros/Data/Repository/WorkoutRepository.swift`
+- `Gymbros/Data/Local/ActiveSessionBackupStore.swift`
 - `Gymbros/Presentation/Workout/WorkoutSessionViewModel.swift`
 - `Gymbros/Presentation/Workout/WorkoutSessionState.swift`
-- `Gymbros/Presentation/Workout/ActiveSessionBackupStore.swift`
 - `GymbrosTests/WorkoutSessionViewModelTests.swift`
 - `GymbrosTests/ActiveSessionBackupTests.swift`
 
@@ -124,7 +125,7 @@ Task 4 is sequential integration after Tasks 1-3 are complete or explicitly hand
 xcodebuild test -project Gymbros.xcodeproj -scheme Gymbros -destination 'platform=iOS Simulator,name=iPhone 17e' -only-testing:GymbrosTests/WorkoutSessionViewModelTests -only-testing:GymbrosTests/ActiveSessionBackupTests
 ```
 
-**Handoff notes:** Implemented `WorkoutSessionViewModel(workoutRepository:programRepository:exerciseRepository:backupStore:now:)` with public state/actions matching the spec: `state`, `transientError`, `activeTimer`, `isFinishing`, `pendingRestore`, `checkForRestore`, `start`, `restore`, `discardRestore`, `updateDraft`, `completeSet`, `retryUpload`, `addSet`, `deleteSet`, `startRestTimer`, `stopRestTimer`, and `finishSession`. Shared UI-facing data lives in `WorkoutSessionState.swift`: `WorkoutSessionData`, `WorkoutExerciseSection`, `WorkoutSetRowState`, `WorkoutSetSyncState`, `RestTimerState`, and `ActiveSessionSnapshot`. Backup store uses `AppConstants.Storage.activeSessionKey` and versioned JSON. Repository upload currently uses row IDs as remote `workout_sets.id`; deleting an uploaded row calls `deleteSet(id:)`. Targeted tests passed with `xcodebuild test -project Gymbros.xcodeproj -scheme Gymbros -destination 'platform=iOS Simulator,name=iPhone 17e' -only-testing:GymbrosTests/WorkoutSessionViewModelTests -only-testing:GymbrosTests/ActiveSessionBackupTests`.
+**Handoff notes:** Implemented `WorkoutSessionViewModel(workoutRepository:programRepository:exerciseRepository:backupStore:now:)` with public state/actions matching the spec: `state`, `transientError`, `activeTimer`, `isFinishing`, `pendingRestore`, `checkForRestore`, `start`, `restore`, `discardRestore`, `updateDraft`, `completeSet`, `retryUpload`, `addSet`, `deleteSet`, `startRestTimer`, `stopRestTimer`, and `finishSession`. Shared UI-facing data lives in `WorkoutSessionState.swift`: `WorkoutSessionData`, `WorkoutExerciseSection`, `WorkoutSetRowState`, `WorkoutSetSyncState`, `RestTimerState`, and `ActiveSessionSnapshot`. Backup persistence lives in `Gymbros/Data/Local/ActiveSessionBackupStore.swift`, uses `AppConstants.Storage.activeSessionKey`, and stores versioned JSON. Repository upload currently uses row IDs as remote `workout_sets.id`; deleting an uploaded row calls `deleteSet(id:)`. Targeted tests passed with `xcodebuild test -project Gymbros.xcodeproj -scheme Gymbros -destination 'platform=iOS Simulator,name=iPhone 17e' -only-testing:GymbrosTests/WorkoutSessionViewModelTests -only-testing:GymbrosTests/ActiveSessionBackupTests`.
 
 ---
 
@@ -142,8 +143,8 @@ xcodebuild test -project Gymbros.xcodeproj -scheme Gymbros -destination 'platfor
 
 **Forbidden files:**
 - `Gymbros/Data/Repository/WorkoutRepository.swift`
+- `Gymbros/Data/Local/ActiveSessionBackupStore.swift`
 - `Gymbros/Presentation/Workout/WorkoutSessionViewModel.swift`
-- `Gymbros/Presentation/Workout/ActiveSessionBackupStore.swift`
 - `Gymbros/Resources/Localizable.xcstrings`
 - `Gymbros/App/RootView.swift`
 - `Gymbros/Presentation/Programs/*View.swift`

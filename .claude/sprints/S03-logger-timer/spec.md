@@ -93,6 +93,7 @@ Task 0 locks these shared decisions before parallel work starts:
 
 - Use a concrete `@Observable WorkoutSessionViewModel`; do not create a ViewModel protocol.
 - Task 1 owns the shared workout state structs used by both the ViewModel and views.
+- Active session backup persistence lives in `Gymbros/Data/Local/ActiveSessionBackupStore.swift`; UI-facing workout state stays in `Gymbros/Presentation/Workout/WorkoutSessionState.swift`.
 - `WorkoutSetRowState.syncState` uses: `pending`, `uploading`, `uploaded`, `failed(AppError)`.
 - `ActiveSessionSnapshot` is versioned Codable JSON in `UserDefaults`; it must not store secrets, tokens, or auth headers.
 - Restore decode failure or version mismatch maps to `.decoding` and offers Discard only.
