@@ -93,7 +93,8 @@ Task 0 locks these shared decisions before parallel work starts:
 
 - Use a concrete `@Observable WorkoutSessionViewModel`; do not create a ViewModel protocol.
 - Task 1 owns the shared workout state structs used by both the ViewModel and views.
-- Active session backup persistence lives in `Gymbros/Data/Local/ActiveSessionBackupStore.swift`; UI-facing workout state stays in `Gymbros/Presentation/Workout/WorkoutSessionState.swift`.
+- Active session backup follows `Data/Local -> Data/Repository -> ViewModel`: `ActiveSessionBackupStore` handles UserDefaults JSON, `ActiveSessionBackupRepository` is the ViewModel-facing data boundary, and `WorkoutSessionViewModel` does not call local storage directly.
+- Backup DTOs live in `Gymbros/Data/Local/ActiveSessionBackupModels.swift`; UI-facing workout row state stays in `Gymbros/Presentation/Workout/WorkoutSessionState.swift`.
 - `WorkoutSetRowState.syncState` uses: `pending`, `uploading`, `uploaded`, `failed(AppError)`.
 - `ActiveSessionSnapshot` is versioned Codable JSON in `UserDefaults`; it must not store secrets, tokens, or auth headers.
 - Restore decode failure or version mismatch maps to `.decoding` and offers Discard only.
@@ -256,6 +257,13 @@ isComplete: Bool
 ## 6. Backup And Restore
 
 Use `UserDefaults` with versioned Codable JSON.
+
+Layering:
+
+- `Gymbros/Data/Local/ActiveSessionBackupStore.swift`: encodes/decodes and clears the JSON blob.
+- `Gymbros/Data/Local/ActiveSessionBackupModels.swift`: contains the Codable backup snapshot DTOs.
+- `Gymbros/Data/Repository/ActiveSessionBackupRepository.swift`: exposes backup load/save/clear to the ViewModel.
+- `WorkoutSessionViewModel` maps backup DTO rows to `WorkoutSetRowState` and back.
 
 `ActiveSessionSnapshot`:
 

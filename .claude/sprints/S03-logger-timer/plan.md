@@ -8,7 +8,7 @@
 
 ## CURRENT STATUS
 
-**Status:** Task 1 complete. Repository, shared workout state, data-local active-session backup, concrete ViewModel, and focused tests are implemented. Tasks 2 and 3 are ready to continue in parallel; Task 4 should wire the UI after those handoffs.
+**Status:** Task 1 complete. Repository, shared workout state, layered active-session backup, concrete ViewModel, and focused tests are implemented. Tasks 2 and 3 are ready to continue in parallel; Task 4 should wire the UI after those handoffs.
 
 **Done:**
 - Sprint 3 spec created at `.claude/sprints/S03-logger-timer/spec.md`.
@@ -17,6 +17,7 @@
 - Task 0 spec lock completed: ViewModel/state shapes, repository contract, localization key families, and ownership boundaries are confirmed.
 - Task 1 implemented `WorkoutRepositoryProviding`, repository session/set methods, `WorkoutSessionViewModel`, `WorkoutSessionState`, `ActiveSessionBackupStore`, and focused Swift Testing coverage.
 - Task 1 architecture cleanup moved `ActiveSessionBackupStore` from `Presentation/Workout` to `Data/Local`.
+- Task 1 backup refactor now uses `Data/Local -> Data/Repository -> WorkoutSessionViewModel`; backup DTOs live in `Data/Local`, while editable row state remains in `Presentation/Workout`.
 
 **Last commit SHA:** f0cb7e8
 
@@ -85,7 +86,9 @@ Task 4 is sequential integration after Tasks 1-3 are complete or explicitly hand
 
 **Files likely touched:**
 - `Gymbros/Data/Repository/WorkoutRepository.swift`
+- `Gymbros/Data/Repository/ActiveSessionBackupRepository.swift`
 - `Gymbros/Data/Local/ActiveSessionBackupStore.swift`
+- `Gymbros/Data/Local/ActiveSessionBackupModels.swift`
 - `Gymbros/Presentation/Workout/WorkoutSessionViewModel.swift`
 - `Gymbros/Presentation/Workout/WorkoutSessionState.swift`
 - `GymbrosTests/WorkoutSessionViewModelTests.swift`
@@ -107,6 +110,7 @@ Task 4 is sequential integration after Tasks 1-3 are complete or explicitly hand
 - [x] Keep `completeSession(_:endedAt:)` mapped through `ErrorMapper`.
 - [x] Add `ActiveSessionSnapshot` with versioned Codable shape.
 - [x] Add `ActiveSessionBackupStore` using `UserDefaults` JSON.
+- [x] Add `ActiveSessionBackupRepository` so the ViewModel depends on a repository, not local storage.
 - [x] Add concrete `WorkoutSessionViewModel` with `@Observable`.
 - [x] Implement start session flow from `programDayId`.
 - [x] Implement restore and discard restore flows.
@@ -125,7 +129,7 @@ Task 4 is sequential integration after Tasks 1-3 are complete or explicitly hand
 xcodebuild test -project Gymbros.xcodeproj -scheme Gymbros -destination 'platform=iOS Simulator,name=iPhone 17e' -only-testing:GymbrosTests/WorkoutSessionViewModelTests -only-testing:GymbrosTests/ActiveSessionBackupTests
 ```
 
-**Handoff notes:** Implemented `WorkoutSessionViewModel(workoutRepository:programRepository:exerciseRepository:backupStore:now:)` with public state/actions matching the spec: `state`, `transientError`, `activeTimer`, `isFinishing`, `pendingRestore`, `checkForRestore`, `start`, `restore`, `discardRestore`, `updateDraft`, `completeSet`, `retryUpload`, `addSet`, `deleteSet`, `startRestTimer`, `stopRestTimer`, and `finishSession`. Shared UI-facing data lives in `WorkoutSessionState.swift`: `WorkoutSessionData`, `WorkoutExerciseSection`, `WorkoutSetRowState`, `WorkoutSetSyncState`, `RestTimerState`, and `ActiveSessionSnapshot`. Backup persistence lives in `Gymbros/Data/Local/ActiveSessionBackupStore.swift`, uses `AppConstants.Storage.activeSessionKey`, and stores versioned JSON. Repository upload currently uses row IDs as remote `workout_sets.id`; deleting an uploaded row calls `deleteSet(id:)`. Targeted tests passed with `xcodebuild test -project Gymbros.xcodeproj -scheme Gymbros -destination 'platform=iOS Simulator,name=iPhone 17e' -only-testing:GymbrosTests/WorkoutSessionViewModelTests -only-testing:GymbrosTests/ActiveSessionBackupTests`.
+**Handoff notes:** Implemented `WorkoutSessionViewModel(workoutRepository:programRepository:exerciseRepository:backupRepository:now:)` with public state/actions matching the spec: `state`, `transientError`, `activeTimer`, `isFinishing`, `pendingRestore`, `checkForRestore`, `start`, `restore`, `discardRestore`, `updateDraft`, `completeSet`, `retryUpload`, `addSet`, `deleteSet`, `startRestTimer`, `stopRestTimer`, and `finishSession`. Shared UI-facing data lives in `WorkoutSessionState.swift`: `WorkoutSessionData`, `WorkoutExerciseSection`, `WorkoutSetRowState`, and `WorkoutSetSyncState`. Backup persistence is layered as `ActiveSessionBackupStore` plus `ActiveSessionBackupModels` in `Data/Local`, then `ActiveSessionBackupRepository` in `Data/Repository`; the ViewModel maps between `ActiveSessionSetSnapshot` and `WorkoutSetRowState`. Repository upload currently uses row IDs as remote `workout_sets.id`; deleting an uploaded row calls `deleteSet(id:)`. Targeted tests passed with `xcodebuild test -project Gymbros.xcodeproj -scheme Gymbros -destination 'platform=iOS Simulator,name=iPhone 17e' -only-testing:GymbrosTests/WorkoutSessionViewModelTests -only-testing:GymbrosTests/ActiveSessionBackupTests`.
 
 ---
 
@@ -143,7 +147,9 @@ xcodebuild test -project Gymbros.xcodeproj -scheme Gymbros -destination 'platfor
 
 **Forbidden files:**
 - `Gymbros/Data/Repository/WorkoutRepository.swift`
+- `Gymbros/Data/Repository/ActiveSessionBackupRepository.swift`
 - `Gymbros/Data/Local/ActiveSessionBackupStore.swift`
+- `Gymbros/Data/Local/ActiveSessionBackupModels.swift`
 - `Gymbros/Presentation/Workout/WorkoutSessionViewModel.swift`
 - `Gymbros/Resources/Localizable.xcstrings`
 - `Gymbros/App/RootView.swift`

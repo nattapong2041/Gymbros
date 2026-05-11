@@ -56,7 +56,7 @@ func makeSnapshot() -> ActiveSessionSnapshot {
         notes: nil,
         createdAt: ProgramSamples.createdAt
     )
-    let row = WorkoutSetRowState(
+    let row = ActiveSessionSetSnapshot(
         id: UUID(uuidString: "99999999-0000-0000-0000-000000000002")!,
         exerciseId: ProgramSamples.benchExerciseId,
         programExerciseId: ProgramSamples.benchProgramExerciseId,

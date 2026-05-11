@@ -16,25 +16,25 @@ final class WorkoutSessionViewModel {
     private let workoutRepository: WorkoutRepositoryProviding
     private let programRepository: ProgramRepositoryProviding
     private let exerciseRepository: ExerciseRepositoryProviding
-    private let backupStore: ActiveSessionBackupStoring
+    private let backupRepository: ActiveSessionBackupRepositoryProviding
     private let now: () -> Date
 
     init(
         workoutRepository: WorkoutRepositoryProviding? = nil,
         programRepository: ProgramRepositoryProviding? = nil,
         exerciseRepository: ExerciseRepositoryProviding? = nil,
-        backupStore: ActiveSessionBackupStoring? = nil,
+        backupRepository: ActiveSessionBackupRepositoryProviding? = nil,
         now: @escaping () -> Date = Date.init
     ) {
         self.workoutRepository = workoutRepository ?? WorkoutRepository()
         self.programRepository = programRepository ?? ProgramRepository()
         self.exerciseRepository = exerciseRepository ?? ExerciseRepository()
-        self.backupStore = backupStore ?? ActiveSessionBackupStore()
+        self.backupRepository = backupRepository ?? ActiveSessionBackupRepository()
         self.now = now
     }
 
     func checkForRestore() async {
-        switch backupStore.load() {
+        switch backupRepository.loadBackup() {
         case .success(let snapshot):
             pendingRestore = snapshot
         case .failure(let error):
@@ -98,7 +98,7 @@ final class WorkoutSessionViewModel {
             day: snapshot.day,
             programExercises: snapshot.programExercises,
             exerciseLookup: snapshot.exerciseLookup,
-            rowStates: snapshot.rowStates,
+            rowStates: snapshot.rowStates.map(WorkoutSetRowState.init(snapshot:)),
             startedAt: snapshot.session.startedAt
         )
         saveBackup()
@@ -108,7 +108,7 @@ final class WorkoutSessionViewModel {
         if pendingRestore?.session.id == snapshot.session.id {
             pendingRestore = nil
         }
-        backupStore.clear()
+        backupRepository.clearBackup()
     }
 
     func updateDraft(setId: UUID, weightText: String, repsText: String, rpe: Double?) async {
@@ -268,7 +268,7 @@ final class WorkoutSessionViewModel {
 
         do {
             try await workoutRepository.completeSession(data.session.id, endedAt: now())
-            backupStore.clear()
+            backupRepository.clearBackup()
             activeTimer = nil
             updateSessionEndedAt(now())
         } catch {
@@ -375,11 +375,11 @@ final class WorkoutSessionViewModel {
             day: data.day,
             programExercises: data.exerciseSections.map(\.programExercise),
             exerciseLookup: data.exerciseLookup,
-            rowStates: data.exerciseSections.flatMap(\.sets),
+            rowStates: data.exerciseSections.flatMap(\.sets).map(ActiveSessionSetSnapshot.init(rowState:)),
             activeTimer: activeTimer,
             updatedAt: now()
         )
-        if case .failure(let error) = backupStore.save(snapshot) {
+        if case .failure(let error) = backupRepository.saveBackup(snapshot) {
             workoutLogger.error("Failed to save active session backup: \(String(describing: error))")
             transientError = error.visibleOrNil
         }
@@ -433,5 +433,69 @@ final class WorkoutSessionViewModel {
 private extension AppError {
     var visibleOrNil: AppError? {
         isVisibleToUser ? self : nil
+    }
+}
+
+private extension WorkoutSetRowState {
+    init(snapshot: ActiveSessionSetSnapshot) {
+        self.init(
+            id: snapshot.id,
+            exerciseId: snapshot.exerciseId,
+            programExerciseId: snapshot.programExerciseId,
+            setNumber: snapshot.setNumber,
+            weightText: snapshot.weightText,
+            repsText: snapshot.repsText,
+            rpe: snapshot.rpe,
+            targetRestSeconds: snapshot.targetRestSeconds,
+            syncState: WorkoutSetSyncState(snapshot.syncState),
+            isCompleted: snapshot.isCompleted
+        )
+    }
+}
+
+private extension ActiveSessionSetSnapshot {
+    init(rowState: WorkoutSetRowState) {
+        self.init(
+            id: rowState.id,
+            exerciseId: rowState.exerciseId,
+            programExerciseId: rowState.programExerciseId,
+            setNumber: rowState.setNumber,
+            weightText: rowState.weightText,
+            repsText: rowState.repsText,
+            rpe: rowState.rpe,
+            targetRestSeconds: rowState.targetRestSeconds,
+            syncState: ActiveSessionSetSyncState(rowState.syncState),
+            isCompleted: rowState.isCompleted
+        )
+    }
+}
+
+private extension WorkoutSetSyncState {
+    init(_ snapshot: ActiveSessionSetSyncState) {
+        switch snapshot {
+        case .pending:
+            self = .pending
+        case .uploading:
+            self = .uploading
+        case .uploaded:
+            self = .uploaded
+        case .failed(let error):
+            self = .failed(error)
+        }
+    }
+}
+
+private extension ActiveSessionSetSyncState {
+    init(_ rowState: WorkoutSetSyncState) {
+        switch rowState {
+        case .pending:
+            self = .pending
+        case .uploading:
+            self = .uploading
+        case .uploaded:
+            self = .uploaded
+        case .failed(let error):
+            self = .failed(error)
+        }
     }
 }

@@ -1,14 +1,14 @@
 import Foundation
 
 @MainActor
-protocol ActiveSessionBackupStoring {
+protocol ActiveSessionBackupLocalStoring {
     func load() -> Result<ActiveSessionSnapshot?, AppError>
     func save(_ snapshot: ActiveSessionSnapshot) -> Result<Void, AppError>
     func clear()
 }
 
 @MainActor
-final class ActiveSessionBackupStore: ActiveSessionBackupStoring {
+final class ActiveSessionBackupStore: ActiveSessionBackupLocalStoring {
     private let userDefaults: UserDefaults
     private let key: String
     private let encoder: JSONEncoder

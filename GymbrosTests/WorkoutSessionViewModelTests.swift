@@ -81,8 +81,8 @@ struct WorkoutSessionViewModelTests {
 
     @Test func finishDoesNotClearBackupWhenCompletionFails() async throws {
         let workoutRepository = FakeWorkoutRepository()
-        let backupStore = FakeBackupStore()
-        let viewModel = makeViewModel(workoutRepository: workoutRepository, backupStore: backupStore)
+        let backupRepository = FakeBackupRepository()
+        let viewModel = makeViewModel(workoutRepository: workoutRepository, backupRepository: backupRepository)
 
         await viewModel.start(programDayId: ProgramSamples.upperDayId)
         let row = try firstRow(viewModel)
@@ -91,15 +91,15 @@ struct WorkoutSessionViewModelTests {
         workoutRepository.completeSessionError = .network(.offline)
         await viewModel.finishSession()
 
-        #expect(backupStore.clearCount == 0)
-        #expect(backupStore.savedSnapshots.isEmpty == false)
+        #expect(backupRepository.clearCount == 0)
+        #expect(backupRepository.savedSnapshots.isEmpty == false)
         #expect(viewModel.transientError == .network(.offline))
     }
 
     @Test func finishClearsBackupWhenCompletionSucceeds() async throws {
         let workoutRepository = FakeWorkoutRepository()
-        let backupStore = FakeBackupStore()
-        let viewModel = makeViewModel(workoutRepository: workoutRepository, backupStore: backupStore)
+        let backupRepository = FakeBackupRepository()
+        let viewModel = makeViewModel(workoutRepository: workoutRepository, backupRepository: backupRepository)
 
         await viewModel.start(programDayId: ProgramSamples.upperDayId)
         let row = try firstRow(viewModel)
@@ -107,7 +107,7 @@ struct WorkoutSessionViewModelTests {
         await viewModel.completeSet(setId: row.id)
         await viewModel.finishSession()
 
-        #expect(backupStore.clearCount == 1)
+        #expect(backupRepository.clearCount == 1)
         #expect(workoutRepository.completedSessions.map(\.sessionId) == [workoutRepository.session.id])
     }
 
@@ -126,13 +126,13 @@ struct WorkoutSessionViewModelTests {
 
     private func makeViewModel(
         workoutRepository: FakeWorkoutRepository? = nil,
-        backupStore: FakeBackupStore? = nil
+        backupRepository: FakeBackupRepository? = nil
     ) -> WorkoutSessionViewModel {
         WorkoutSessionViewModel(
             workoutRepository: workoutRepository ?? FakeWorkoutRepository(),
             programRepository: FakeWorkoutProgramRepository(),
             exerciseRepository: FakeWorkoutExerciseRepository(),
-            backupStore: backupStore ?? FakeBackupStore(),
+            backupRepository: backupRepository ?? FakeBackupRepository(),
             now: { ProgramSamples.createdAt }
         )
     }
@@ -251,21 +251,21 @@ private final class FakeWorkoutExerciseRepository: ExerciseRepositoryProviding {
 }
 
 @MainActor
-private final class FakeBackupStore: ActiveSessionBackupStoring {
+private final class FakeBackupRepository: ActiveSessionBackupRepositoryProviding {
     var loadResult: Result<ActiveSessionSnapshot?, AppError> = .success(nil)
     var savedSnapshots: [ActiveSessionSnapshot] = []
     var clearCount = 0
 
-    func load() -> Result<ActiveSessionSnapshot?, AppError> {
+    func loadBackup() -> Result<ActiveSessionSnapshot?, AppError> {
         loadResult
     }
 
-    func save(_ snapshot: ActiveSessionSnapshot) -> Result<Void, AppError> {
+    func saveBackup(_ snapshot: ActiveSessionSnapshot) -> Result<Void, AppError> {
         savedSnapshots.append(snapshot)
         return .success(())
     }
 
-    func clear() {
+    func clearBackup() {
         clearCount += 1
     }
 }
