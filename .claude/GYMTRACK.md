@@ -184,6 +184,9 @@ ComebackCardView     purple gradient card with bilingual copy
 EasingBackBadge      small purple pill, appears on exercise rows in comeback mode
 HowDidThatFeelPicker 3-button feeling input (Easy / Just right / Hard)
                      replaces RPE during comeback for accuracy
+SubstituteActionSheet long-press menu: Substitute / Defer / Skip / Cancel
+DeferredBadge        purple "⏭ Deferred" pill on reordered exercise rows
+SubstituteOriginBadge "↩ Bench" pill showing what an exercise replaced
 ```
 
 ### Tap Targets: 48pt minimum — sweaty hands
@@ -510,25 +513,65 @@ Done: App live. Free download. Public users in TH + worldwide.
 
 ---
 
-**Sprint 8 — Injury Substitution + Mid-Workout Swap + More Templates** | Effort: Medium
+**Sprint 8 — Injury Sub + Mid-Workout Substitute + Defer + More Templates** | Effort: Medium-Complex
 ```
+INJURY (pre-workout, persistent until cleared)
 ☐ "Report injury" flow: select body part, app filters exercises
-☐ Movement-pattern matching for substitutions
-   (data model already supports this from Sprint 1)
-☐ Mid-workout "swap this exercise" button (gym crowded use case)
 ☐ Persistent injury flag affects future workouts until cleared
+
+MID-WORKOUT FLOWS (two distinct behaviors)
+☐ Long-press / swipe on exercise row → action sheet:
+   🔄 Substitute (replace this exercise)
+   ⏭️ Do this later (defer to end of session)
+   ⏸️ Skip entirely
+   
+☐ SUBSTITUTE flow:
+   ☐ Show ranked substitutes (same pattern, same primary muscle)
+   ☐ Crowded-equipment aware (don't suggest barbell-incline 
+      when user is fleeing barbell-bench)
+   ☐ Familiarity-ranked (user's history-rich exercises first)
+   ☐ Auto-calculate suggested weight from user history OR 
+      biomechanics ratio (e.g. machine ≈ 0.85 × free weight)
+   ☐ Show "↩ Bench" badge on substituted row (what it replaced)
+   ☐ Completed sets before substitution stay logged as original
+   
+☐ DEFER flow:
+   ☐ Confirm: "Move Bench Press to end of workout?"
+   ☐ Reorder exercise to end of list
+   ☐ Show purple "⏭ Deferred" badge
+   ☐ Preserve any sets already done — resume at set N when returned
+   ☐ End-of-workout reminder if deferred exercise still has 0 sets
+
+SMART SUBSTITUTE RANKING (see Section 9 for algorithm)
+☐ SubstituteRanker service + tests
+☐ Familiarity score from user history
+☐ Crowded-equipment filter
+☐ Biomechanics weight ratio table
+
+TEMPLATES
 ☐ 2 more starter templates added:
   ☐ PPL 6 days
   ☐ Bro Split 5 days
 ☐ Full onboarding quiz (5 questions → template match,
                        upgraded from 3 questions in Sprint 6)
 
+TELEMETRY
+☐ exercise_substituted (which rank position picked)
+☐ exercise_deferred
+☐ deferred_exercise_resumed
+☐ deferred_exercise_skipped (workout ended without doing it)
+
 Why this matters: Injury handling is the #1 reported missing
-feature in Hevy reviews. Our data model is ready for it from
-Sprint 1. ~1 sprint of UI work on top of existing model.
+feature in Hevy reviews. "Substitute" and "Defer" are two 
+distinct mental models — replacing an exercise vs putting it 
+on hold. Both directly fulfill our tagline promise: "Gym 
+crowded? We've got you." This is the brand moment where the 
+"adapts to real life" pitch becomes demonstrable in one tap.
 
 Done: Report shoulder injury → next workout swaps OHP for
-      machine chest press. Mid-workout swap works.
+      machine chest press. Mid-workout: tap Bench → Machine Press
+      (substitute) or push to end of workout (defer) — both 
+      work seamlessly with set history preserved.
 ```
 
 ---
@@ -661,7 +704,7 @@ Deprioritized from original roadmap:
 | 5 | Smart Comeback (DIFFERENTIATOR) | ☐ | — | spec: S05 to write |
 | 6 | Onboarding + Templates + i18n | ☐ | — | |
 | 7 | App Store Ship | ☐ | — | |
-| 8 | Injury Sub + Mid-Workout Swap | ☐ | — | |
+| 8 | Injury Sub + Substitute + Defer | ☐ | — | algorithm-heavy |
 | 9 | Progress Graphs | ☐ | — | |
 | 10 | HRV / Recovery | ☐ | — | |
 | 11 | Subscription + Watch + Widget + Notifications | ☐ | — | |
@@ -727,6 +770,77 @@ Algorithm:
         AND all secondary_muscles NOT IN affected_muscles
       sub = candidates.first (sorted by user-history familiarity)
       replace original with sub, badge "Substituted"
+```
+
+### Mid-Workout Substitute Ranker (Sprint 8)
+```
+Triggered when user taps "Substitute" mid-session.
+Different from injury substitution: this is gym-availability driven,
+not body-state driven. User keeps full muscle range.
+
+Inputs:
+  original           the exercise being replaced
+  user_history       all sets the user has ever logged
+  crowded_equipment  set of equipment the user marked as "in use"
+                     (optional — empty if user didn't specify)
+  all_exercises      master library
+
+Filter:
+  candidates = all_exercises WHERE
+    id ≠ original.id
+    AND equipment NOT IN crowded_equipment
+    AND movement_pattern = original.movement_pattern
+    AND primary_muscle = original.primary_muscle
+
+Rank (descending):
+  1. familiarity = count of sets in user_history for this exercise
+  2. tie-breaker: prefer different equipment from original
+     (if user fled the barbell, machine > another barbell variant)
+  3. tie-breaker: stable alphabetical
+
+Weight suggestion for the substitute:
+  if user has logged this substitute before:
+    suggested = last_weight × performance_trend_factor
+  else:
+    suggested = original_target_weight × biomechanics_ratio[sub.equipment]
+  
+  biomechanics_ratio (approximate, tunable):
+    barbell → machine_same_pattern    ≈ 0.85
+    barbell → dumbbell_same_pattern   ≈ 0.40 (per side)
+    barbell → cable_same_pattern      ≈ 0.75
+    free weight → smith_machine       ≈ 0.95
+    
+  Show suggestion in transparent/grey until user confirms first set.
+```
+
+### Defer Logic (Sprint 8)
+```
+Triggered when user taps "Do this later" mid-session.
+
+State change:
+  exercise.deferred = true
+  exercise.original_order = exercise.exercise_order
+  exercise.exercise_order = max(all_orders) + 1
+  exercise.completed_sets_before_defer = current_completed_count
+
+UI implications:
+  - Exercise moves visually to end of list
+  - Purple "⏭ Deferred" badge appears on the moved row
+  - When user reaches it later, set numbering RESUMES at N+1
+    (not restart at 1)
+  - Rest timer resets to fresh state (no leftover countdown)
+
+End-of-workout check:
+  if any exercise.deferred == true AND completed_sets < target_sets:
+    show prompt: "Bench Press not finished — finish it or skip?"
+    options: [Finish now]  [Skip — end workout]
+
+Constraints:
+  - Can defer multiple exercises in one session (they queue at end)
+  - Cannot defer the LAST remaining exercise 
+    (UI shows "you're at the end already")
+  - Defer is reversible: long-press deferred exercise → "Bring back"
+    moves it to next-up position
 ```
 
 ### Recovery Advisor (Sprint 10)
@@ -959,6 +1073,12 @@ The comeback share card:
   app generates a shareable card showing the curve:
   "I came back. Lost nothing." → purple/lime branded
   IG Story / TikTok loop
+
+The crowded-gym angle (Sprint 8+):
+  "Bench taken? Tap once. We'll swap it."
+  TikTok-friendly — every gym-goer has this exact moment weekly
+  Demo video: bench is busy → tap → machine press loaded with
+  correct weight → no thinking required
   
 PT-led distribution:
   Each PT brings 5-15 clients onto free tier
@@ -1052,6 +1172,10 @@ Algorithm-heavy = more testing = more time. Budget extra.
 | Phase planning | Future/Optional | Sprint 13 | <5% care, defer |
 | Muscle heatmap | Future/Optional | Phase 4 | Not a differentiator |
 | B2B gym partnership | Separate product, build later | Phase 5 add-on | Different motion entirely |
+| Running expansion | REJECTED (don't build) | Adding running module to app | Different category, different competitors (Strava/NRC/Garmin), dilutes core moat. Revisit only at ฿5M+ ARR with explicit user demand and consider separate app, not unified |
+| Mid-workout swap | TWO flows: Substitute + Defer (S8) | Single "swap" flow | Different mental models — replace entirely vs do later. Both fulfill "gym crowded? we've got you" tagline |
+| Substitute ranking | Familiarity + crowded-equipment aware | Random or alphabetical | User picks #1 most of the time = ranking works |
+| Defer set history | Preserved when exercise moves | Reset on defer | Sets that happened, happened — count them |
 | Accent color | #C8FF00 Lime | Many alternatives | Gym energy, unique |
 | Secondary color | #9B7FE8 Purple | None | Comeback/PR semantic |
 | Pricing | ฿99/mo, ฿790/yr | ฿129/฿990 | Below Spotify TH anchor |
@@ -1073,6 +1197,24 @@ Algorithm-heavy = more testing = more time. Budget extra.
 ---
 
 ## 17. Decision Log
+
+### 2026-05-11 (session 9 — running expansion + mid-workout swap design)
+
+- **Running expansion: REJECTED.** Considered adding running/cardio to the same app. Decided against:
+  - Different category — competitors are Strava (100M users), Nike Run Club, Garmin Connect, Apple Fitness+. Bar to enter is far higher than lifting
+  - Different core metrics (pace × distance vs weight × reps), different hardware needs (GPS + Watch mandatory), different session flow (continuous vs discrete sets)
+  - Dilutes the "adapts to real life" moat — running doesn't have crowded-gym friction, injury-substitution doesn't translate (cross-training is a different domain), missed days are largely self-regulating for runners
+  - Narrow-wins pattern: Strong, Strava, Hevy, AllTrails all won by staying narrow. Broad fitness apps lose
+  - Revisit conditions (need ALL): ฿5M+ ARR on strength side, >30% of users asking in data, hire of dev with running-app experience. Even then, lean toward SEPARATE APP sharing only backend account
+- **Better expansion directions if ambition strikes later**: powerlifting variant (1RM, percentages, peaking) · bodyweight/calisthenics mode · mobility/recovery side-app · expert programs beyond PT Pro
+- **Mid-workout swap: EXPANDED into two distinct flows in Sprint 8**:
+  - **Substitute**: replace exercise entirely (bench taken → machine press). Ranked candidates by familiarity + crowded-equipment awareness. Suggested weight calculated from user history or biomechanics ratio. Completed sets before substitution stay logged as original exercise
+  - **Defer**: move exercise to end of session (bench taken now, do hammer curls first, come back to bench later). Set history preserved — resume at set N+1 when user returns. End-of-workout reminder if deferred exercise still has 0 sets
+- **Substitute Ranker algorithm specified** in Section 9 — familiarity score, crowded-equipment filter, biomechanics weight ratio table (barbell→machine ≈ 0.85, barbell→dumbbell ≈ 0.40/side, barbell→cable ≈ 0.75, free→Smith ≈ 0.95)
+- **Defer logic specified** in Section 9 — preserved set history, queueable across multiple exercises in one session, reversible via "Bring back" action
+- **Sprint 8 effort upgraded**: Medium → Medium-Complex (now algorithm-heavy on top of UI work)
+- **New custom components**: SubstituteActionSheet, DeferredBadge, SubstituteOriginBadge
+- **Brand alignment**: this is the feature that makes "Gym crowded? We've got you" demonstrable in one tap. The crowded-gym promise was unfulfilled until now
 
 ### 2026-05-11 (session 8 — strategic refinement after Sprints 1-2)
 
