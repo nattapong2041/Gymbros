@@ -19,7 +19,7 @@
 - Task 1 architecture cleanup moved `ActiveSessionBackupStore` from `Presentation/Workout` to `Data/Local`.
 - Task 1 backup refactor now uses `Data/Local -> Data/Repository -> WorkoutSessionViewModel`; backup DTOs live in `Data/Local`, while editable row state remains in `Presentation/Workout`.
 
-**Last commit SHA:** f0cb7e8
+**Last commit SHA:** 754efff
 
 **Known deviations / constraints:**
 - Use simulator `iPhone 17e` in all `xcodebuild` commands.
