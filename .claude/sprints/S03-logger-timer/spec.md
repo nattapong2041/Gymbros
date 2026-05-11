@@ -87,6 +87,20 @@ Rules:
 
 ---
 
+## 2.1 Spec Lock Decisions
+
+Task 0 locks these shared decisions before parallel work starts:
+
+- Use a concrete `@Observable WorkoutSessionViewModel`; do not create a ViewModel protocol.
+- Task 1 owns the shared workout state structs used by both the ViewModel and views.
+- `WorkoutSetRowState.syncState` uses: `pending`, `uploading`, `uploaded`, `failed(AppError)`.
+- `ActiveSessionSnapshot` is versioned Codable JSON in `UserDefaults`; it must not store secrets, tokens, or auth headers.
+- Restore decode failure or version mismatch maps to `.decoding` and offers Discard only.
+- All repository errors crossing into ViewModels must be `AppError`.
+- Task 4 owns runtime wiring from `DayBuilderView` to `WorkoutSessionView`.
+
+---
+
 ## 3. Product Flow
 
 Sprint 4 will introduce Today navigation. Sprint 3 uses a temporary start path from the existing program/day flow:

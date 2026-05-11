@@ -8,12 +8,13 @@
 
 ## CURRENT STATUS
 
-**Status:** Sprint 3 ready to implement. No feature code has been started from this plan.
+**Status:** Task 0 complete. Shared Sprint 3 contracts are locked; Tasks 1-3 are ready for parallel work. No feature code has been started from this plan.
 
 **Done:**
 - Sprint 3 spec created at `.claude/sprints/S03-logger-timer/spec.md`.
 - Sprint 3 plan created at `.claude/sprints/S03-logger-timer/plan.md`.
 - Plan uses the no-protocol parallel strategy: spec + plan are the contract.
+- Task 0 spec lock completed: ViewModel/state shapes, repository contract, localization key families, and ownership boundaries are confirmed.
 
 **Last commit SHA:** 8ced28e
 
@@ -28,7 +29,7 @@
 - Use concrete `@Observable` ViewModels. Do not create ViewModel protocols unless explicitly requested later.
 - If `xcodebuild` cannot write SwiftPM/Xcode/Simulator caches in the sandbox, rerun with the required approval.
 
-**Next step:** Start Task 0, then dispatch Tasks 1-3 in parallel.
+**Next step:** Dispatch Tasks 1, 2, and 3 in parallel.
 
 ---
 
@@ -61,15 +62,15 @@ Task 4 is sequential integration after Tasks 1-3 are complete or explicitly hand
 - `Gymbros/Presentation/Workout/*`
 - `Gymbros/Resources/Localizable.xcstrings`
 
-- [ ] Confirm the spec names the concrete `WorkoutSessionViewModel` public state and actions clearly enough for Task 1 and Task 2 to work independently.
-- [ ] Confirm the spec defines `WorkoutSessionData`, `WorkoutExerciseSection`, `WorkoutSetRowState`, `RestTimerState`, and `ActiveSessionSnapshot` behavior.
-- [ ] Confirm localization key families are listed for Task 3.
-- [ ] Confirm Task 1, Task 2, Task 3, and Task 4 ownership boundaries are clear.
-- [ ] Update `CURRENT STATUS` with any spec-lock changes and the next parallel tasks.
+- [x] Confirm the spec names the concrete `WorkoutSessionViewModel` public state and actions clearly enough for Task 1 and Task 2 to work independently.
+- [x] Confirm the spec defines `WorkoutSessionData`, `WorkoutExerciseSection`, `WorkoutSetRowState`, `RestTimerState`, and `ActiveSessionSnapshot` behavior.
+- [x] Confirm localization key families are listed for Task 3.
+- [x] Confirm Task 1, Task 2, Task 3, and Task 4 ownership boundaries are clear.
+- [x] Update `CURRENT STATUS` with any spec-lock changes and the next parallel tasks.
 
 **Verification:** Documentation review only.
 
-**Handoff notes:** Add notes here before marking Task 0 complete.
+**Handoff notes:** Locked no-protocol implementation with a concrete `@Observable WorkoutSessionViewModel`. Task 1 owns `WorkoutSessionData`, `WorkoutExerciseSection`, `WorkoutSetRowState`, `RestTimerState`, `WorkoutSetSyncState`, `ActiveSessionSnapshot`, repository protocol/test seams, backup store, and ViewModel tests. Task 2 owns workout views, mock data, previews, and accessibility labels using the same state names. Task 3 owns all `workout.*`, `workout.restore.*`, `workout.set.*`, `workout.timer.*`, `workout.finish.*`, `workout.sync.*`, and `accessibility.workout.*` keys in Thai and English. Task 4 owns `DayBuilderView` runtime wiring, restore gating, mock-path cleanup, and final verification.
 
 ---
 
