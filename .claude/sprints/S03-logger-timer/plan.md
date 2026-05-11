@@ -8,15 +8,16 @@
 
 ## CURRENT STATUS
 
-**Status:** Task 0 complete. Shared Sprint 3 contracts are locked; Tasks 1-3 are ready for parallel work. No feature code has been started from this plan.
+**Status:** Task 1 complete. Repository, shared workout state, active-session backup, concrete ViewModel, and focused tests are implemented. Tasks 2 and 3 are ready to continue in parallel; Task 4 should wire the UI after those handoffs.
 
 **Done:**
 - Sprint 3 spec created at `.claude/sprints/S03-logger-timer/spec.md`.
 - Sprint 3 plan created at `.claude/sprints/S03-logger-timer/plan.md`.
 - Plan uses the no-protocol parallel strategy: spec + plan are the contract.
 - Task 0 spec lock completed: ViewModel/state shapes, repository contract, localization key families, and ownership boundaries are confirmed.
+- Task 1 implemented `WorkoutRepositoryProviding`, repository session/set methods, `WorkoutSessionViewModel`, `WorkoutSessionState`, `ActiveSessionBackupStore`, and focused Swift Testing coverage.
 
-**Last commit SHA:** 8ced28e
+**Last commit SHA:** bd3686c
 
 **Known deviations / constraints:**
 - Use simulator `iPhone 17e` in all `xcodebuild` commands.
@@ -28,8 +29,9 @@
 - Do not add HealthKit, Today, History, tabs, Smart Comeback, substitutions, or offline-first sync in Sprint 3.
 - Use concrete `@Observable` ViewModels. Do not create ViewModel protocols unless explicitly requested later.
 - If `xcodebuild` cannot write SwiftPM/Xcode/Simulator caches in the sandbox, rerun with the required approval.
+- Task 1 does not wire runtime navigation or SwiftUI views; Task 4 owns that after Task 2 and Task 3.
 
-**Next step:** Dispatch Tasks 1, 2, and 3 in parallel.
+**Next step:** Dispatch/complete Tasks 2 and 3 in parallel, then run Task 4 wiring and verification.
 
 ---
 
@@ -96,25 +98,25 @@ Task 4 is sequential integration after Tasks 1-3 are complete or explicitly hand
 - `Gymbros/App/RootView.swift`
 - `Gymbros/Presentation/Programs/*View.swift`
 
-- [ ] Add `WorkoutRepositoryProviding` if needed for tests.
-- [ ] Add `createSession(programDayId:startedAt:)` using an insert payload.
-- [ ] Change or overload set upload so completed uploads can return the inserted `WorkoutSet`.
-- [ ] Add `updateSet(_:)` if uploaded set editing is supported in Sprint 3.
-- [ ] Add `deleteSet(id:)`.
-- [ ] Keep `completeSession(_:endedAt:)` mapped through `ErrorMapper`.
-- [ ] Add `ActiveSessionSnapshot` with versioned Codable shape.
-- [ ] Add `ActiveSessionBackupStore` using `UserDefaults` JSON.
-- [ ] Add concrete `WorkoutSessionViewModel` with `@Observable`.
-- [ ] Implement start session flow from `programDayId`.
-- [ ] Implement restore and discard restore flows.
-- [ ] Implement draft updates, set validation, complete set upload, retry upload, add set, delete set, rest timer state, and finish session.
-- [ ] Ensure backup is saved after every meaningful local mutation.
-- [ ] Ensure finish does not clear backup if upload or completion fails.
-- [ ] Ensure finish clears backup only after remote completion succeeds.
-- [ ] Add tests for backup encode/decode and version mismatch.
-- [ ] Add tests for set validation, add-set copy behavior, delete renumbering, upload failure retry, and finish backup behavior.
-- [ ] Run targeted tests for workout session and backup logic.
-- [ ] Update `CURRENT STATUS` and handoff notes with real initializer/action names and any intentional deviations.
+- [x] Add `WorkoutRepositoryProviding` if needed for tests.
+- [x] Add `createSession(programDayId:startedAt:)` using an insert payload.
+- [x] Change or overload set upload so completed uploads can return the inserted `WorkoutSet`.
+- [x] Add `updateSet(_:)` if uploaded set editing is supported in Sprint 3.
+- [x] Add `deleteSet(id:)`.
+- [x] Keep `completeSession(_:endedAt:)` mapped through `ErrorMapper`.
+- [x] Add `ActiveSessionSnapshot` with versioned Codable shape.
+- [x] Add `ActiveSessionBackupStore` using `UserDefaults` JSON.
+- [x] Add concrete `WorkoutSessionViewModel` with `@Observable`.
+- [x] Implement start session flow from `programDayId`.
+- [x] Implement restore and discard restore flows.
+- [x] Implement draft updates, set validation, complete set upload, retry upload, add set, delete set, rest timer state, and finish session.
+- [x] Ensure backup is saved after every meaningful local mutation.
+- [x] Ensure finish does not clear backup if upload or completion fails.
+- [x] Ensure finish clears backup only after remote completion succeeds.
+- [x] Add tests for backup encode/decode and version mismatch.
+- [x] Add tests for set validation, add-set copy behavior, delete renumbering, upload failure retry, and finish backup behavior.
+- [x] Run targeted tests for workout session and backup logic.
+- [x] Update `CURRENT STATUS` and handoff notes with real initializer/action names and any intentional deviations.
 
 **Verification command:**
 
@@ -122,7 +124,7 @@ Task 4 is sequential integration after Tasks 1-3 are complete or explicitly hand
 xcodebuild test -project Gymbros.xcodeproj -scheme Gymbros -destination 'platform=iOS Simulator,name=iPhone 17e' -only-testing:GymbrosTests/WorkoutSessionViewModelTests -only-testing:GymbrosTests/ActiveSessionBackupTests
 ```
 
-**Handoff notes:** Add notes here before marking Task 1 complete.
+**Handoff notes:** Implemented `WorkoutSessionViewModel(workoutRepository:programRepository:exerciseRepository:backupStore:now:)` with public state/actions matching the spec: `state`, `transientError`, `activeTimer`, `isFinishing`, `pendingRestore`, `checkForRestore`, `start`, `restore`, `discardRestore`, `updateDraft`, `completeSet`, `retryUpload`, `addSet`, `deleteSet`, `startRestTimer`, `stopRestTimer`, and `finishSession`. Shared UI-facing data lives in `WorkoutSessionState.swift`: `WorkoutSessionData`, `WorkoutExerciseSection`, `WorkoutSetRowState`, `WorkoutSetSyncState`, `RestTimerState`, and `ActiveSessionSnapshot`. Backup store uses `AppConstants.Storage.activeSessionKey` and versioned JSON. Repository upload currently uses row IDs as remote `workout_sets.id`; deleting an uploaded row calls `deleteSet(id:)`. Targeted tests passed with `xcodebuild test -project Gymbros.xcodeproj -scheme Gymbros -destination 'platform=iOS Simulator,name=iPhone 17e' -only-testing:GymbrosTests/WorkoutSessionViewModelTests -only-testing:GymbrosTests/ActiveSessionBackupTests`.
 
 ---
 
