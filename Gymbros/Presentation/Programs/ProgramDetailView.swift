@@ -28,13 +28,18 @@ struct ProgramDetailView: View {
                                 DayBuilderView(viewModel: DayBuilderViewModel(dayId: day.id))
                                     .id(day.id)
                             } label: {
-                                HStack {
-                                    Text(day.name)
-                                        .font(.headline)
+                                HStack(spacing: 12) {
+                                    Image(systemName: "calendar")
+                                        .foregroundStyle(Color.gymAccentText)
+
+                                    VStack(alignment: .leading, spacing: 2) {
+                                        Text(day.name)
+                                            .font(.headline)
+                                        Text("programDetail.exerciseCount \(day.exercises.count)")
+                                            .font(.caption)
+                                            .foregroundStyle(.secondary)
+                                    }
                                     Spacer()
-                                    Text("programDetail.exerciseCount \(day.exercises.count)")
-                                        .font(.subheadline)
-                                        .foregroundStyle(.secondary)
                                 }
                                 .padding(.vertical, 4)
                             }
@@ -59,14 +64,18 @@ struct ProgramDetailView: View {
                         }
                     } header: {
                         HStack {
-                            Text("programDetail.days.section")
+                            Label("programDetail.days.section", systemImage: "list.bullet.indent")
                             Spacer()
                             Button {
                                 isShowingAddDayAlert = true
                                 newDayName = ""
                             } label: {
-                                Label("programDetail.addDay.action", systemImage: "plus")
-                                    .font(.subheadline.bold())
+                                HStack(spacing: 4) {
+                                    Image(systemName: "plus.circle.fill")
+                                    Text("programDetail.addDay.action")
+                                }
+                                .font(.subheadline.bold())
+                                .foregroundStyle(Color.gymAccentText)
                             }
                             .buttonStyle(.borderless)
                         }

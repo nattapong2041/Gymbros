@@ -40,13 +40,17 @@ struct DayBuilderView: View {
                         }
                     } header: {
                         HStack {
-                            Text("dayBuilder.exercises.section")
+                            Label("dayBuilder.exercises.section", systemImage: "dumbbell.fill")
                             Spacer()
                             Button {
                                 isShowingExercisePicker = true
                             } label: {
-                                Label("dayBuilder.addExercise.action", systemImage: "plus")
-                                    .font(.subheadline.bold())
+                                HStack(spacing: 4) {
+                                    Image(systemName: "plus.circle.fill")
+                                    Text("dayBuilder.addExercise.action")
+                                }
+                                .font(.subheadline.bold())
+                                .foregroundStyle(Color.gymAccentText)
                             }
                             .buttonStyle(.borderless)
                         }
@@ -136,38 +140,43 @@ struct ProgramExerciseRow: View {
     let exercise: Exercise?
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            HStack {
+        HStack(spacing: 12) {
+            EquipmentIconView(equipment: exercise?.equipment)
+
+            VStack(alignment: .leading, spacing: 4) {
                 Text(exercise?.name ?? "programExercise.unknownExercise")
                     .font(.headline)
-                Spacer()
-                HStack(spacing: 4) {
-                    Text(verbatim: "\(programExercise.targetSets)")
-                        .font(.gymNumber(size: 18))
-                    Text(verbatim: "x")
-                        .font(.caption.bold())
-                        .foregroundStyle(.secondary)
-                    Text(verbatim: "\(programExercise.targetRepsMin)-\(programExercise.targetRepsMax)")
-                        .font(.gymNumber(size: 18))
-                }
-            }
 
-            HStack {
-                Label {
-                    Text(verbatim: "\(programExercise.targetRestSeconds)s")
-                } icon: {
-                    Image(systemName: "timer")
+                HStack(spacing: 8) {
+                    Text(String(format: String(localized: "programExercise.setsFormat"), programExercise.targetSets))
+                    Text(verbatim: "•")
+                    Text(String(
+                        format: String(localized: "programExercise.repsFormat"),
+                        programExercise.targetRepsMin,
+                        programExercise.targetRepsMax
+                    ))
+                    Text(verbatim: "•")
+                    Text(String(format: String(localized: "programExercise.restFormat"), programExercise.targetRestSeconds))
                 }
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+                .font(.caption)
+                .foregroundStyle(.secondary)
 
                 if let notes = programExercise.notes, !notes.isEmpty {
-                    Spacer()
-                    Image(systemName: "note.text")
-                        .font(.caption)
-                        .foregroundStyle(Color.gymAccent)
+                    HStack(spacing: 4) {
+                        Image(systemName: "note.text")
+                        Text(notes)
+                    }
+                    .font(.caption2)
+                    .foregroundStyle(.tertiary)
+                    .lineLimit(1)
                 }
             }
+
+            Spacer()
+
+            Image(systemName: "chevron.right")
+                .font(.caption2.bold())
+                .foregroundStyle(.tertiary)
         }
         .padding(.vertical, 4)
     }

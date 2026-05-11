@@ -7,40 +7,14 @@ struct ExercisePickerView: View {
 
     var body: some View {
         NavigationStack {
-            List {
-                filterSection
+            VStack(spacing: 0) {
+                filterBar
 
-                switch viewModel.state {
-                case .idle, .loading:
-                    ProgressView()
-                case .empty:
-                    ContentUnavailableView("exercisePicker.empty.title", systemImage: "figure.strengthtraining.traditional")
-                case .error(let error):
-                    ContentUnavailableView {
-                        Label(LocalizedStringKey(error.titleKey), systemImage: "exclamationmark.triangle")
-                    } description: {
-                        Text(LocalizedStringKey(error.messageKey))
-                    } actions: {
-                        Button("common.retry") {
-                            Task { await viewModel.loadExercises() }
-                        }
-                    }
-                case .success where viewModel.filteredExercises.isEmpty:
-                    ContentUnavailableView.search(text: viewModel.searchText)
-                case .success:
-                    ForEach(viewModel.filteredExercises) { exercise in
-                        ExercisePickerRow(exercise: exercise)
-                            .contentShape(Rectangle())
-                            .onTapGesture {
-                                onSelect(exercise)
-                                dismiss()
-                            }
-                    }
-                }
+                content
             }
             .navigationTitle("exercisePicker.title")
             .navigationBarTitleDisplayMode(.inline)
-            .searchable(text: $viewModel.searchText, prompt: "exercisePicker.search.prompt")
+            .searchable(text: $viewModel.searchText, placement: .navigationBarDrawer(displayMode: .always), prompt: "exercisePicker.search.prompt")
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("common.cancel") {
@@ -52,7 +26,7 @@ struct ExercisePickerView: View {
                     Button("exercisePicker.clearFilters.action") {
                         viewModel.clearFilters()
                     }
-                    .disabled(viewModel.selectedMuscle == nil && viewModel.selectedEquipment == nil && viewModel.selectedPattern == nil)
+                    .disabled(viewModel.selectedMuscle == nil && viewModel.selectedEquipment == nil && viewModel.selectedPattern == nil && viewModel.searchText.isEmpty)
                 }
             }
             .task {
@@ -61,32 +35,70 @@ struct ExercisePickerView: View {
         }
     }
 
-    private var filterSection: some View {
-        Section {
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 8) {
-                    filterMenu(
-                        selection: $viewModel.selectedMuscle,
-                        label: "exercisePicker.filter.muscle",
-                        options: MuscleGroup.allCases
-                    )
+    private var filterBar: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 8) {
+                filterMenu(
+                    selection: $viewModel.selectedMuscle,
+                    label: "exercisePicker.filter.muscle",
+                    options: MuscleGroup.allCases
+                )
 
-                    filterMenu(
-                        selection: $viewModel.selectedEquipment,
-                        label: "exercisePicker.filter.equipment",
-                        options: Equipment.allCases
-                    )
+                filterMenu(
+                    selection: $viewModel.selectedEquipment,
+                    label: "exercisePicker.filter.equipment",
+                    options: Equipment.allCases
+                )
 
-                    filterMenu(
-                        selection: $viewModel.selectedPattern,
-                        label: "exercisePicker.filter.pattern",
-                        options: MovementPattern.allCases
-                    )
-                }
-                .padding(.vertical, 4)
+                filterMenu(
+                    selection: $viewModel.selectedPattern,
+                    label: "exercisePicker.filter.pattern",
+                    options: MovementPattern.allCases
+                )
             }
-        } header: {
-            Text("exercisePicker.filters.section")
+            .padding(.horizontal, 16)
+            .padding(.vertical, 12)
+        }
+        .background(Color(.systemBackground))
+        .overlay(alignment: .bottom) {
+            Divider()
+        }
+    }
+
+    @ViewBuilder
+    private var content: some View {
+        switch viewModel.state {
+        case .idle, .loading:
+            ProgressView()
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+        case .empty:
+            ContentUnavailableView("exercisePicker.empty.title", systemImage: "figure.strengthtraining.traditional")
+        case .error(let error):
+            ContentUnavailableView {
+                Label(LocalizedStringKey(error.titleKey), systemImage: "exclamationmark.triangle")
+            } description: {
+                Text(LocalizedStringKey(error.messageKey))
+            } actions: {
+                Button("common.retry") {
+                    Task { await viewModel.loadExercises() }
+                }
+            }
+        case .success:
+            if viewModel.filteredExercises.isEmpty {
+                ContentUnavailableView.search(text: viewModel.searchText)
+            } else {
+                List {
+                    ForEach(viewModel.filteredExercises) { exercise in
+                        ExercisePickerRow(exercise: exercise)
+                            .contentShape(Rectangle())
+                            .onTapGesture {
+                                onSelect(exercise)
+                                dismiss()
+                            }
+                    }
+                }
+                .listStyle(.plain)
+            }
         }
     }
 
@@ -107,13 +119,13 @@ struct ExercisePickerView: View {
             HStack(spacing: 4) {
                 Text(selection.wrappedValue?.localizedTitleKey ?? LocalizedStringKey(label))
                 Image(systemName: "chevron.down")
-                    .font(.caption2)
+                    .font(.caption2.bold())
             }
-            .font(.subheadline)
+            .font(.subheadline.weight(.medium))
             .padding(.horizontal, 12)
             .padding(.vertical, 6)
-            .background(selection.wrappedValue == nil ? Color(.secondarySystemBackground) : Color.gymAccent.opacity(0.2))
-            .foregroundStyle(selection.wrappedValue == nil ? Color.primary : Color.gymAccent)
+            .background(selection.wrappedValue == nil ? Color(.secondarySystemBackground) : Color.gymAccent.opacity(0.15))
+            .foregroundStyle(selection.wrappedValue == nil ? Color.primary : Color.gymAccentText)
             .clipShape(Capsule())
         }
     }
@@ -123,31 +135,52 @@ struct ExercisePickerRow: View {
     let exercise: Exercise
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 4) {
-            HStack {
-                Text(exercise.name)
-                    .font(.headline)
-                Spacer()
-                if exercise.isCompound {
-                    Text("exercise.compound.badge")
-                        .font(.caption2.bold())
-                        .padding(.horizontal, 4)
-                        .padding(.vertical, 2)
-                        .background(Color.blue.opacity(0.1))
-                        .foregroundStyle(.blue)
-                        .clipShape(RoundedRectangle(cornerRadius: 4))
+        HStack(spacing: 12) {
+            EquipmentIconView(equipment: exercise.equipment)
+
+            VStack(alignment: .leading, spacing: 2) {
+                HStack(spacing: 6) {
+                    Text(exercise.name)
+                        .font(.headline)
+
+                    if exercise.isCompound {
+                        Image(systemName: "bolt.fill")
+                            .font(.caption2)
+                            .foregroundStyle(Color.gymAccentText)
+                    }
                 }
+
+                HStack(spacing: 6) {
+                    Text(exercise.primaryMuscle.localizedTitleKey)
+                    Text(verbatim: "•")
+                    Text(exercise.equipment.localizedTitleKey)
+                }
+                .font(.caption)
+                .foregroundStyle(.secondary)
             }
 
-            HStack(spacing: 8) {
-                Text(exercise.primaryMuscle.localizedTitleKey)
-                Text(verbatim: "•")
-                Text(exercise.equipment.localizedTitleKey)
-            }
-            .font(.caption)
-            .foregroundStyle(.secondary)
+            Spacer()
+
+            Image(systemName: "plus.circle.fill")
+                .font(.title3)
+                .foregroundStyle(Color.gymAccentText)
         }
         .padding(.vertical, 4)
+    }
+}
+
+extension MuscleGroup {
+    var systemImageName: String {
+        switch self {
+        case .chest: "figure.strengthtraining.traditional"
+        case .back: "figure.walk"
+        case .shoulders: "figure.arms.open"
+        case .biceps, .triceps: "figure.strengthtraining.traditional"
+        case .quads, .hamstrings, .glutes, .calves: "figure.strengthtraining.functional"
+        case .core: "figure.core.training"
+        case .forearms: "hand.raised.fill"
+        case .traps: "figure.arms.open"
+        }
     }
 }
 
@@ -174,19 +207,7 @@ extension MuscleGroup: ExerciseFilterOption {
     }
 }
 
-extension Equipment: ExerciseFilterOption {
-    var localizedTitleKey: LocalizedStringKey {
-        switch self {
-        case .barbell: "equipment.barbell"
-        case .dumbbell: "equipment.dumbbell"
-        case .machine: "equipment.machine"
-        case .cable: "equipment.cable"
-        case .bodyweight: "equipment.bodyweight"
-        case .kettlebell: "equipment.kettlebell"
-        case .band: "equipment.band"
-        }
-    }
-}
+extension Equipment: ExerciseFilterOption {}
 
 extension MovementPattern: ExerciseFilterOption {
     var localizedTitleKey: LocalizedStringKey {

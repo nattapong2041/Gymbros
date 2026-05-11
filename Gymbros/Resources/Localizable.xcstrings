@@ -369,6 +369,118 @@
         }
       }
     },
+    "equipment.short.band" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Band"
+          }
+        },
+        "th" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ยาง"
+          }
+        }
+      }
+    },
+    "equipment.short.barbell" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bar"
+          }
+        },
+        "th" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "บาร์"
+          }
+        }
+      }
+    },
+    "equipment.short.bodyweight" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "BW"
+          }
+        },
+        "th" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ตัว"
+          }
+        }
+      }
+    },
+    "equipment.short.cable" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cable"
+          }
+        },
+        "th" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "เคเบิล"
+          }
+        }
+      }
+    },
+    "equipment.short.dumbbell" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "DB"
+          }
+        },
+        "th" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ดัม"
+          }
+        }
+      }
+    },
+    "equipment.short.kettlebell" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "KB"
+          }
+        },
+        "th" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "เคต"
+          }
+        }
+      }
+    },
+    "equipment.short.machine" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mach"
+          }
+        },
+        "th" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "เครื่อง"
+          }
+        }
+      }
+    },
     "error.auth.appleCredentialMissing.message" : {
       "localizations" : {
         "en" : {
@@ -1409,6 +1521,22 @@
         }
       }
     },
+    "programExercise.repsFormat" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$d-%2$d reps"
+          }
+        },
+        "th" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$d-%2$d ครั้ง"
+          }
+        }
+      }
+    },
     "programExercise.repsMax" : {
       "localizations" : {
         "en" : {
@@ -1489,6 +1617,22 @@
         }
       }
     },
+    "programExercise.restFormat" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%d sec rest"
+          }
+        },
+        "th" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "พัก %d วิ"
+          }
+        }
+      }
+    },
     "programExercise.sets" : {
       "localizations" : {
         "en" : {
@@ -1517,6 +1661,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "จำนวนเซตที่ตั้งเป้า"
+          }
+        }
+      }
+    },
+    "programExercise.setsFormat" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%d sets"
+          }
+        },
+        "th" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%d เซ็ต"
           }
         }
       }
