@@ -1,7 +1,7 @@
 import Foundation
 
 struct ActiveSessionSnapshot: Codable, Equatable {
-    static let currentVersion = 1
+    static let currentVersion = 2
 
     var version: Int
     var session: WorkoutSession
@@ -10,6 +10,9 @@ struct ActiveSessionSnapshot: Codable, Equatable {
     var exerciseLookup: [UUID: Exercise]
     var rowStates: [ActiveSessionSetSnapshot]
     var activeTimer: RestTimerState?
+    var finishedExerciseIds: [UUID]
+    var currentExerciseIndex: Int
+    var defaultWeights: [UUID: Double]?
     var updatedAt: Date
 
     init(
@@ -20,6 +23,9 @@ struct ActiveSessionSnapshot: Codable, Equatable {
         exerciseLookup: [UUID: Exercise],
         rowStates: [ActiveSessionSetSnapshot],
         activeTimer: RestTimerState?,
+        finishedExerciseIds: [UUID] = [],
+        currentExerciseIndex: Int = 0,
+        defaultWeights: [UUID: Double]? = nil,
         updatedAt: Date
     ) {
         self.version = version
@@ -29,6 +35,9 @@ struct ActiveSessionSnapshot: Codable, Equatable {
         self.exerciseLookup = exerciseLookup
         self.rowStates = rowStates
         self.activeTimer = activeTimer
+        self.finishedExerciseIds = finishedExerciseIds
+        self.currentExerciseIndex = currentExerciseIndex
+        self.defaultWeights = defaultWeights
         self.updatedAt = updatedAt
     }
 }

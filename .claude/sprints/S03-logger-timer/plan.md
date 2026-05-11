@@ -8,7 +8,7 @@
 
 ## CURRENT STATUS
 
-**Status:** Tasks 0–3 complete (commit `754efff`). Spec realigned 2026-05-11 to a paged one-exercise-at-a-time flow with per-exercise finish, free-swipe between unfinished pages, and a new `program_exercises.target_weight` column. **Realignment Fix-up F1 is complete; F2–F6 remain pending and block Task 4 (Wire + Verify).**
+**Status:** Tasks 0–3 complete (commit `754efff`). Spec realigned 2026-05-11 to a paged one-exercise-at-a-time flow with per-exercise finish, free-swipe between unfinished pages, and a new `program_exercises.target_weight` column. **Realignment Fix-up F1 and F3 are complete; F2 remains in progress/pending, and F4–F6 remain pending before Task 4 (Wire + Verify).**
 
 **Done:**
 - Sprint 3 spec created at `.claude/sprints/S03-logger-timer/spec.md` and realigned 2026-05-11.
@@ -21,6 +21,7 @@
 - UI components follow HIG with 48pt tap targets and semantic colors.
 - Build verified on `iPhone 17e`.
 - F1 added nullable `program_exercises.target_weight` locally and remotely on Supabase dev project `mkeoidoakzmsgjslihvf`, plus optional target-weight model/repository/program-builder UI support.
+- F3 refactored workout state, backup snapshots, default-weight resolution, set carry-forward, per-exercise finish, and targeted tests for the paged workout flow.
 
 **Last commit SHA:** 754efff
 
@@ -45,8 +46,9 @@
 - Use concrete `@Observable` ViewModels. Do not create ViewModel protocols unless explicitly requested later.
 - If `xcodebuild` cannot write SwiftPM/Xcode/Simulator caches in the sandbox, rerun with the required approval.
 - Task 1 does not wire runtime navigation or SwiftUI views; Task 4 owns that after the Realignment Fix-up section is complete.
+- F3 targeted `xcodebuild test` was attempted with sandbox escalation but is currently blocked by unrelated top-level syntax errors in `Gymbros/Presentation/Programs/ExercisePickerView.swift` and `Gymbros/Presentation/Programs/ProgramDetailView.swift`. F3-owned files pass `swiftc -parse` and `git diff --check`.
 
-**Next step:** Execute Realignment Fix-up F2 (color audit) and F3 (ViewModel + state refactor) in parallel, then F4, F5, and F6 sequentially, then proceed to Task 4 (Wire + Verify).
+**Next step:** Finish Realignment Fix-up F2 (color audit), then F4, F5, and F6 sequentially, then proceed to Task 4 (Wire + Verify).
 
 ---
 
@@ -332,18 +334,18 @@ xcodebuild -project Gymbros.xcodeproj -scheme Gymbros -destination 'platform=iOS
 - `Gymbros/Presentation/Workout/RestTimerRingView.swift` (F4)
 - `Gymbros/Resources/Localizable.xcstrings` (F5)
 
-- [ ] Extend `WorkoutSessionData` with `currentExerciseIndex: Int`.
-- [ ] Extend `WorkoutExerciseSection` with `isFinished: Bool`, `finishedAt: Date?`, `defaultWeight: Double?`.
-- [ ] Extend `ActiveSessionSnapshot` with `finishedExerciseIds: [UUID]` and `currentExerciseIndex: Int`. Bump the snapshot `version` constant.
-- [ ] Add `finishExercise(programExerciseId:)` and `goToExercise(index:)` to `WorkoutSessionViewModel`.
-- [ ] In `start(programDayId:)`, resolve `defaultWeight` per exercise: `programExercise.targetWeight` → last-logged history → nil. Pre-fill set 1 weight from `defaultWeight` when present.
-- [ ] If needed, add `WorkoutRepository.fetchLastLoggedSet(exerciseId:before:)` mapped through `ErrorMapper`.
-- [ ] In `completeSet`, after enqueuing the upload, if a next set row exists in the same exercise and its `weightText`/`repsText` are still the row's initial values (blank or default), copy the just-completed actual `weightText` and `repsText` into it. Do not copy RPE.
-- [ ] Implement `finishExercise`: require at least one `.uploaded` set in the section, set `isFinished = true` and `finishedAt = now`, save backup, then set `currentExerciseIndex` to the next index where `!isFinished` (or leave it on the just-finished page if none).
-- [ ] Set completion must **not** change `currentExerciseIndex`.
-- [ ] On restore, recompute `currentExerciseIndex` to the first `!isFinished` section regardless of the snapshot value; do not show any per-exercise resume prompt.
-- [ ] Update existing `WorkoutSessionViewModelTests` and `ActiveSessionBackupTests` for the new state shape.
-- [ ] Add three new tests:
+- [x] Extend `WorkoutSessionData` with `currentExerciseIndex: Int`.
+- [x] Extend `WorkoutExerciseSection` with `isFinished: Bool`, `finishedAt: Date?`, `defaultWeight: Double?`.
+- [x] Extend `ActiveSessionSnapshot` with `finishedExerciseIds: [UUID]` and `currentExerciseIndex: Int`. Bump the snapshot `version` constant.
+- [x] Add `finishExercise(programExerciseId:)` and `goToExercise(index:)` to `WorkoutSessionViewModel`.
+- [x] In `start(programDayId:)`, resolve `defaultWeight` per exercise: `programExercise.targetWeight` → last-logged history → nil. Pre-fill set 1 weight from `defaultWeight` when present.
+- [x] If needed, add `WorkoutRepository.fetchLastLoggedSet(exerciseId:before:)` mapped through `ErrorMapper`.
+- [x] In `completeSet`, after enqueuing the upload, if a next set row exists in the same exercise and its `weightText`/`repsText` are still the row's initial values (blank or default), copy the just-completed actual `weightText` and `repsText` into it. Do not copy RPE.
+- [x] Implement `finishExercise`: require at least one `.uploaded` set in the section, set `isFinished = true` and `finishedAt = now`, save backup, then set `currentExerciseIndex` to the next index where `!isFinished` (or leave it on the just-finished page if none).
+- [x] Set completion must **not** change `currentExerciseIndex`.
+- [x] On restore, recompute `currentExerciseIndex` to the first `!isFinished` section regardless of the snapshot value; do not show any per-exercise resume prompt.
+- [x] Update existing `WorkoutSessionViewModelTests` and `ActiveSessionBackupTests` for the new state shape.
+- [x] Add three new tests:
   - `finishExercise` advances `currentExerciseIndex` to the next unfinished section.
   - Restore recomputes `currentExerciseIndex` to the first unfinished section.
   - Completing set N copies actual weight/reps to set N+1 in the same exercise.
@@ -354,7 +356,15 @@ xcodebuild -project Gymbros.xcodeproj -scheme Gymbros -destination 'platform=iOS
 xcodebuild test -project Gymbros.xcodeproj -scheme Gymbros -destination 'platform=iOS Simulator,name=iPhone 17e' -only-testing:GymbrosTests/WorkoutSessionViewModelTests -only-testing:GymbrosTests/ActiveSessionBackupTests
 ```
 
-**Handoff notes:** Add when complete.
+**Handoff notes:** F3 is implemented in the data/ViewModel/test layer. `WorkoutSessionData` now stores `currentExerciseIndex`; `WorkoutExerciseSection` stores finish state, `finishedAt`, and `defaultWeight`; `ActiveSessionSnapshot.currentVersion` is `2` and persists `finishedExerciseIds`, `currentExerciseIndex`, and `defaultWeights`. `WorkoutSessionViewModel` now exposes `goToExercise(index:)` and `finishExercise(programExerciseId:)`, starts set 1 from target/last-logged default weight, leaves later sets blank until previous actuals are carried forward, does not auto-advance on set completion, requires all sections to be finished before session finish, and restores to the first unfinished section. `WorkoutRepositoryProviding.fetchLastLoggedSet(exerciseId:before:)` is implemented against `workout_sets` with `completed_at < before`, descending order, and `limit(1)`.
+
+Targeted tests were expanded for target-weight defaults, last-logged fallback, lookup failure fallback, carry-forward without RPE, no auto-advance on set completion, finish exercise gating/advance, restore index recompute, and backup round trip fields. Verification attempted:
+
+```bash
+xcodebuild test -project Gymbros.xcodeproj -scheme Gymbros -destination 'platform=iOS Simulator,name=iPhone 17e' -only-testing:GymbrosTests/WorkoutSessionViewModelTests -only-testing:GymbrosTests/ActiveSessionBackupTests
+```
+
+Result: blocked before F3 tests could run by unrelated top-level syntax errors in `Gymbros/Presentation/Programs/ExercisePickerView.swift` and `Gymbros/Presentation/Programs/ProgramDetailView.swift`. F3-owned files passed `swiftc -parse` and `git diff --check`.
 
 ---
 

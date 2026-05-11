@@ -93,7 +93,10 @@ extension WorkoutSessionData {
         let section = WorkoutExerciseSection(
             programExercise: programExercise,
             exercise: exercise,
-            sets: sets
+            sets: sets,
+            isFinished: false,
+            finishedAt: nil,
+            defaultWeight: 60
         )
         
         return WorkoutSessionData(
@@ -101,7 +104,8 @@ extension WorkoutSessionData {
             day: day,
             exerciseSections: [section],
             exerciseLookup: [exerciseId: exercise],
-            startedAt: Date()
+            startedAt: Date(),
+            currentExerciseIndex: 0
         )
     }
 
@@ -131,7 +135,8 @@ extension WorkoutSessionData {
             day: day,
             exerciseSections: [],
             exerciseLookup: [:],
-            startedAt: Date()
+            startedAt: Date(),
+            currentExerciseIndex: 0
         )
     }
 }

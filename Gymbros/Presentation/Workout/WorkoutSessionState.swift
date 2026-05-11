@@ -6,12 +6,16 @@ struct WorkoutSessionData: Equatable {
     var exerciseSections: [WorkoutExerciseSection]
     var exerciseLookup: [UUID: Exercise]
     var startedAt: Date
+    var currentExerciseIndex: Int
 }
 
 struct WorkoutExerciseSection: Identifiable, Equatable {
     var programExercise: ProgramExercise
     var exercise: Exercise?
     var sets: [WorkoutSetRowState]
+    var isFinished: Bool
+    var finishedAt: Date?
+    var defaultWeight: Double?
 
     var id: UUID { programExercise.id }
 }

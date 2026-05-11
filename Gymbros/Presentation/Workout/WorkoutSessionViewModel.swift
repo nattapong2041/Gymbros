@@ -64,14 +64,18 @@ final class WorkoutSessionViewModel {
             let startedAt = now()
             let session = try await workoutRepository.createSession(programDayId: programDayId, startedAt: startedAt)
             let exerciseLookup = Dictionary(uniqueKeysWithValues: exercises.map { ($0.id, $0) })
-            let rowStates = Self.makeInitialRows(from: orderedProgramExercises)
+            let defaultWeights = await resolveDefaultWeights(for: orderedProgramExercises, before: startedAt)
+            let rowStates = Self.makeInitialRows(from: orderedProgramExercises, defaultWeights: defaultWeights)
             setSuccess(
                 session: session,
                 day: day,
                 programExercises: orderedProgramExercises,
                 exerciseLookup: exerciseLookup,
                 rowStates: rowStates,
-                startedAt: startedAt
+                startedAt: startedAt,
+                currentExerciseIndex: 0,
+                finishedExerciseIds: [],
+                defaultWeights: defaultWeights
             )
             saveBackup()
         } catch {
@@ -93,14 +97,20 @@ final class WorkoutSessionViewModel {
 
         pendingRestore = nil
         activeTimer = snapshot.activeTimer
+        let finishedExerciseIds = Set(snapshot.finishedExerciseIds)
+        let defaultWeights = snapshot.defaultWeights ?? [:]
         setSuccess(
             session: snapshot.session,
             day: snapshot.day,
             programExercises: snapshot.programExercises,
             exerciseLookup: snapshot.exerciseLookup,
             rowStates: snapshot.rowStates.map(WorkoutSetRowState.init(snapshot:)),
-            startedAt: snapshot.session.startedAt
+            startedAt: snapshot.session.startedAt,
+            currentExerciseIndex: 0,
+            finishedExerciseIds: finishedExerciseIds,
+            defaultWeights: defaultWeights
         )
+        moveToFirstUnfinishedExercise()
         saveBackup()
     }
 
@@ -135,10 +145,7 @@ final class WorkoutSessionViewModel {
             return
         }
 
-        updateRow(setId: setId, save: true) { row in
-            row.isCompleted = true
-            row.syncState = .uploading
-        }
+        markSetUploadingAndCarryForward(setId: setId, sourceRow: row)
         if let targetRestSeconds = row.targetRestSeconds, targetRestSeconds > 0 {
             startRestTimer(seconds: targetRestSeconds, sourceSetId: setId)
         }
@@ -193,6 +200,37 @@ final class WorkoutSessionViewModel {
         saveBackup()
     }
 
+    func goToExercise(index: Int) {
+        guard case var .success(data) = state, data.exerciseSections.isEmpty == false else {
+            transientError = .notFound
+            return
+        }
+        data.currentExerciseIndex = min(max(index, 0), data.exerciseSections.count - 1)
+        state = .success(data)
+        saveBackup()
+    }
+
+    func finishExercise(programExerciseId: UUID) async {
+        guard case var .success(data) = state else {
+            transientError = .notFound
+            return
+        }
+        guard let sectionIndex = data.exerciseSections.firstIndex(where: { $0.programExercise.id == programExerciseId }) else {
+            transientError = .notFound
+            return
+        }
+        guard data.exerciseSections[sectionIndex].sets.contains(where: { $0.isCompleted && $0.syncState == .uploaded }) else {
+            transientError = .validation(.missingRequiredField)
+            return
+        }
+
+        data.exerciseSections[sectionIndex].isFinished = true
+        data.exerciseSections[sectionIndex].finishedAt = now()
+        data.currentExerciseIndex = nextUnfinishedExerciseIndex(after: sectionIndex, in: data) ?? sectionIndex
+        state = .success(data)
+        saveBackup()
+    }
+
     func deleteSet(setId: UUID) async {
         guard case var .success(data) = state else {
             transientError = .notFound
@@ -242,7 +280,8 @@ final class WorkoutSessionViewModel {
             return
         }
         guard isFinishing == false else { return }
-        guard data.exerciseSections.flatMap(\.sets).contains(where: { $0.isCompleted }) else {
+        guard data.exerciseSections.isEmpty == false,
+              data.exerciseSections.allSatisfy(\.isFinished) else {
             transientError = .validation(.missingRequiredField)
             return
         }
@@ -277,7 +316,10 @@ final class WorkoutSessionViewModel {
         }
     }
 
-    private static func makeInitialRows(from programExercises: [ProgramExercise]) -> [WorkoutSetRowState] {
+    private static func makeInitialRows(
+        from programExercises: [ProgramExercise],
+        defaultWeights: [UUID: Double]
+    ) -> [WorkoutSetRowState] {
         programExercises.flatMap { programExercise in
             (1...max(programExercise.targetSets, 1)).map { setNumber in
                 WorkoutSetRowState(
@@ -285,8 +327,8 @@ final class WorkoutSessionViewModel {
                     exerciseId: programExercise.exerciseId,
                     programExerciseId: programExercise.id,
                     setNumber: setNumber,
-                    weightText: "",
-                    repsText: "\(programExercise.targetRepsMin)",
+                    weightText: setNumber == 1 ? Self.formatWeight(defaultWeights[programExercise.id]) : "",
+                    repsText: setNumber == 1 ? "\(programExercise.targetRepsMin)" : "",
                     rpe: nil,
                     targetRestSeconds: programExercise.targetRestSeconds,
                     syncState: .pending,
@@ -294,6 +336,30 @@ final class WorkoutSessionViewModel {
                 )
             }
         }
+    }
+
+    private func resolveDefaultWeights(
+        for programExercises: [ProgramExercise],
+        before date: Date
+    ) async -> [UUID: Double] {
+        var defaultWeights: [UUID: Double] = [:]
+        for programExercise in programExercises {
+            if let targetWeight = programExercise.targetWeight {
+                defaultWeights[programExercise.id] = targetWeight
+                continue
+            }
+            do {
+                if let lastSet = try await workoutRepository.fetchLastLoggedSet(
+                    exerciseId: programExercise.exerciseId,
+                    before: date
+                ) {
+                    defaultWeights[programExercise.id] = lastSet.weight
+                }
+            } catch {
+                workoutLogger.debug("Failed to resolve last logged weight: \(String(describing: error))")
+            }
+        }
+        return defaultWeights
     }
 
     private func upload(_ set: WorkoutSet, setId: UUID) async {
@@ -349,14 +415,20 @@ final class WorkoutSessionViewModel {
         programExercises: [ProgramExercise],
         exerciseLookup: [UUID: Exercise],
         rowStates: [WorkoutSetRowState],
-        startedAt: Date
+        startedAt: Date,
+        currentExerciseIndex: Int,
+        finishedExerciseIds: Set<UUID>,
+        defaultWeights: [UUID: Double]
     ) {
         let rowsByProgramExerciseId = Dictionary(grouping: rowStates) { $0.programExerciseId }
         let sections = programExercises.map { programExercise in
             WorkoutExerciseSection(
                 programExercise: programExercise,
                 exercise: exerciseLookup[programExercise.exerciseId],
-                sets: renumbered(rowsByProgramExerciseId[programExercise.id] ?? [])
+                sets: renumbered(rowsByProgramExerciseId[programExercise.id] ?? []),
+                isFinished: finishedExerciseIds.contains(programExercise.id),
+                finishedAt: nil,
+                defaultWeight: defaultWeights[programExercise.id]
             )
         }
         state = .success(WorkoutSessionData(
@@ -364,7 +436,8 @@ final class WorkoutSessionViewModel {
             day: day,
             exerciseSections: sections,
             exerciseLookup: exerciseLookup,
-            startedAt: startedAt
+            startedAt: startedAt,
+            currentExerciseIndex: sections.isEmpty ? 0 : min(max(currentExerciseIndex, 0), sections.count - 1)
         ))
     }
 
@@ -377,6 +450,11 @@ final class WorkoutSessionViewModel {
             exerciseLookup: data.exerciseLookup,
             rowStates: data.exerciseSections.flatMap(\.sets).map(ActiveSessionSetSnapshot.init(rowState:)),
             activeTimer: activeTimer,
+            finishedExerciseIds: data.exerciseSections.filter(\.isFinished).map(\.programExercise.id),
+            currentExerciseIndex: data.currentExerciseIndex,
+            defaultWeights: Dictionary(uniqueKeysWithValues: data.exerciseSections.compactMap { section in
+                section.defaultWeight.map { (section.programExercise.id, $0) }
+            }),
             updatedAt: now()
         )
         if case .failure(let error) = backupRepository.saveBackup(snapshot) {
@@ -417,6 +495,62 @@ final class WorkoutSessionViewModel {
         return data.exerciseSections.flatMap(\.sets).first { $0.id == setId }
     }
 
+    private func markSetUploadingAndCarryForward(setId: UUID, sourceRow: WorkoutSetRowState) {
+        guard case var .success(data) = state else { return }
+        for sectionIndex in data.exerciseSections.indices {
+            guard let rowIndex = data.exerciseSections[sectionIndex].sets.firstIndex(where: { $0.id == setId }) else {
+                continue
+            }
+            data.exerciseSections[sectionIndex].sets[rowIndex].isCompleted = true
+            data.exerciseSections[sectionIndex].sets[rowIndex].syncState = .uploading
+
+            if let nextIndex = data.exerciseSections[sectionIndex].sets[
+                data.exerciseSections[sectionIndex].sets.index(after: rowIndex)..<data.exerciseSections[sectionIndex].sets.endIndex
+            ].firstIndex(where: { $0.isCompleted == false }),
+               shouldCarryForward(to: data.exerciseSections[sectionIndex].sets[nextIndex], in: data.exerciseSections[sectionIndex]) {
+                data.exerciseSections[sectionIndex].sets[nextIndex].weightText = sourceRow.weightText
+                data.exerciseSections[sectionIndex].sets[nextIndex].repsText = sourceRow.repsText
+            }
+
+            state = .success(data)
+            saveBackup()
+            return
+        }
+    }
+
+    private func shouldCarryForward(to row: WorkoutSetRowState, in section: WorkoutExerciseSection) -> Bool {
+        let isBlank = row.weightText.isEmpty && row.repsText.isEmpty
+        let matchesInitial = row.weightText == initialWeightText(for: row, in: section)
+            && row.repsText == initialRepsText(for: row, in: section)
+        return isBlank || matchesInitial
+    }
+
+    private func initialWeightText(for row: WorkoutSetRowState, in section: WorkoutExerciseSection) -> String {
+        row.setNumber == 1 ? Self.formatWeight(section.defaultWeight) : ""
+    }
+
+    private func initialRepsText(for row: WorkoutSetRowState, in section: WorkoutExerciseSection) -> String {
+        row.setNumber == 1 ? "\(section.programExercise.targetRepsMin)" : ""
+    }
+
+    private func moveToFirstUnfinishedExercise() {
+        guard case var .success(data) = state,
+              let firstUnfinishedIndex = data.exerciseSections.firstIndex(where: { $0.isFinished == false }) else {
+            return
+        }
+        data.currentExerciseIndex = firstUnfinishedIndex
+        state = .success(data)
+    }
+
+    private func nextUnfinishedExerciseIndex(after index: Int, in data: WorkoutSessionData) -> Int? {
+        let followingIndex = data.exerciseSections.index(after: index)
+        if followingIndex < data.exerciseSections.endIndex,
+           let next = data.exerciseSections[followingIndex...].firstIndex(where: { $0.isFinished == false }) {
+            return next
+        }
+        return data.exerciseSections.firstIndex(where: { $0.isFinished == false })
+    }
+
     private func renumbered(_ rows: [WorkoutSetRowState]) -> [WorkoutSetRowState] {
         rows.enumerated().map { index, row in
             var updated = row
@@ -427,6 +561,10 @@ final class WorkoutSessionViewModel {
 
     private func appError(_ error: Error, operation: String) -> AppError {
         ErrorMapper.map(error, context: .init(operation: operation))
+    }
+
+    private static func formatWeight(_ value: Double?) -> String {
+        value?.formatted(.number.precision(.fractionLength(0...2))) ?? ""
     }
 }
 

@@ -18,6 +18,9 @@ struct ActiveSessionBackupTests {
         let restored = try successValue(store.load())
 
         #expect(restored == snapshot)
+        #expect(restored.finishedExerciseIds == [ProgramSamples.benchProgramExerciseId])
+        #expect(restored.currentExerciseIndex == 1)
+        #expect(restored.defaultWeights?[ProgramSamples.benchProgramExerciseId] == 80)
     }
 
     @Test func versionMismatchReturnsDecodingError() throws {
@@ -82,6 +85,9 @@ func makeSnapshot() -> ActiveSessionSnapshot {
             startedAt: ProgramSamples.createdAt,
             endsAt: ProgramSamples.createdAt.addingTimeInterval(90)
         ),
+        finishedExerciseIds: [ProgramSamples.benchProgramExerciseId],
+        currentExerciseIndex: 1,
+        defaultWeights: [ProgramSamples.benchProgramExerciseId: 80],
         updatedAt: ProgramSamples.createdAt
     )
 }

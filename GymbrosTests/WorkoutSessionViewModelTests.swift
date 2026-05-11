@@ -14,8 +14,55 @@ struct WorkoutSessionViewModelTests {
         let data = try successValue(viewModel.state)
         #expect(workoutRepository.createdSessions.map(\.programDayId) == [ProgramSamples.upperDayId])
         #expect(data.exerciseSections.count == 1)
+        #expect(data.currentExerciseIndex == 0)
+        #expect(data.exerciseSections[0].defaultWeight == 60)
         #expect(data.exerciseSections[0].sets.count == ProgramSamples.benchProgramExercise.targetSets)
-        #expect(data.exerciseSections[0].sets.map(\.repsText) == ["8", "8", "8"])
+        #expect(data.exerciseSections[0].sets.map(\.weightText) == ["60", "", ""])
+        #expect(data.exerciseSections[0].sets.map(\.repsText) == ["8", "", ""])
+    }
+
+    @Test func startFallsBackToLastLoggedWeightWhenTargetWeightIsNil() async throws {
+        let workoutRepository = FakeWorkoutRepository()
+        workoutRepository.lastLoggedSets[ProgramSamples.squatExerciseId] = WorkoutSet(
+            id: UUID(),
+            sessionId: workoutRepository.session.id,
+            exerciseId: ProgramSamples.squatExerciseId,
+            programExerciseId: ProgramSamples.squatProgramExerciseId,
+            setNumber: 1,
+            weight: 102.5,
+            reps: 5,
+            rpe: nil,
+            targetRestSeconds: nil,
+            actualRestSeconds: nil,
+            restStartedAt: nil,
+            restEndedAt: nil,
+            completedAt: ProgramSamples.createdAt.addingTimeInterval(-86_400),
+            notes: nil
+        )
+        let programRepository = FakeWorkoutProgramRepository()
+        programRepository.programExercises = [ProgramSamples.squatProgramExercise]
+        let viewModel = makeViewModel(workoutRepository: workoutRepository, programRepository: programRepository)
+
+        await viewModel.start(programDayId: ProgramSamples.lowerDayId)
+
+        let section = try #require(successValue(viewModel.state).exerciseSections.first)
+        #expect(section.defaultWeight == 102.5)
+        #expect(section.sets.map(\.weightText) == ["102.5", "", ""])
+    }
+
+    @Test func startContinuesWithBlankDefaultWhenLastLoggedLookupFails() async throws {
+        let workoutRepository = FakeWorkoutRepository()
+        workoutRepository.lastLoggedSetError = .network(.offline)
+        let programRepository = FakeWorkoutProgramRepository()
+        programRepository.programExercises = [ProgramSamples.squatProgramExercise]
+        let viewModel = makeViewModel(workoutRepository: workoutRepository, programRepository: programRepository)
+
+        await viewModel.start(programDayId: ProgramSamples.lowerDayId)
+
+        let section = try #require(successValue(viewModel.state).exerciseSections.first)
+        #expect(section.defaultWeight == nil)
+        #expect(section.sets.map(\.weightText) == ["", "", ""])
+        #expect(viewModel.transientError == nil)
     }
 
     @Test func invalidSetValidationAvoidsUpload() async throws {
@@ -79,6 +126,81 @@ struct WorkoutSessionViewModelTests {
         #expect(workoutRepository.uploadedSets.count == 2)
     }
 
+    @Test func completeSetCopiesActualWeightAndRepsToNextUnmodifiedRowWithoutRPE() async throws {
+        let viewModel = makeViewModel()
+
+        await viewModel.start(programDayId: ProgramSamples.upperDayId)
+        let row = try firstRow(viewModel)
+        await viewModel.updateDraft(setId: row.id, weightText: "82.5", repsText: "9", rpe: 8.5)
+        await viewModel.completeSet(setId: row.id)
+
+        let sets = try successValue(viewModel.state).exerciseSections[0].sets
+        #expect(sets[1].weightText == "82.5")
+        #expect(sets[1].repsText == "9")
+        #expect(sets[1].rpe == nil)
+    }
+
+    @Test func completeSetDoesNotChangeCurrentExerciseIndex() async throws {
+        let programRepository = FakeWorkoutProgramRepository()
+        programRepository.programExercises = [ProgramSamples.benchProgramExercise, ProgramSamples.squatProgramExercise]
+        let viewModel = makeViewModel(programRepository: programRepository)
+
+        await viewModel.start(programDayId: ProgramSamples.upperDayId)
+        viewModel.goToExercise(index: 1)
+        let row = try successValue(viewModel.state).exerciseSections[1].sets[0]
+        await viewModel.updateDraft(setId: row.id, weightText: "100", repsText: "5", rpe: nil)
+        await viewModel.completeSet(setId: row.id)
+
+        #expect(try successValue(viewModel.state).currentExerciseIndex == 1)
+    }
+
+    @Test func finishExerciseMarksFinishedAndAdvancesToNextUnfinished() async throws {
+        let programRepository = FakeWorkoutProgramRepository()
+        programRepository.programExercises = [ProgramSamples.benchProgramExercise, ProgramSamples.squatProgramExercise]
+        let viewModel = makeViewModel(programRepository: programRepository)
+
+        await viewModel.start(programDayId: ProgramSamples.upperDayId)
+        let row = try successValue(viewModel.state).exerciseSections[0].sets[0]
+        await viewModel.updateDraft(setId: row.id, weightText: "80", repsText: "8", rpe: nil)
+        await viewModel.completeSet(setId: row.id)
+        await viewModel.finishExercise(programExerciseId: ProgramSamples.benchProgramExerciseId)
+
+        let data = try successValue(viewModel.state)
+        #expect(data.exerciseSections[0].isFinished)
+        #expect(data.exerciseSections[0].finishedAt == ProgramSamples.createdAt)
+        #expect(data.currentExerciseIndex == 1)
+    }
+
+    @Test func finishExerciseRejectsSectionWithoutUploadedSet() async throws {
+        let viewModel = makeViewModel()
+
+        await viewModel.start(programDayId: ProgramSamples.upperDayId)
+        await viewModel.finishExercise(programExerciseId: ProgramSamples.benchProgramExerciseId)
+
+        #expect(viewModel.transientError == .validation(.missingRequiredField))
+        #expect(try successValue(viewModel.state).exerciseSections[0].isFinished == false)
+    }
+
+    @Test func restoreMovesToFirstUnfinishedExercise() async throws {
+        var snapshot = makeSnapshot()
+        snapshot.programExercises = [ProgramSamples.benchProgramExercise, ProgramSamples.squatProgramExercise]
+        snapshot.finishedExerciseIds = [ProgramSamples.benchProgramExerciseId]
+        snapshot.currentExerciseIndex = 0
+        snapshot.defaultWeights = [
+            ProgramSamples.benchProgramExerciseId: 60,
+            ProgramSamples.squatProgramExerciseId: 100
+        ]
+        let viewModel = makeViewModel()
+
+        await viewModel.restore(snapshot)
+
+        let data = try successValue(viewModel.state)
+        #expect(data.exerciseSections[0].isFinished)
+        #expect(data.exerciseSections[1].isFinished == false)
+        #expect(data.exerciseSections[1].defaultWeight == 100)
+        #expect(data.currentExerciseIndex == 1)
+    }
+
     @Test func finishDoesNotClearBackupWhenCompletionFails() async throws {
         let workoutRepository = FakeWorkoutRepository()
         let backupRepository = FakeBackupRepository()
@@ -88,6 +210,7 @@ struct WorkoutSessionViewModelTests {
         let row = try firstRow(viewModel)
         await viewModel.updateDraft(setId: row.id, weightText: "80", repsText: "8", rpe: nil)
         await viewModel.completeSet(setId: row.id)
+        await viewModel.finishExercise(programExerciseId: ProgramSamples.benchProgramExerciseId)
         workoutRepository.completeSessionError = .network(.offline)
         await viewModel.finishSession()
 
@@ -105,6 +228,7 @@ struct WorkoutSessionViewModelTests {
         let row = try firstRow(viewModel)
         await viewModel.updateDraft(setId: row.id, weightText: "80", repsText: "8", rpe: nil)
         await viewModel.completeSet(setId: row.id)
+        await viewModel.finishExercise(programExerciseId: ProgramSamples.benchProgramExerciseId)
         await viewModel.finishSession()
 
         #expect(backupRepository.clearCount == 1)
@@ -126,11 +250,12 @@ struct WorkoutSessionViewModelTests {
 
     private func makeViewModel(
         workoutRepository: FakeWorkoutRepository? = nil,
+        programRepository: FakeWorkoutProgramRepository? = nil,
         backupRepository: FakeBackupRepository? = nil
     ) -> WorkoutSessionViewModel {
         WorkoutSessionViewModel(
             workoutRepository: workoutRepository ?? FakeWorkoutRepository(),
-            programRepository: FakeWorkoutProgramRepository(),
+            programRepository: programRepository ?? FakeWorkoutProgramRepository(),
             exerciseRepository: FakeWorkoutExerciseRepository(),
             backupRepository: backupRepository ?? FakeBackupRepository(),
             now: { ProgramSamples.createdAt }
@@ -168,8 +293,10 @@ private final class FakeWorkoutRepository: WorkoutRepositoryProviding {
     var uploadedSets: [WorkoutSet] = []
     var deletedSetIds: [UUID] = []
     var completedSessions: [(sessionId: UUID, endedAt: Date)] = []
+    var lastLoggedSets: [UUID: WorkoutSet] = [:]
     var nextUploadError: AppError?
     var completeSessionError: AppError?
+    var lastLoggedSetError: AppError?
 
     func createSession(programDayId: UUID, startedAt: Date) async throws -> WorkoutSession {
         createdSessions.append((programDayId, startedAt))
@@ -201,6 +328,13 @@ private final class FakeWorkoutRepository: WorkoutRepositoryProviding {
             throw completeSessionError
         }
         completedSessions.append((sessionId, endedAt))
+    }
+
+    func fetchLastLoggedSet(exerciseId: UUID, before: Date) async throws -> WorkoutSet? {
+        if let lastLoggedSetError {
+            throw lastLoggedSetError
+        }
+        return lastLoggedSets[exerciseId]
     }
 
     func fetchHistory(limit: Int) async throws -> [WorkoutSession] {
