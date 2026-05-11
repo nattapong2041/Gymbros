@@ -282,17 +282,24 @@ SwiftUI native design system. No Figma for V1. Paper sketches or quick reference
 ### Color Strategy
 
 ```text
-Base:
-  SwiftUI semantic colors
-  .systemBackground
-  .secondarySystemBackground
-  .primary
-  .secondary
-
-Custom:
+Custom (the only two named colors allowed):
   AccentColor → electric lime #C8FF00
   GymPurple   → #9B7FE8
+
+Each named color provides explicit Any-appearance and Dark-appearance
+variants in Assets.xcassets. Tune both for WCAG AA on body text.
+
+Everything else:
+  SwiftUI semantic colors only.
+  .primary, .secondary
+  .systemBackground, .secondarySystemBackground
+  .red and other system colors where semantic
+  No additional named colors.
+  No hex literals in code.
+  No Color(red:green:blue:) in code.
 ```
+
+Note: the earlier `Color.gymAccentText` helper has been retired. Use `Color.gymAccent` directly (its dark-mode variant in the asset catalog handles light/dark readability) or `.primary`/`.secondary` where appropriate.
 
 ### Color Semantic Map
 
@@ -554,25 +561,44 @@ App Store: phase-level releases
 **Effort:** Complex
 
 ```text
-Spec: /specs/S03-logger-timer.md
+Spec: .claude/sprints/S03-logger-timer/spec.md
 
-☐ WorkoutSessionView
+☐ WorkoutSessionView as a paged TabView, one exercise per page
+☐ WorkoutExercisePageView per exercise: header, set list, Add Set, Finish Exercise
+☐ Top progress header: Day name · X / N · K done
 ☐ WorkoutSessionViewModel with in-memory active session
-☐ ActiveSessionBackup using UserDefaults JSON
+☐ ActiveSessionBackup using UserDefaults JSON (versioned, includes
+  finishedExerciseIds and currentExerciseIndex)
+☐ Per-exercise default weight from ProgramExercise.targetWeight (new column)
+  → last-logged fallback → blank
+☐ Set 1 pre-fills from default weight; set 2+ pre-fills weight and reps from
+  the previous set's actual logged values
 ☐ SetRowView: weight + reps + RPE + checkbox
 ☐ Add set, copy last values
 ☐ Swipe/delete set
 ☐ Background async upload per set
-☐ RestTimerRingView with haptic
-☐ Finish session → mark complete → clear backup
-☐ Crash recovery “Restore?” prompt
+☐ RestTimerRingView with haptic — triggers on set completion
+☐ Free swipe between unfinished exercise pages (supports supersets /
+  alternating exercises informally; no formal grouping in Sprint 3)
+☐ Finish Exercise locks the page, marks it finished, and auto-advances to
+  the next unfinished page
+☐ Finished pages are read-only for the rest of the session — no resume prompt
+☐ Finish Workout enables only when every exercise is finished
+☐ Finish session → mark complete remotely → clear backup
+☐ Session-level Restore prompt only; restore jumps to the first unfinished
+  exercise
 
 Important scope note:
   Do NOT include HealthKit in Sprint 3.
   Sprint 3 must prove reliable logging first.
+  Editing past sets of a finished exercise is deferred to History (Sprint 4+).
+  Formal superset grouping (group_id paired pages) is deferred.
 
 Done:
-  User can log a complete workout, finish it, and restore after crash/relaunch.
+  User can log a complete workout one exercise at a time, swipe freely
+  between unfinished exercises for supersets, finish each exercise to lock it,
+  finish the workout when all exercises are done, and restore mid-session
+  after a crash/relaunch.
 ```
 
 ---
@@ -1025,6 +1051,8 @@ RPE ≥ 9:
 3× same weight+reps without progress:
   stall detected
 ```
+
+Sprint 3 scope: only carry actual weight/reps forward within an exercise (set N → set N+1). Smart cross-session progression suggestions are Sprint 5+.
 
 ---
 
@@ -1700,6 +1728,10 @@ Parallel worktrees:
 | Release cadence | Sprint→TestFlight, phase→App Store | Every sprint App Store | Lower review/marketing overhead |
 | Accent color | #C8FF00 lime | Many colors | Distinct gym energy |
 | Secondary color | #9B7FE8 purple | None | Comeback/PR/deload semantics |
+| Sprint 3 logger UI | Paged one-exercise-at-a-time + per-exercise finish | Single-scroll sectioned list | Clearer "show next exercise" product flow |
+| Sprint 3 supersets | Free-swipe between unfinished pages | Formal group_id paired pages | Supports superset/alternating workflows without expanding Sprint 3 scope |
+| Sprint 3 default weight | Add nullable program_exercises.target_weight column | Derive only from history | Lets users set a starting weight per exercise; history is a fallback |
+| Custom colors policy | Only AccentColor + GymPurple, each with light/dark asset variants | Helper variants like gymAccentText, ad-hoc hex literals | One clear color contract; system handles light/dark via the asset catalog |
 
 ---
 
@@ -1723,11 +1755,28 @@ Parallel worktrees:
 ☐ lb toggle timing
   kg default confirmed
   lb toggle likely needed before international scale
+
+☐ Formal superset grouping
+  Sprint 3 supports supersets via free-swipe between pages.
+  A future sprint may add explicit group_id pairing for true alternating
+  set rounds (A1 → B1 → rest → A2 → B2).
+  Decide based on user feedback after Sprint 3 ships.
 ```
 
 ---
 
 ## 19. Decision Log
+
+### 2026-05-11 — Sprint 3 realignment
+
+- Reframed Sprint 3 logger as a paged, one-exercise-at-a-time flow with per-exercise finish.
+- Free swipe between unfinished exercise pages supports supersets and alternating workflows without modeling them formally.
+- Added `program_exercises.target_weight` (nullable) as the per-exercise default weight source; fallback chain at session start is `targetWeight` → last-logged weight → blank.
+- Set 2+ pre-fills weight and reps from the previous set's **actual** logged values; RPE stays blank per set.
+- Resume on relaunch is session-level only; restore jumps to the first unfinished exercise. Finished exercise pages never prompt resume and are read-only for the remainder of the session.
+- Editing past sets of finished exercises deferred to History (Sprint 4+).
+- Formal superset grouping (paired pages with a `group_id` column) deferred — added to Open Decisions.
+- Tightened color rules: only `AccentColor` and `GymPurple`, each with explicit light/dark variants in `Assets.xcassets`. Retired `Color.gymAccentText`.
 
 ### 2026-05-11 — Source-of-truth consolidation
 

@@ -22,17 +22,35 @@
 ### Must Have
 
 ```text
-✓ WorkoutSessionView for one program day
+✓ WorkoutSessionView as a paged TabView, one exercise per page
+✓ WorkoutExercisePageView per exercise with header, set list, Add Set, and
+  Finish Exercise
+✓ Top progress header: Day name · X / N · K done
+✓ Free swipe between unfinished exercise pages (supports supersets and
+  alternating workouts informally; no formal grouping in Sprint 3)
+✓ Per-exercise default weight resolves from ProgramExercise.targetWeight →
+  last-logged fallback → blank
+✓ Set 1 weight pre-fills from default weight
+✓ Set 2+ pre-fills weight and reps from the previous set's actual logged
+  values (RPE stays blank per set)
+✓ Finish Exercise locks the page, sets isFinished and finishedAt, and
+  auto-advances to the next unfinished page
+✓ Finished exercise pages are read-only for the rest of the session;
+  no resume prompt when tapped
+✓ Finish Workout enables only when every exercise is finished
 ✓ Concrete WorkoutSessionViewModel using @Observable
 ✓ In-memory active session state while the app is running
-✓ ActiveSessionBackup using Codable JSON in UserDefaults
-✓ Crash/relaunch recovery prompt with Restore and Discard actions
+✓ ActiveSessionBackup using Codable JSON in UserDefaults (versioned,
+  includes finishedExerciseIds and currentExerciseIndex)
+✓ Session-level Crash/relaunch recovery prompt with Restore and Discard
+  actions; Restore lands on the first unfinished exercise
 ✓ SetRowView with weight, reps, RPE, completion, and sync status
 ✓ Add set per exercise, copying the previous set values when available
 ✓ Swipe/delete an unneeded set
 ✓ Background async upload per completed set
 ✓ Retry failed set upload
-✓ RestTimerRingView using target rest seconds from ProgramExercise
+✓ RestTimerRingView using target rest seconds from ProgramExercise;
+  triggers on set completion regardless of which page the user is on
 ✓ Haptic when rest timer completes
 ✓ Finish session waits for pending uploads, marks session complete, and clears backup
 ✓ All visible strings localized in Thai and English
@@ -48,12 +66,16 @@
 ✗ History screen
 ✗ Tab navigation
 ✗ Smart Comeback / Next Best Session Engine
-✗ Progressive overload suggestions
+✗ Cross-session progressive overload suggestions (intra-exercise carry-over only)
 ✗ Exercise substitution / defer / skip flows
 ✗ True offline-first sync queue
-✗ Database schema migrations
-✗ Editing completed historical sessions
+✗ Editing past sets of finished exercises in the active session
+  (handled by History in a later sprint)
+✗ Formal superset grouping (paired pages with a group_id column) —
+  Sprint 3 supports supersets via free-swipe between unfinished pages
 ```
+
+Note: Sprint 3 does add **one** schema change — `program_exercises.target_weight` (nullable). This is the only schema change in Sprint 3 and is subject to the Data Safety approval rule in `CLAUDE.md`.
 
 ---
 
@@ -101,6 +123,19 @@ Task 0 locks these shared decisions before parallel work starts:
 - All repository errors crossing into ViewModels must be `AppError`.
 - Task 4 owns runtime wiring from `DayBuilderView` to `WorkoutSessionView`.
 
+Additions (Realignment 2026-05-11):
+
+- `WorkoutSessionData` gains `currentExerciseIndex: Int`.
+- `WorkoutExerciseSection` gains `isFinished: Bool`, `finishedAt: Date?`, and `defaultWeight: Double?`.
+- `ActiveSessionSnapshot` gains `finishedExerciseIds: [UUID]` and `currentExerciseIndex: Int`.
+- The logger uses a paged `TabView` (`.tabViewStyle(.page(indexDisplayMode: .never))`) with one `WorkoutExercisePageView` per exercise.
+- Set completion does **not** advance the page. Only the explicit `finishExercise(programExerciseId:)` action advances `currentExerciseIndex`.
+- Free swipe between unfinished pages is the supported superset/alternating UX.
+- Restore recomputes `currentExerciseIndex` to the first `!isFinished` section regardless of the saved value.
+- Default weight per exercise resolves at session start: `ProgramExercise.targetWeight` → last-logged weight for that exercise → blank.
+- Set 2+ weight and reps pre-fill from the previous set's actual logged values inside the same exercise. RPE is always blank per set.
+- Custom colors policy: only `Color.gymAccent` and `Color.gymPurple`; everything else is a SwiftUI semantic color. `Color.gymAccentText` is retired.
+
 ---
 
 ## 3. Product Flow
@@ -110,9 +145,13 @@ Sprint 4 will introduce Today navigation. Sprint 3 uses a temporary start path f
 ```text
 ProgramListView
 → ProgramDetailView
-→ DayBuilderView
+→ DayBuilderView (with target_weight per program exercise)
 → Start Workout
-→ WorkoutSessionView
+→ WorkoutSessionView (paged TabView)
+      page 1: Exercise A — log sets → Finish Exercise
+      page 2: Exercise B — log sets → Finish Exercise
+      ...
+      all finished → Finish Workout enabled
 ```
 
 Rules:
@@ -120,8 +159,11 @@ Rules:
 - Show Start Workout only when the day has at least one exercise.
 - Starting creates a `workout_sessions` row immediately.
 - If an unfinished local backup exists, show Restore / Discard before allowing a new session.
-- Restoring opens the saved session state.
+- Restoring opens the saved session state and lands on the first unfinished exercise page.
 - Discarding clears the local backup and may optionally delete the remote incomplete session if the repository supports it safely.
+- Within a session, the user can swipe freely between any unfinished exercise pages (supports supersets and alternating workflows).
+- Finished pages remain swipable but become read-only — no resume prompt, no edit affordance.
+- Finish Workout becomes available only when every exercise on the day is marked finished.
 
 ---
 
@@ -152,6 +194,8 @@ final class WorkoutSessionViewModel {
     func deleteSet(setId: UUID) async
     func startRestTimer(seconds: Int, sourceSetId: UUID)
     func stopRestTimer()
+    func finishExercise(programExerciseId: UUID) async
+    func goToExercise(index: Int)
     func finishSession() async
 }
 ```
@@ -168,6 +212,7 @@ day: ProgramDay
 exerciseSections: [WorkoutExerciseSection]
 exerciseLookup: [UUID: Exercise]
 startedAt: Date
+currentExerciseIndex: Int   // 0-based; drives TabView page selection
 ```
 
 `WorkoutExerciseSection`:
@@ -176,6 +221,9 @@ startedAt: Date
 programExercise: ProgramExercise
 exercise: Exercise?
 sets: [WorkoutSetRowState]
+isFinished: Bool
+finishedAt: Date?
+defaultWeight: Double?       // resolved: targetWeight → last-logged → nil
 ```
 
 `WorkoutSetRowState`:
@@ -213,10 +261,13 @@ isComplete: Bool
 - Fetch `ProgramDay` by id.
 - Fetch its `ProgramExercise` rows and exercise metadata.
 - Insert one `workout_sessions` row with `user_id`, `program_day_id`, and `started_at`.
-- Create local draft rows for each exercise based on `target_sets`.
-- Each exercise starts with `target_sets` editable rows.
-- Initial weight is blank unless a previous value is available in local restored state.
-- Initial reps may default to `target_reps_min`.
+- Initialize `currentExerciseIndex = 0`.
+- For each `ProgramExercise`, resolve `defaultWeight`:
+  - First: `programExercise.targetWeight`.
+  - Else: most recent logged weight for that exercise from `WorkoutRepository` history.
+  - Else: nil (blank).
+- Create local draft rows for each exercise based on `target_sets`. Set 1's `weightText` = format(`defaultWeight`) or empty. Set 1 reps default to `target_reps_min`. Sets 2..N start blank — they pre-fill from the previous set's **actual** values at completion time.
+- Each exercise starts with `target_sets` editable rows, `isFinished = false`, `finishedAt = nil`.
 
 ### Completing A Set
 
@@ -228,6 +279,17 @@ isComplete: Bool
 - Upload the set in the background.
 - Show sync state per row.
 - Start rest timer using the row's `targetRestSeconds` when available.
+- Carry-over: if a next set row exists for the **same** exercise and that row is not yet completed and its `weightText`/`repsText` are blank or still match the default, copy the just-logged actual `weightText` and `repsText` into it. Do not copy RPE.
+- Set completion does **not** advance the TabView page.
+
+### Finish Exercise
+
+- Requires at least one set in the section to be `isCompleted == true` and `syncState == .uploaded`.
+- Sets `isFinished = true`, `finishedAt = now` on the section.
+- Save backup immediately.
+- Advance `currentExerciseIndex` to the next section where `isFinished == false`. If none, leave the index on the just-finished page.
+- Does not start a new rest timer (timers only fire on set completion).
+- After finishing, the page is read-only: no input edits, no Add Set, no Finish Exercise button, no resume prompt when the user swipes back.
 
 ### Add Set
 
@@ -245,8 +307,8 @@ isComplete: Bool
 
 ### Finish Session
 
+- Enabled only when every exercise section has `isFinished == true`.
 - Disable duplicate finish actions while finishing.
-- Validate that at least one set has been completed and uploaded or is uploadable.
 - Retry or wait for pending uploads before marking complete.
 - Call repository `completeSession(sessionId:endedAt:)`.
 - Clear local backup only after remote completion succeeds.
@@ -274,6 +336,9 @@ day: ProgramDay
 programExercises: [ProgramExercise]
 exerciseLookup: [UUID: Exercise]
 rowStates: [WorkoutSetRowState]
+finishedExerciseIds: [UUID]      // programExercise IDs marked finished
+currentExerciseIndex: Int        // last-known page; recomputed on restore
+defaultWeights: [UUID: Double]?  // per programExerciseId, resolved at start
 activeTimer: RestTimerState?
 updatedAt: Date
 ```
@@ -283,7 +348,10 @@ Rules:
 - Use a single key such as `activeWorkoutSessionBackup`.
 - Decode failure maps to `.decoding`; offer Discard.
 - Version mismatch offers Discard.
-- Backup after every meaningful local mutation.
+- Bumping the schema (new fields above) requires incrementing the `version` constant.
+- Backup after every meaningful local mutation (set complete, set add/delete, finish exercise, restore reconcile).
+- On restore, recompute `currentExerciseIndex` to the first section whose programExercise ID is **not** in `finishedExerciseIds`. Do not trust the saved index for navigation.
+- Tapping a finished exercise page after restore must not produce any resume prompt.
 - Clear backup after successful finish or explicit discard.
 - Do not store secrets or auth tokens in backup.
 
@@ -297,17 +365,33 @@ States:
 
 - loading: progress indicator
 - empty: no exercises in this day
-- success: exercise sections with set rows and finish action
+- success: paged `TabView` of `WorkoutExercisePageView` pages with a custom progress header and Finish Workout action
 - error: localized retry UI
-- restore prompt: Restore and Discard
+- restore prompt: Restore and Discard (session-level only)
 
 Success layout:
 
-- Navigation title uses the program day name.
-- Each exercise section shows exercise name and target prescription.
-- Each set row has editable weight, reps, optional RPE, completion checkbox/button, and sync status.
-- Add Set action appears per exercise.
-- Finish Workout action is prominent and disabled while finishing.
+- Custom header at the top: program day name • `X / N` progress (current page / total) • `K done` count (count of `isFinished == true` sections).
+- Below header: `TabView { ForEach exerciseSections } WorkoutExercisePageView`.
+  - `.tabViewStyle(.page(indexDisplayMode: .never))`.
+  - Selection bound to `currentExerciseIndex`.
+- Finish Workout action sits in the navigation bar trailing item. It is disabled while finishing **and** disabled until every section's `isFinished == true`.
+- Custom colors used: `Color.gymAccent` for primary actions / progress, `Color.gymPurple` for the "Finished" badge on completed pages. Everything else SwiftUI semantic.
+
+### WorkoutExercisePageView
+
+One per `WorkoutExerciseSection`. Layout:
+
+- Header: exercise name, target prescription `targetSets × targetRepsMin-targetRepsMax · targetRestSeconds s`, target weight (if any), notes.
+- Set list: `SetRowView` per row. Add Set button under the list.
+- Footer: Finish Exercise button.
+- Finished mode: when `isFinished == true`:
+  - All inputs disabled (including Add Set).
+  - Sync icons hidden (everything is uploaded by definition).
+  - Replace the Finish Exercise button with a non-interactive ✓ "Finished" badge tinted with `Color.gymPurple`.
+  - No resume prompt when the user swipes to this page.
+
+Each set row has editable weight, reps, optional RPE, completion checkbox/button, and sync status (except in finished mode). Add Set action appears per exercise (except in finished mode).
 
 ### SetRowView
 
@@ -377,6 +461,13 @@ workout.set.*
 workout.timer.*
 workout.finish.*
 workout.sync.*
+workout.exercise.finish
+workout.exercise.finished
+workout.exercise.next
+workout.exercise.target_weight
+workout.progress.count          // e.g. "%lld / %lld"
+workout.progress.done           // e.g. "%lld done"
+program.exercise.target_weight  // program-builder field label
 accessibility.workout.*
 ```
 
@@ -388,7 +479,7 @@ Include all titles, messages, buttons, errors, empty states, retry actions, time
 
 Automated tests:
 
-- backup encode/decode round trip
+- backup encode/decode round trip (including `finishedExerciseIds`, `currentExerciseIndex`)
 - backup version mismatch
 - set validation
 - add set copies previous values
@@ -398,19 +489,29 @@ Automated tests:
 - ViewModel upload failure and retry
 - finish does not clear backup when completion fails
 - finish clears backup when completion succeeds
+- `finishExercise` marks `isFinished = true` and advances `currentExerciseIndex` to the next unfinished section
+- restore recomputes `currentExerciseIndex` to the first `!isFinished` section even when the snapshot points elsewhere
+- completing set N copies its actual `weightText` and `repsText` (not RPE) into the unmodified set N+1 within the same exercise
+- default-weight resolution prefers `programExercise.targetWeight` over last-logged history, and falls back to blank when neither exists
 
 Manual smoke test:
 
 ```text
-1. Create or open a program day with exercises.
-2. Start workout.
-3. Complete multiple sets.
-4. Add and delete a set.
-5. Confirm rest timer appears and completes.
-6. Force relaunch before finishing.
-7. Restore the active session.
-8. Finish workout.
-9. Confirm backup is cleared and no restore prompt appears on next launch.
+1. Program builder: add two exercises with target weights
+   (e.g. Hammer Curl 12 kg, Rope Pushdown 25 kg).
+2. Start workout. First page shows Hammer Curl with set 1 weight pre-filled to 12.
+3. Log Hammer Curl set 1 at 14 kg (heavier than target). Rest timer starts.
+4. Swipe to Rope Pushdown. Log set 1 at 25 kg. Rest timer restarts.
+5. Swipe back to Hammer Curl. Set 2 weight pre-fills with 14 kg
+   (the actual from set 1). Log it.
+6. Complete all Hammer Curl sets. Tap Finish Exercise — page auto-advances
+   to the next unfinished page.
+7. Swipe back to Hammer Curl. Inputs are disabled, no Finish prompt,
+   no restore prompt.
+8. Force-relaunch mid Rope Pushdown. Restore prompt appears. Restore opens
+   Rope Pushdown directly.
+9. Finish all exercises. Finish Workout enables. Tap it. Backup cleared and
+   no restore prompt appears on next launch.
 ```
 
 Build/test:

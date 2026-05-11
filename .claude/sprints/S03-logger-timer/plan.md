@@ -8,11 +8,11 @@
 
 ## CURRENT STATUS
 
-**Status:** Tasks 1, 2, and 3 complete. ViewModel, data layer, UI components, and localization are implemented. Task 4 (Wiring) is ready to integrate and verify the full workout flow.
+**Status:** Tasks 0–3 complete (commit `754efff`). Spec realigned 2026-05-11 to a paged one-exercise-at-a-time flow with per-exercise finish, free-swipe between unfinished pages, and a new `program_exercises.target_weight` column. **Realignment Fix-up tasks F1–F6 are pending and block Task 4 (Wire + Verify).**
 
 **Done:**
-- Sprint 3 spec created at `.claude/sprints/S03-logger-timer/spec.md`.
-- Sprint 3 plan created at `.claude/sprints/S03-logger-timer/plan.md`.
+- Sprint 3 spec created at `.claude/sprints/S03-logger-timer/spec.md` and realigned 2026-05-11.
+- Sprint 3 plan created at `.claude/sprints/S03-logger-timer/plan.md` (this file).
 - Plan uses the no-protocol parallel strategy: spec + plan are the contract.
 - Task 0 spec lock completed: ViewModel/state shapes, repository contract, localization key families, and ownership boundaries are confirmed.
 - Task 1 implemented `WorkoutRepositoryProviding`, repository session/set methods, `WorkoutSessionViewModel`, `WorkoutSessionState`, `ActiveSessionBackupStore`, and focused Swift Testing coverage.
@@ -23,19 +23,29 @@
 
 **Last commit SHA:** 754efff
 
+**Realignment 2026-05-11 — deltas to apply before Task 4 wiring:**
+- Add nullable `program_exercises.target_weight` (schema + Swift model + builder UI).
+- Refactor `WorkoutSessionView` from sectioned scroll to paged `TabView`, one exercise per page; extract `WorkoutExercisePageView`.
+- Extend `WorkoutSessionData` / `WorkoutExerciseSection` / `ActiveSessionSnapshot` with `currentExerciseIndex`, `isFinished`, `finishedAt`, `defaultWeight`, `finishedExerciseIds`.
+- Add `finishExercise(programExerciseId:)` and `goToExercise(index:)` to `WorkoutSessionViewModel`.
+- Implement default-weight resolution (`targetWeight` → last-logged → blank) and previous-set actual carry-over.
+- Retire `Color.gymAccentText`; audit all custom-color usage; ensure `AccentColor` and `GymPurple` color assets each have light + dark variants.
+- Add new localization keys for exercise finish/finished/next, target weight, and progress count/done.
+- Set completion must **not** auto-advance the TabView; only `finishExercise` does.
+
 **Known deviations / constraints:**
 - Use simulator `iPhone 17e` in all `xcodebuild` commands.
 - Module name is `Gymbros`.
 - Tests use Swift Testing, not XCTest.
 - Xcode 16 auto-discovers files under `Gymbros/`; do not edit `project.pbxproj` just to add files.
 - Do not manually declare `Color.gymPurple`; it is generated from the asset catalog.
-- No schema migration is expected for Sprint 3.
-- Do not add HealthKit, Today, History, tabs, Smart Comeback, substitutions, or offline-first sync in Sprint 3.
+- One schema change in Sprint 3: `program_exercises.target_weight` (nullable). Requires explicit user approval before applying remotely (`CLAUDE.md` Data Safety rule).
+- Do not add HealthKit, Today, History, tabs, Smart Comeback, substitutions, offline-first sync, or formal superset grouping in Sprint 3.
 - Use concrete `@Observable` ViewModels. Do not create ViewModel protocols unless explicitly requested later.
 - If `xcodebuild` cannot write SwiftPM/Xcode/Simulator caches in the sandbox, rerun with the required approval.
-- Task 1 does not wire runtime navigation or SwiftUI views; Task 4 owns that after Task 2 and Task 3.
+- Task 1 does not wire runtime navigation or SwiftUI views; Task 4 owns that after the Realignment Fix-up section is complete.
 
-**Next step:** Dispatch/complete Tasks 2 and 3 in parallel, then run Task 4 wiring and verification.
+**Next step:** Execute Realignment Fix-up F1 (schema + model) sequentially, then F2 and F3 in parallel, then F4, F5, and F6 sequentially, then proceed to Task 4 (Wire + Verify).
 
 ---
 
@@ -211,6 +221,225 @@ xcodebuild -project Gymbros.xcodeproj -scheme Gymbros -destination 'platform=iOS
 **Verification:** Inspect string catalog and run a hardcoded string search after Task 2 exists.
 
 **Handoff notes:** Task 3 added all required workout localization keys to `Localizable.xcstrings`. Key families cover the main workout view, restore prompts, set row inputs/actions, rest timer controls, and sync status indicators. Accessibility labels for icon-only buttons (timer stop/skip, set completion) are also included. All keys have complete English and Thai translations.
+
+---
+
+## Realignment Fix-up (2026-05-11)
+
+These tasks bring the existing Sprint 3 code in line with the realigned spec (paged TabView, per-exercise finish, free swipe, `target_weight`, color rules) before Task 4 wiring starts. Tasks 0–3 above stay as-is for handoff history; their outputs are amended, not discarded.
+
+Execution order:
+
+```
+F1 ─┐
+    ├─ F2  (parallel)
+    └─ F3  (parallel, depends on F1)
+F4 (depends on F3)
+F5 (after F4 so it can grep the refactored views)
+F6 (final verification before Task 4)
+```
+
+---
+
+### F1 — Schema + ProgramExercise.targetWeight
+
+**Owner:** Data worker. Sequential. Blocks F3 and Task 4.
+
+**Files likely touched:**
+- `supabase/schema.sql`
+- `supabase/migrations/2026-05-11_program_exercises_target_weight.sql` (new)
+- `Gymbros/Model/ProgramExercise.swift`
+- `Gymbros/Presentation/Programs/ProgramExerciseForm.swift`
+- `Gymbros/Presentation/Programs/ProgramExerciseEditorView.swift`
+- `Gymbros/Data/Repository/ProgramRepository.swift`
+- `Gymbros/Resources/Localizable.xcstrings` (one key: `program.exercise.target_weight`)
+
+**Forbidden files:**
+- `Gymbros/Presentation/Workout/*` (F3/F4 territory)
+- `Gymbros/Core/AppTheme.swift` (F2 territory)
+
+- [ ] Add `target_weight numeric null` to `program_exercises` in `supabase/schema.sql`.
+- [ ] Create `supabase/migrations/2026-05-11_program_exercises_target_weight.sql` with the same change as an idempotent migration.
+- [ ] **Pause and request user approval before applying remotely** (`CLAUDE.md` Data Safety rule).
+- [ ] Add `var targetWeight: Double?` to `ProgramExercise` with `CodingKeys.targetWeight = "target_weight"`.
+- [ ] Add a target-weight text field to `ProgramExerciseForm` (numeric ≥ 0 when present; empty = nil). Add a `ProgramFormValidation.validateTargetWeight` helper.
+- [ ] Wire the field into `ProgramExerciseEditorView` between rest seconds and notes. Use the `program.exercise.target_weight` localization key.
+- [ ] Update `ProgramRepository` insert/update payloads to include `target_weight`.
+- [ ] Update existing `ProgramExercise` tests/fixtures if any rely on a specific field set.
+
+**Verification command:**
+
+```bash
+xcodebuild -project Gymbros.xcodeproj -scheme Gymbros -destination 'platform=iOS Simulator,name=iPhone 17e' build
+```
+
+**Handoff notes:** Add when complete.
+
+---
+
+### F2 — Color audit and `gymAccentText` retirement
+
+**Owner:** UI worker. Parallel with F3.
+
+**Files likely touched:**
+- `Gymbros/Core/AppTheme.swift`
+- `Gymbros/Presentation/Workout/WorkoutSessionView.swift` (or wherever `gymAccentText` is referenced post-F4)
+- `Gymbros/Assets.xcassets/AccentColor.colorset/Contents.json`
+- `Gymbros/Assets.xcassets/GymPurple.colorset/Contents.json`
+
+**Forbidden files:**
+- `Gymbros/Model/*`
+- `Gymbros/Data/*`
+- `Gymbros/Presentation/Workout/WorkoutSessionViewModel.swift` (F3)
+
+- [ ] Remove `Color.gymAccentText` from `AppTheme.swift`. Keep only `gymAccent` and `gymPurple` (auto-generated from assets) plus any pure SwiftUI semantic aliases that are clearly useful (`gymSurface`/`gymBackground` may be kept as semantic-color aliases or removed for clarity).
+- [ ] Replace `Color.gymAccentText` callers with `Color.gymAccent` (text on `Color.gymAccent` background) or `.primary`/`.secondary` (text on system background). Verify both light and dark mode visually.
+- [ ] Verify `AccentColor.colorset/Contents.json` and `GymPurple.colorset/Contents.json` each contain both a Universal/Any appearance and a Dark appearance. Add a Dark variant if missing (target: same hue, tuned for contrast on dark backgrounds).
+- [ ] Grep for forbidden color forms:
+  ```bash
+  rg -n "Color\(red:|#[0-9A-Fa-f]{6}|gymAccentText|Color\(\"[A-Z]" Gymbros/ --type swift
+  ```
+  Expect zero hits outside `AppTheme.swift` declarations of `gymAccent` / `gymPurple`. Re-run after F4 since the workout views will be rewritten.
+
+**Verification command:**
+
+```bash
+xcodebuild -project Gymbros.xcodeproj -scheme Gymbros -destination 'platform=iOS Simulator,name=iPhone 17e' build
+```
+
+**Handoff notes:** Add when complete.
+
+---
+
+### F3 — ViewModel + state refactor
+
+**Owner:** Data/ViewModel worker. Parallel with F2. Depends on F1 (needs `ProgramExercise.targetWeight`).
+
+**Files likely touched:**
+- `Gymbros/Presentation/Workout/WorkoutSessionState.swift`
+- `Gymbros/Presentation/Workout/WorkoutSessionViewModel.swift`
+- `Gymbros/Data/Local/ActiveSessionBackupModels.swift`
+- `Gymbros/Data/Local/ActiveSessionBackupStore.swift` (version bump)
+- `Gymbros/Data/Repository/ActiveSessionBackupRepository.swift` (if signature changes)
+- `Gymbros/Data/Repository/WorkoutRepository.swift` (may add `fetchLastLoggedSet`)
+- `GymbrosTests/WorkoutSessionViewModelTests.swift`
+- `GymbrosTests/ActiveSessionBackupTests.swift`
+
+**Forbidden files:**
+- `Gymbros/Presentation/Workout/WorkoutSessionView.swift` (F4)
+- `Gymbros/Presentation/Workout/SetRowView.swift` (F4)
+- `Gymbros/Presentation/Workout/RestTimerRingView.swift` (F4)
+- `Gymbros/Resources/Localizable.xcstrings` (F5)
+
+- [ ] Extend `WorkoutSessionData` with `currentExerciseIndex: Int`.
+- [ ] Extend `WorkoutExerciseSection` with `isFinished: Bool`, `finishedAt: Date?`, `defaultWeight: Double?`.
+- [ ] Extend `ActiveSessionSnapshot` with `finishedExerciseIds: [UUID]` and `currentExerciseIndex: Int`. Bump the snapshot `version` constant.
+- [ ] Add `finishExercise(programExerciseId:)` and `goToExercise(index:)` to `WorkoutSessionViewModel`.
+- [ ] In `start(programDayId:)`, resolve `defaultWeight` per exercise: `programExercise.targetWeight` → last-logged history → nil. Pre-fill set 1 weight from `defaultWeight` when present.
+- [ ] If needed, add `WorkoutRepository.fetchLastLoggedSet(exerciseId:before:)` mapped through `ErrorMapper`.
+- [ ] In `completeSet`, after enqueuing the upload, if a next set row exists in the same exercise and its `weightText`/`repsText` are still the row's initial values (blank or default), copy the just-completed actual `weightText` and `repsText` into it. Do not copy RPE.
+- [ ] Implement `finishExercise`: require at least one `.uploaded` set in the section, set `isFinished = true` and `finishedAt = now`, save backup, then set `currentExerciseIndex` to the next index where `!isFinished` (or leave it on the just-finished page if none).
+- [ ] Set completion must **not** change `currentExerciseIndex`.
+- [ ] On restore, recompute `currentExerciseIndex` to the first `!isFinished` section regardless of the snapshot value; do not show any per-exercise resume prompt.
+- [ ] Update existing `WorkoutSessionViewModelTests` and `ActiveSessionBackupTests` for the new state shape.
+- [ ] Add three new tests:
+  - `finishExercise` advances `currentExerciseIndex` to the next unfinished section.
+  - Restore recomputes `currentExerciseIndex` to the first unfinished section.
+  - Completing set N copies actual weight/reps to set N+1 in the same exercise.
+
+**Verification command:**
+
+```bash
+xcodebuild test -project Gymbros.xcodeproj -scheme Gymbros -destination 'platform=iOS Simulator,name=iPhone 17e' -only-testing:GymbrosTests/WorkoutSessionViewModelTests -only-testing:GymbrosTests/ActiveSessionBackupTests
+```
+
+**Handoff notes:** Add when complete.
+
+---
+
+### F4 — Logger view refactor to paged TabView
+
+**Owner:** UI worker. Sequential after F3.
+
+**Files likely touched:**
+- `Gymbros/Presentation/Workout/WorkoutSessionView.swift`
+- `Gymbros/Presentation/Workout/WorkoutExercisePageView.swift` (new)
+- `Gymbros/Presentation/Workout/SetRowView.swift` (read-only mode)
+- `Gymbros/Presentation/Workout/WorkoutSessionMockData.swift`
+
+**Forbidden files:**
+- `Gymbros/Data/*`
+- `Gymbros/Model/*`
+- `Gymbros/Presentation/Workout/WorkoutSessionViewModel.swift`
+- `Gymbros/Resources/Localizable.xcstrings` (F5)
+
+- [ ] Replace the sectioned `ScrollView` in `WorkoutSessionView` with a `TabView { ... }.tabViewStyle(.page(indexDisplayMode: .never))` driven by `currentExerciseIndex`.
+- [ ] Extract `WorkoutExercisePageView` taking one `WorkoutExerciseSection` and the same action closures as today. Layout: header (name, prescription, target weight), set list, Add Set, Finish Exercise.
+- [ ] Add a custom progress header at the top of `WorkoutSessionView`: `Day name · X / N · K done`. Use `workout.progress.count` and `workout.progress.done` keys.
+- [ ] When `section.isFinished == true`:
+  - Disable all set row inputs.
+  - Hide the sync indicator (all uploaded).
+  - Replace Finish Exercise button with a non-interactive ✓ "Finished" badge using `Color.gymPurple`.
+  - Do not show Add Set.
+  - Do not show any resume prompt on this page.
+- [ ] Finish Workout in the toolbar is disabled until every section is finished, in addition to the existing `isFinishing` rule.
+- [ ] Update `WorkoutSessionMockData` to include: an in-progress page, a finished page, a mixed-state day, and a restore scenario.
+- [ ] Refresh previews for: loading, empty, error, restore, normal success, finished page, mixed page, upload failed, active timer.
+- [ ] Re-run the F2 color grep against the refactored workout views.
+
+**Verification command:**
+
+```bash
+xcodebuild -project Gymbros.xcodeproj -scheme Gymbros -destination 'platform=iOS Simulator,name=iPhone 17e' build
+```
+
+**Handoff notes:** Add when complete.
+
+---
+
+### F5 — Localization additions
+
+**Owner:** Localization worker. Sequential after F4.
+
+**Files likely touched:**
+- `Gymbros/Resources/Localizable.xcstrings`
+
+**Forbidden files:**
+- Swift source files (already wired by F4).
+
+- [ ] Add the following keys with complete Thai and English copy:
+  - `workout.exercise.finish`
+  - `workout.exercise.finished`
+  - `workout.exercise.next`
+  - `workout.exercise.target_weight`
+  - `workout.progress.count` (format: `"%lld / %lld"`)
+  - `workout.progress.done` (format: `"%lld done"`)
+- [ ] Confirm `program.exercise.target_weight` is present (added by F1).
+- [ ] Grep `Gymbros/Presentation/Workout/` and `Gymbros/Presentation/Programs/` for hardcoded user-facing strings and replace with keys.
+
+**Verification:** Inspect string catalog; spot-check English and Thai for completeness.
+
+**Handoff notes:** Add when complete.
+
+---
+
+### F6 — Realignment verification
+
+**Owner:** Final integration worker. Sequential after F5. Blocks Task 4.
+
+- [ ] Run the full test suite:
+  ```bash
+  xcodebuild test -project Gymbros.xcodeproj -scheme Gymbros -destination 'platform=iOS Simulator,name=iPhone 17e'
+  ```
+- [ ] Re-run the color grep:
+  ```bash
+  rg -n "Color\(red:|#[0-9A-Fa-f]{6}|gymAccentText|Color\(\"[A-Z]" Gymbros/ --type swift
+  ```
+  Expect zero hits outside `AppTheme.swift` declarations.
+- [ ] Light/dark mode visual sweep of `WorkoutSessionView`, `WorkoutExercisePageView`, `SetRowView`, `RestTimerRingView`, `ProgramExerciseEditorView`.
+- [ ] Update `CURRENT STATUS` with results and the new last commit SHA (if user asks for a commit), then proceed to Task 4 (Wire + Verify).
+
+**Handoff notes:** Add when complete.
 
 ---
 
