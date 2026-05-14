@@ -55,10 +55,10 @@ struct SetRowView: View {
                 .textFieldStyle(.plain)
                 .font(.system(.body, design: .rounded).bold())
                 .multilineTextAlignment(.center)
-                .padding(.vertical, 8)
+                .padding(.vertical, 12) // Increased padding for 48pt target
                 .background(Color.gymSurface)
                 .clipShape(RoundedRectangle(cornerRadius: 8))
-                .frame(minWidth: 60)
+                .frame(minWidth: 64, minHeight: 48) // Mandated 48pt tap target
                 .disabled(isReadOnly)
             }
             
@@ -73,10 +73,10 @@ struct SetRowView: View {
                 .textFieldStyle(.plain)
                 .font(.system(.body, design: .rounded).bold())
                 .multilineTextAlignment(.center)
-                .padding(.vertical, 8)
+                .padding(.vertical, 12) // Increased padding for 48pt target
                 .background(Color.gymSurface)
                 .clipShape(RoundedRectangle(cornerRadius: 8))
-                .frame(minWidth: 60)
+                .frame(minWidth: 64, minHeight: 48) // Mandated 48pt tap target
                 .disabled(isReadOnly)
             }
             
@@ -98,7 +98,7 @@ struct SetRowView: View {
                 Text(rpe.map { String(format: "%.1f", $0) } ?? String(localized: "workout.set.rpe"))
                     .font(.system(.caption, design: .rounded).bold())
                     .foregroundStyle(rpe != nil ? .primary : .secondary)
-                    .frame(minWidth: 44, minHeight: 36)
+                    .frame(minWidth: 48, minHeight: 48) // Mandated 48pt tap target
                     .background(Color.gymSurface)
                     .clipShape(RoundedRectangle(cornerRadius: 8))
             }
@@ -116,7 +116,7 @@ struct SetRowView: View {
                         Label("workout.set.delete", systemImage: "trash")
                             .labelStyle(.iconOnly)
                             .font(.system(size: 20))
-                            .frame(width: 44, height: 44)
+                            .frame(width: 48, height: 48) // Mandated 48pt tap target
                     }
                 }
                 
@@ -188,7 +188,7 @@ struct SetRowView: View {
     }
 }
 
-#Preview {
+#Preview("Active") {
     VStack {
         SetRowView(
             state: WorkoutSessionData.mock.exerciseSections[0].sets[0],
@@ -204,8 +204,15 @@ struct SetRowView: View {
             onRetry: {},
             onDelete: {}
         )
+    }
+    .padding()
+}
+
+#Preview("ReadOnly") {
+    VStack {
         SetRowView(
-            state: WorkoutSessionData.mock.exerciseSections[0].sets[2],
+            state: WorkoutSessionData.mock.exerciseSections[0].sets[0],
+            isReadOnly: true,
             onUpdate: { _, _, _ in },
             onComplete: {},
             onRetry: {},
@@ -214,3 +221,4 @@ struct SetRowView: View {
     }
     .padding()
 }
+

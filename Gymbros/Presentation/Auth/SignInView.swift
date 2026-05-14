@@ -2,7 +2,14 @@ import SwiftUI
 import AuthenticationServices
 
 struct SignInView: View {
-    @State private var viewModel = SignInViewModel()
+    @State private var viewModel: SignInViewModel
+    @Environment(\.colorScheme) private var colorScheme
+    @ScaledMetric private var iconSize: CGFloat = 60
+
+    @MainActor
+    init(viewModel: SignInViewModel? = nil) {
+        _viewModel = State(initialValue: viewModel ?? SignInViewModel())
+    }
 
     var body: some View {
         VStack(spacing: 32) {
@@ -10,8 +17,9 @@ struct SignInView: View {
 
             VStack(spacing: 12) {
                 Image(systemName: "dumbbell.fill")
-                    .font(.system(size: 60))
+                    .font(.system(size: iconSize))
                     .foregroundStyle(.blue)
+                    .accessibilityHidden(true)
 
                 Text("GymBros")
                     .font(.largeTitle.bold())
@@ -28,11 +36,11 @@ struct SignInView: View {
                 SignInWithAppleButton(.signIn) { request in
                     viewModel.prepareAppleSignIn(request)
                 } onCompletion: { result in
-                    Task { await viewModel.handleAppleSignIn(result) }
+                    Task { @MainActor in await viewModel.handleAppleSignIn(result) }
                 }
-                .signInWithAppleButtonStyle(.black)
+                .signInWithAppleButtonStyle(colorScheme == .dark ? .white : .black)
                 .frame(height: 56)
-                .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+                .clipShape(.rect(cornerRadius: 12, style: .continuous))
 
                 if case .error(let error) = viewModel.state, error.isVisibleToUser {
                     Text(LocalizedStringKey(error.messageKey))
@@ -46,6 +54,23 @@ struct SignInView: View {
     }
 }
 
-#Preview {
+#Preview("Idle") {
     SignInView()
 }
+
+#Preview("Loading") {
+    SignInView(viewModel: {
+        let vm = SignInViewModel()
+        vm.state = .loading
+        return vm
+    }())
+}
+
+#Preview("Error") {
+    SignInView(viewModel: {
+        let vm = SignInViewModel()
+        vm.state = .error(.auth(.appleCredentialMissing))
+        return vm
+    }())
+}
+

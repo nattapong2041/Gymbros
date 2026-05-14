@@ -193,7 +193,7 @@ struct ProgramDetailView: View {
                     Text("programDetail.noDescription")
                         .font(.body)
                         .italic()
-                        .foregroundStyle(.tertiary)
+                        .foregroundStyle(.secondary) // Increased contrast from .tertiary
                 }
             }
             .padding(.vertical, 8)
@@ -203,7 +203,7 @@ struct ProgramDetailView: View {
 
 // MARK: - Previews
 
-#Preview {
+#Preview("Success") {
     NavigationStack {
         ProgramDetailView(viewModel: {
             let viewModel = ProgramDetailViewModel(programId: ProgramSamples.programId)
@@ -212,3 +212,34 @@ struct ProgramDetailView: View {
         }())
     }
 }
+
+#Preview("Loading") {
+    NavigationStack {
+        ProgramDetailView(viewModel: {
+            let viewModel = ProgramDetailViewModel(programId: ProgramSamples.programId)
+            viewModel.state = .loading
+            return viewModel
+        }())
+    }
+}
+
+#Preview("Empty") {
+    NavigationStack {
+        ProgramDetailView(viewModel: {
+            let viewModel = ProgramDetailViewModel(programId: ProgramSamples.programId)
+            viewModel.state = .empty
+            return viewModel
+        }())
+    }
+}
+
+#Preview("Error") {
+    NavigationStack {
+        ProgramDetailView(viewModel: {
+            let viewModel = ProgramDetailViewModel(programId: ProgramSamples.programId)
+            viewModel.state = .error(.api(.server, statusCode: 500))
+            return viewModel
+        }())
+    }
+}
+

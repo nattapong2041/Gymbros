@@ -183,7 +183,7 @@ struct ProgramExerciseRow: View {
                         Text(notes)
                     }
                     .font(.caption2)
-                    .foregroundStyle(.tertiary)
+                    .foregroundStyle(.secondary) // Increased contrast from .tertiary
                     .lineLimit(1)
                 }
             }
@@ -192,7 +192,7 @@ struct ProgramExerciseRow: View {
 
             Image(systemName: "chevron.right")
                 .font(.caption2.bold())
-                .foregroundStyle(.tertiary)
+                .foregroundStyle(.secondary) // Increased contrast from .tertiary
         }
         .padding(.vertical, 4)
     }
@@ -200,7 +200,7 @@ struct ProgramExerciseRow: View {
 
 // MARK: - Previews
 
-#Preview {
+#Preview("Success") {
     NavigationStack {
         DayBuilderView(viewModel: {
             let vm = DayBuilderViewModel(dayId: ProgramSamples.upperDayId)
@@ -209,3 +209,34 @@ struct ProgramExerciseRow: View {
         }())
     }
 }
+
+#Preview("Loading") {
+    NavigationStack {
+        DayBuilderView(viewModel: {
+            let vm = DayBuilderViewModel(dayId: ProgramSamples.upperDayId)
+            vm.state = .loading
+            return vm
+        }())
+    }
+}
+
+#Preview("Empty") {
+    NavigationStack {
+        DayBuilderView(viewModel: {
+            let vm = DayBuilderViewModel(dayId: ProgramSamples.upperDayId)
+            vm.state = .empty
+            return vm
+        }())
+    }
+}
+
+#Preview("Error") {
+    NavigationStack {
+        DayBuilderView(viewModel: {
+            let vm = DayBuilderViewModel(dayId: ProgramSamples.upperDayId)
+            vm.state = .error(.network(.offline))
+            return vm
+        }())
+    }
+}
+

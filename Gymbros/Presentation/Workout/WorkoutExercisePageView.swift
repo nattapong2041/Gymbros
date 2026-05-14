@@ -68,6 +68,7 @@ struct WorkoutExercisePageView: View {
         VStack(alignment: .leading, spacing: 8) {
             Text(section.exercise?.name ?? String(localized: "workout.exercise.unknownExercise"))
                 .font(.system(.title2, design: .rounded).bold())
+                .accessibilityAddTraits(.isHeader)
             
             HStack(spacing: 12) {
                 Label(

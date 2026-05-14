@@ -104,7 +104,7 @@ struct ProgramExerciseEditorView: View {
     }
 }
 
-#Preview {
+#Preview("Default") {
     @Previewable @State var form = ProgramExerciseForm(programExercise: ProgramSamples.benchProgramExercise)
     return ProgramExerciseEditorView(
         form: $form,
@@ -112,3 +112,16 @@ struct ProgramExerciseEditorView: View {
         onSave: {}
     )
 }
+
+#Preview("Invalid Input") {
+    @Previewable @State var form = ProgramExerciseForm(
+        targetSets: 0, // Invalid
+        targetWeightText: "invalid" // Invalid
+    )
+    return ProgramExerciseEditorView(
+        form: $form,
+        exerciseName: "Bench Press",
+        onSave: {}
+    )
+}
+

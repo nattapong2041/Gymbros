@@ -24,37 +24,88 @@ struct WorkoutSessionView: View {
     var onDiscard: () -> Void
     
     var body: some View {
-        ZStack {
-            content
-                .navigationTitle(navigationTitle)
-                .navigationBarTitleDisplayMode(.inline)
-                .toolbar {
-                    ToolbarItem(placement: .topBarTrailing) {
-                        if case .success(let data) = state {
-                            Button(action: onFinish) {
-                                if isFinishing {
-                                    ProgressView().controlSize(.small)
-                                } else {
-                                    Text("workout.finish")
-                                        .fontWeight(.bold)
-                                        .foregroundStyle(canFinishWorkout(data) ? .blue : .secondary)
-                                }
+        content
+            .navigationTitle(navigationTitle)
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    if case .success(let data) = state {
+                        Button(action: onFinish) {
+                            if isFinishing {
+                                ProgressView().controlSize(.small)
+                            } else {
+                                Text("workout.finish")
+                                    .fontWeight(.bold)
+                                    .foregroundStyle(canFinishWorkout(data) ? .blue : .secondary)
                             }
-                            .disabled(isFinishing || !canFinishWorkout(data))
                         }
+                        .disabled(isFinishing || !canFinishWorkout(data))
                     }
                 }
-            
-            // Restore Prompt Overlay
-            if pendingRestore {
-                restoreOverlay
+            }
+            .sheet(isPresented: Binding(
+                get: { pendingRestore },
+                set: { if !$0 { onDiscard() } }
+            )) {
+                restoreSheetContent
+                    .presentationDetents([.medium])
+                    .presentationDragIndicator(.visible)
+            }
+            .fullScreenCover(item: Binding(
+                get: { activeTimer },
+                set: { if $0 == nil { onStopTimer() } }
+            )) { timerState in
+                ZStack {
+                    Color.black.ignoresSafeArea()
+                    
+                    RestTimerRingView(
+                        state: timerState,
+                        onStop: onStopTimer,
+                        onSkip: onSkipTimer
+                    )
+                    .padding(40)
+                }
+            }
+    }
+    
+    @ViewBuilder
+    private var restoreSheetContent: some View {
+        VStack(spacing: 24) {
+            VStack(spacing: 12) {
+                Image(systemName: "arrow.clockwise.icloud")
+                    .font(.system(size: 40))
+                    .foregroundStyle(.blue)
+                
+                Text("workout.restore.title")
+                    .font(.headline)
+                
+                Text("workout.restore.message")
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+                    .multilineTextAlignment(.center)
             }
             
-            // Rest Timer Overlay
-            if let timerState = activeTimer {
-                timerOverlay(timerState)
+            VStack(spacing: 12) {
+                Button(action: onRestore) {
+                    Text("workout.restore.action")
+                        .font(.headline)
+                        .foregroundStyle(.white)
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 50)
+                        .background(Color.blue)
+                        .clipShape(RoundedRectangle(cornerRadius: 12))
+                }
+                
+                Button(action: onDiscard) {
+                    Text("workout.restore.discard")
+                        .font(.headline)
+                        .foregroundStyle(.red)
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 50)
+                }
             }
         }
+        .padding(24)
     }
     
     @ViewBuilder
@@ -154,69 +205,10 @@ struct WorkoutSessionView: View {
         // Spec: Finish Workout enables only when every exercise is finished
         !data.exerciseSections.isEmpty && data.exerciseSections.allSatisfy { $0.isFinished }
     }
-    
-    private var restoreOverlay: some View {
-        ZStack {
-            Color.black.opacity(0.4).ignoresSafeArea()
-            
-            VStack(spacing: 24) {
-                VStack(spacing: 12) {
-                    Image(systemName: "arrow.clockwise.icloud")
-                        .font(.system(size: 40))
-                        .foregroundStyle(.blue)
-                    
-                    Text("workout.restore.title") // workout.restore.title
-                        .font(.headline)
-                    
-                    Text("workout.restore.message") // workout.restore.message
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
-                        .multilineTextAlignment(.center)
-                }
-                
-                VStack(spacing: 12) {
-                    Button(action: onRestore) {
-                        Text("workout.restore.action") // workout.restore.action
-                            .font(.headline)
-                            .foregroundStyle(.white)
-                            .frame(maxWidth: .infinity)
-                            .frame(height: 50)
-                            .background(Color.blue)
-                            .clipShape(RoundedRectangle(cornerRadius: 12))
-                    }
-                    
-                    Button(action: onDiscard) {
-                        Text("workout.restore.discard") // workout.restore.discard
-                            .font(.headline)
-                            .foregroundStyle(.red)
-                            .frame(maxWidth: .infinity)
-                            .frame(height: 50)
-                    }
-                }
-            }
-            .padding(24)
-            .background(Color(uiColor: .systemBackground))
-            .clipShape(RoundedRectangle(cornerRadius: 20))
-            .padding(40)
-            .shadow(radius: 10)
-        }
-    }
-    
-    private func timerOverlay(_ timerState: RestTimerState) -> some View {
-        ZStack {
-            Color.black.opacity(0.6).ignoresSafeArea()
-            
-            RestTimerRingView(
-                state: timerState,
-                onStop: onStopTimer,
-                onSkip: onSkipTimer
-            )
-            .clipShape(RoundedRectangle(cornerRadius: 24))
-            .padding(40)
-            .shadow(radius: 20)
-        }
-        .transition(.opacity.combined(with: .scale))
-    }
+}
+
+extension RestTimerState: Identifiable {
+    public var id: UUID { sourceSetId }
 }
 
 #Preview("Success") {

@@ -71,3 +71,20 @@ struct ProgramBuilderView: View {
 #Preview("Edit") {
     ProgramBuilderView(viewModel: ProgramBuilderViewModel(mode: .edit(ProgramSamples.program)))
 }
+
+#Preview("Saving") {
+    ProgramBuilderView(viewModel: {
+        let vm = ProgramBuilderViewModel(mode: .create)
+        vm.state = .loading
+        return vm
+    }())
+}
+
+#Preview("Error") {
+    ProgramBuilderView(viewModel: {
+        let vm = ProgramBuilderViewModel(mode: .create)
+        vm.transientError = .api(.server, statusCode: 500)
+        return vm
+    }())
+}
+

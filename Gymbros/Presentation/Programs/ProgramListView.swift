@@ -159,11 +159,18 @@ struct ProgramRow: View {
 }
 
 // MARK: - Previews
-
 #Preview("Success") {
     ProgramListView(viewModel: {
         let viewModel = ProgramListViewModel()
         viewModel.state = .success(ProgramSamples.programs)
+        return viewModel
+    }())
+}
+
+#Preview("Loading") {
+    ProgramListView(viewModel: {
+        let viewModel = ProgramListViewModel()
+        viewModel.state = .loading
         return viewModel
     }())
 }

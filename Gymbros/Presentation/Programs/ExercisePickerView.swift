@@ -116,15 +116,15 @@ struct ExercisePickerView: View {
                 }
             }
         } label: {
-            HStack(spacing: 4) {
+            HStack(spacing: 6) {
                 Text(selection.wrappedValue?.localizedTitleKey ?? LocalizedStringKey(label))
                 Image(systemName: "chevron.down")
                     .font(.caption2.bold())
             }
-            .font(.subheadline.weight(.medium))
-            .padding(.horizontal, 12)
-            .padding(.vertical, 6)
-            .background(selection.wrappedValue == nil ? Color(.secondarySystemBackground) : Color.blue.opacity(0.15))
+            .font(.subheadline.weight(.semibold))
+            .padding(.horizontal, 16)
+            .frame(minHeight: 48) // Mandated 48pt tap target
+            .background(selection.wrappedValue == nil ? Color(.tertiarySystemBackground) : Color.blue.opacity(0.15))
             .foregroundStyle(selection.wrappedValue == nil ? Color.primary : Color.blue)
             .clipShape(Capsule())
         }
@@ -225,10 +225,35 @@ extension MovementPattern: ExerciseFilterOption {
 
 // MARK: - Previews
 
-#Preview {
+#Preview("Success") {
     ExercisePickerView(viewModel: {
         let viewModel = ExercisePickerViewModel()
         viewModel.state = .success(ProgramSamples.exercises)
         return viewModel
     }()) { _ in }
 }
+
+#Preview("Loading") {
+    ExercisePickerView(viewModel: {
+        let viewModel = ExercisePickerViewModel()
+        viewModel.state = .loading
+        return viewModel
+    }()) { _ in }
+}
+
+#Preview("Empty") {
+    ExercisePickerView(viewModel: {
+        let viewModel = ExercisePickerViewModel()
+        viewModel.state = .empty
+        return viewModel
+    }()) { _ in }
+}
+
+#Preview("Error") {
+    ExercisePickerView(viewModel: {
+        let viewModel = ExercisePickerViewModel()
+        viewModel.state = .error(.api(.server, statusCode: 500))
+        return viewModel
+    }()) { _ in }
+}
+
