@@ -527,7 +527,7 @@ App Store: phase-level releases
 
 ---
 
-### PHASE 1 — “Real Life Works” → TestFlight
+### PHASE 1 — “Real Life Works” → TestFlight (Sprints 1–6)
 
 **Goal:** A beta user can create/select a program, log workouts, and experience the key differentiator: after missing time, the app handles the comeback.
 
@@ -620,19 +620,17 @@ Done:
 **Effort:** Medium
 
 ```text
-Spec: /specs/S04-today-history-nav.md
+Spec: .claude/sprints/S04-today-history/spec.md
 
 ☐ TodayView with greeting, next workout card, Start CTA
 ☐ TodayViewModel: active program + next day logic
 ☐ HistoryView: past sessions, newest first
-☐ SessionDetailView: sets per exercise
-☐ Tab navigation: Today / Programs / History / Settings
-☐ Settings: Sign out
-☐ Settings: Privacy Policy placeholder
-☐ Settings: Account deletion placeholder
+☐ SessionDetailView: sets per exercise (read-only)
+☐ Tab navigation: Today / Programs / History (3 tabs; Settings added in Sprint 5)
+☐ StreakService: week-based streak, anti-guilt rules
 ☐ Anti-guilt features:
   ☐ Welcome back banner after 7+ days
-  ☐ Streak visible only when intact
+  ☐ Streak visible only when intact (≥2 consecutive weeks)
   ☐ Last workout date soft grey
   ☐ Empty states: “Ready when you are”
 
@@ -645,12 +643,33 @@ Done:
 
 ---
 
-### Sprint 5 — Next Best Session Engine v1 / Smart Comeback
+### Sprint 5 — Settings
+
+**Effort:** Simple
+
+```text
+Spec: .claude/sprints/S05-settings/spec.md
+
+☐ Settings tab (4th tab) added to TabView
+☐ Weight unit toggle: kg / lb (functional, persists via ProfileRepository)
+☐ Sign Out (functional, returns to SignInView)
+☐ App version + build number (static)
+☐ Privacy Policy placeholder
+☐ Delete Account placeholder
+☐ ProfileRepositoryProviding protocol for test injection
+
+Done:
+  User can sign out, toggle weight unit, and see app version.
+```
+
+---
+
+### Sprint 6 — Next Best Session Engine v1 / Smart Comeback
 
 **Effort:** Complex
 
 ```text
-Spec: /specs/S05-next-best-session.md
+Spec: .claude/sprints/S06-next-best-session/spec.md
 
 This sprint defines the product.
 After this sprint, opening the app after 14 days off shows a clear adjusted session.
@@ -689,12 +708,12 @@ Done:
 
 ---
 
-### Sprint 6 — Onboarding + Templates + i18n + Brain Polish
+### Sprint 7 — Onboarding + Templates + i18n + Brain Polish
 
 **Effort:** Medium
 
 ```text
-Spec: /specs/S06-onboarding-i18n.md
+Spec: .claude/sprints/S07-onboarding-i18n/spec.md
 
 ☐ OnboardingView: 3 questions
   ☐ goal
@@ -724,12 +743,12 @@ Done:
 
 ---
 
-### Sprint 7 — App Store Ship
+### Sprint 8 — App Store Ship
 
 **Effort:** Simple
 
 ```text
-Spec: /specs/S07-app-store-ship.md
+Spec: .claude/sprints/S08-app-store-ship/spec.md
 
 ☐ Screenshots TH + EN
 ☐ App Store description TH + EN
@@ -756,12 +775,12 @@ Done:
 
 ---
 
-### Sprint 8 — Substitute + Defer
+### Sprint 9 — Substitute + Defer
 
 **Effort:** Medium-Complex
 
 ```text
-Spec: /specs/S08-substitute-defer.md
+Spec: .claude/sprints/S09-substitute-defer/spec.md
 
 MID-WORKOUT FLOWS
 ☐ Long-press/swipe exercise row → action sheet:
@@ -800,12 +819,12 @@ Done:
 
 ---
 
-### Sprint 9 — Injury Mode + Progress Graphs
+### Sprint 10 — Injury Mode + Progress Graphs
 
 **Effort:** Medium-Complex
 
 ```text
-Spec: /specs/S09-injury-progress.md
+Spec: .claude/sprints/S10-injury-progress/spec.md
 
 INJURY MODE
 ☐ Report injury flow: shoulder/knee/back/wrist/elbow/hip/ankle
@@ -829,12 +848,12 @@ Done:
 
 ---
 
-### Sprint 10 — HealthKit Recovery / HRV
+### Sprint 11 — HealthKit Recovery / HRV
 
 **Effort:** Medium
 
 ```text
-Spec: /specs/S10-healthkit-recovery.md
+Spec: .claude/sprints/S11-healthkit-recovery/spec.md
 
 ☐ HealthKit permission flow
 ☐ Read sleep duration
@@ -860,12 +879,12 @@ Done:
 
 ---
 
-### Sprint 11 — RevenueCat + Paywall
+### Sprint 12 — RevenueCat + Paywall
 
 **Effort:** Complex
 
 ```text
-Spec: /specs/S11-revenuecat-paywall.md
+Spec: .claude/sprints/S12-revenuecat-paywall/spec.md
 
 ☐ RevenueCat + StoreKit 2
 ☐ Entitlement model
@@ -895,12 +914,12 @@ Done:
 
 ---
 
-### Sprint 12 — Watch + Widget + Smart Notifications
+### Sprint 13 — Watch + Widget + Smart Notifications
 
 **Effort:** Complex
 
 ```text
-Spec: /specs/S12-watch-widget-notifications.md
+Spec: .claude/sprints/S13-watch-widget-notifications/spec.md
 
 ☐ Migration checkpoint: SwiftData if watch/local active session needs it
 ☐ watchOS rest timer
@@ -919,12 +938,12 @@ Done:
 
 ---
 
-### Sprint 13 — PT Pro
+### Sprint 14 — PT Pro
 
 **Effort:** Complex
 
 ```text
-Spec: /specs/S13-pt-pro.md
+Spec: .claude/sprints/S14-pt-pro/spec.md
 
 ☐ PT Pro tier: ฿390/mo
 ☐ PT account creation flow
@@ -985,15 +1004,16 @@ Running/cardio:
 | 2 | Custom Program Builder | ✅ | 10 | Complete |
 | 3 | Logger + Timer | ✅ | — | Complete |
 | 4 | Today + History + Anti-Guilt | ⏳ | — | Next |
-| 5 | Next Best Session v1 / Smart Comeback | ☐ | — | Differentiator |
-| 6 | Onboarding + Templates + i18n | ☐ | — | App Store polish foundation |
-| 7 | App Store Ship | ☐ | — | 1.0 release |
-| 8 | Substitute + Defer | ☐ | — | Crowded gym adaptation |
-| 9 | Injury Mode + Progress Graphs | ☐ | — | Real-life adaptation |
-| 10 | HealthKit Recovery / HRV | ☐ | — | Recovery adaptation |
-| 11 | RevenueCat + Paywall | ☐ | — | Monetization |
-| 12 | Watch + Widget + Notifications | ☐ | — | Re-engagement |
-| 13 | PT Pro | ☐ | — | B2B/PT revenue |
+| 5 | Settings | ☐ | — | Phase 1 wrap-up |
+| 6 | Next Best Session v1 / Smart Comeback | ☐ | — | Differentiator |
+| 7 | Onboarding + Templates + i18n | ☐ | — | App Store polish foundation |
+| 8 | App Store Ship | ☐ | — | 1.0 release |
+| 9 | Substitute + Defer | ☐ | — | Crowded gym adaptation |
+| 10 | Injury Mode + Progress Graphs | ☐ | — | Real-life adaptation |
+| 11 | HealthKit Recovery / HRV | ☐ | — | Recovery adaptation |
+| 12 | RevenueCat + Paywall | ☐ | — | Monetization |
+| 13 | Watch + Widget + Notifications | ☐ | — | Re-engagement |
+| 14 | PT Pro | ☐ | — | B2B/PT revenue |
 
 ### Velocity expectations
 
@@ -1064,7 +1084,7 @@ RPE ≥ 9:
   stall detected
 ```
 
-Sprint 3 scope: only carry actual weight/reps forward within an exercise (set N → set N+1). Smart cross-session progression suggestions are Sprint 5+.
+Sprint 3 scope: only carry actual weight/reps forward within an exercise (set N → set N+1). Smart cross-session progression suggestions are Sprint 6+.
 
 ---
 
@@ -1713,26 +1733,26 @@ Parallel worktrees:
 | Storage V1 | Supabase + in-memory + UserDefaults backup | SwiftData hybrid | Avoid overengineering |
 | Models | One Codable struct per entity | DTO/model split | Less mapping code |
 | AI V1 | Rule-based services | AI-first chat | Testable, cheap, offline |
-| AI chat | Future/optional | Mandatory Sprint 12 | Not core until demand appears |
+| AI chat | Future/optional | Mandatory Sprint 13 | Not core until demand appears |
 | Design | SwiftUI native | Figma-heavy process | Solo speed |
 | Analytics | TelemetryDeck | Firebase Analytics V1 | Privacy-first, Swift-native |
 | Crashes | Apple early → Crashlytics before public | Sentry V1 | Lean now, stronger later |
 | Architecture | MVVM + Repo + Service | UseCase/Coordinator-heavy | Lean and understandable |
 | Positioning | Adapts to real life | Generic coach/tracker | More specific wedge |
 | Differentiator | Next Best Session / Smart Comeback | Muscle map | Comeback is more ownable |
-| HealthKit | Sprint 10 | Sprint 3 | Avoid overloading logger sprint |
+| HealthKit | Sprint 11 | Sprint 3 | Avoid overloading logger sprint |
 | Social | Cut | Friends/community | Distracts, violates anti-guilt |
 | Streak pressure | Cut | Broken streaks | Bad fit for busy users |
 | Notifications | Max 1/week, opt-in | Daily reminders | Respectful re-engagement |
 | Custom programs | Sprint 2 | Later | Power users and dogfooding |
-| Templates | Sprint 6 | Sprint 8 only | First-time users need easy path |
-| Substitute + Defer | Sprint 8 | One generic swap flow | Different user intents |
-| Injury mode | Sprint 9 | Future | Strong “real life” fit |
-| HRV/recovery | Sprint 10 | V1 logger | Useful later, not MVP |
-| RevenueCat | Sprint 11 | Hand-rolled subscriptions | Less subscription complexity |
+| Templates | Sprint 7 | Sprint 9 only | First-time users need easy path |
+| Substitute + Defer | Sprint 9 | One generic swap flow | Different user intents |
+| Injury mode | Sprint 10 | Future | Strong “real life” fit |
+| HRV/recovery | Sprint 11 | V1 logger | Useful later, not MVP |
+| RevenueCat | Sprint 12 | Hand-rolled subscriptions | Less subscription complexity |
 | Student tier | Deferred | Launch | Verification complexity |
 | Lifetime tier | Deferred | Launch | Need LTV/retention first |
-| PT Pro | Sprint 13 | B2B platform first | PT is smaller/simpler wedge |
+| PT Pro | Sprint 14 | B2B platform first | PT is smaller/simpler wedge |
 | B2B gyms | Separate track | Core roadmap | Different sales/product motion |
 | Running expansion | Rejected | Unified fitness app | Dilutes strength moat |
 | Muscle heatmap | Optional | Core Pro feature | Not differentiated enough |
@@ -1752,7 +1772,7 @@ Parallel worktrees:
 ```text
 ☐ Final app name
   Current placeholder: GymBros
-  Must resolve by Sprint 7 before App Store submission
+  Must resolve by Sprint 8 before App Store submission
 
 ☐ Sound vs haptic-only
   Current default: haptic-only
@@ -1778,6 +1798,15 @@ Parallel worktrees:
 ---
 
 ## 19. Decision Log
+
+### 2026-05-17 — Settings sprint split + roadmap renumber
+
+- Extracted Settings from Sprint 4 into its own **Sprint 5**. Sprint 4 remains "Today + History + Navigation + Anti-Guilt UX" without Settings rows.
+- Sprint 5 scope: Settings tab (4th tab), weight-unit toggle (kg/lb, functional), Sign Out, app version, Privacy Policy placeholder, Delete Account placeholder.
+- Shifted old Sprints 5–13 to Sprints 6–14 doc-wide (Sprint Tracking table, roadmap entries, all cross-references, decision log forward pointers).
+- Phase 1 ("Real Life Works") now spans Sprints 1–6 (was 1–5), ending after Next Best Session v1.
+- Rationale: Settings is independent work that should not block the core Today+History loop; giving it a dedicated sprint keeps Sprint 4 focused and makes the roadmap easier to track.
+- Sprint 4 spec: `.claude/sprints/S04-today-history/spec.md`; Sprint 5 spec: `.claude/sprints/S05-settings/spec.md`.
 
 ### 2026-05-11 — Whole-app system color reset
 
@@ -1815,12 +1844,12 @@ Parallel worktrees:
 - Kept **Smart Comeback** as the first public proof of the engine.
 - Moved HealthKit out of Sprint 3 to avoid overloading logger implementation.
 - Split overloaded roadmap items:
-  - Sprint 8 = Substitute + Defer
-  - Sprint 9 = Injury Mode + Progress Graphs
-  - Sprint 10 = HealthKit Recovery / HRV
-  - Sprint 11 = RevenueCat + Paywall
-  - Sprint 12 = Watch + Widget + Notifications
-  - Sprint 13 = PT Pro
+  - Sprint 9 = Substitute + Defer
+  - Sprint 10 = Injury Mode + Progress Graphs
+  - Sprint 11 = HealthKit Recovery / HRV
+  - Sprint 12 = RevenueCat + Paywall
+  - Sprint 13 = Watch + Widget + Notifications
+  - Sprint 14 = PT Pro
 - Added dedicated **Product Metrics** section.
 - Deferred Student and Lifetime pricing until after conversion/retention data.
 - Kept B2B gym partnerships as a separate track, not core roadmap.
@@ -1841,7 +1870,7 @@ Parallel worktrees:
 - Sprint 1 complete: 7h actual.
 - Sprint 2 complete: ~10h actual.
 - Smart Comeback moved into Phase 1 because it defines the product.
-- Templates moved earlier: 3 starter templates in Sprint 6.
+- Templates moved earlier: 3 starter templates in Sprint 7.
 - Anti-guilt UX promoted from principle to concrete UI requirements.
 - Injury substitution added as a core real-life adaptation feature.
 - HRV/recovery added later, not MVP.
