@@ -8,9 +8,9 @@
 
 ## CURRENT STATUS
 
-**Status:** Not started. Spec and plan created 2026-05-18.
+**Status:** Task 0 complete. Tasks 1–7 may now run in parallel.
 
-**Done:** Nothing yet.
+**Done:** Task 0 — Spec Lock: 8 ambiguities resolved (see §2.2 in spec.md for all locked decisions).
 
 **Last commit SHA:** dde0a8c (Sprint 3 HIG pass — last Sprint 3 commit)
 
@@ -23,8 +23,12 @@
 - Settings tab is NOT part of Sprint 4 — it is Sprint 5. Do not add a placeholder Settings tab.
 - SessionDetailView is read-only this sprint. No editing past sets.
 - Do not add HealthKit, onboarding, notifications, progress graphs, or Smart Comeback in Sprint 4.
+- `WorkoutSessionScreen` presentation: push via `.navigationDestination(item:)` within the Today tab's `NavigationStack` — NOT `.sheet` or `.fullScreenCover`.
+- `StreakService` must use `Calendar(identifier: .iso8601)`, never `Calendar.current`.
+- `SessionDetailData.exerciseLookup` is `[UUID: Exercise]` (non-optional). Unresolved ids → `session.exercise.unknown` fallback header.
+- `HistoryData` carries `dayNames: [UUID: String]`. Unresolved/nil `programDayId` → `history.session.custom` label.
 
-**Next step:** Start at Task 0 — Spec Lock.
+**Next step:** Run Tasks 1, 2, 3, 4, 5, 6, 7 in parallel. Task 8 (Wire + Verify) follows.
 
 ---
 
@@ -70,17 +74,26 @@ Task 8 (sequential, after all above)
 - `Gymbros/Resources/Localizable.xcstrings`
 - `Gymbros/App/RootView.swift`
 
-- [ ] Confirm spec names concrete `TodayViewModel`, `HistoryViewModel`, `SessionDetailViewModel` public state and actions clearly enough for parallel work.
-- [ ] Confirm spec defines `TodayData`, `HistoryData`, `SessionDetailData`.
-- [ ] Confirm `StreakService` algorithm and hidden-threshold rule (< 2 = hidden) are documented.
-- [ ] Confirm `fetchSets(sessionId:)` contract is specified.
-- [ ] Confirm localization key families are listed for Task 7.
-- [ ] Confirm Task 1–7 ownership boundaries are clear.
-- [ ] Update `CURRENT STATUS` with any lock changes and the next parallel tasks.
+- [x] Confirm spec names concrete `TodayViewModel`, `HistoryViewModel`, `SessionDetailViewModel` public state and actions clearly enough for parallel work.
+- [x] Confirm spec defines `TodayData`, `HistoryData`, `SessionDetailData`.
+- [x] Confirm `StreakService` algorithm and hidden-threshold rule (< 2 = hidden) are documented.
+- [x] Confirm `fetchSets(sessionId:)` contract is specified.
+- [x] Confirm localization key families are listed for Task 7.
+- [x] Confirm Task 1–7 ownership boundaries are clear.
+- [x] Update `CURRENT STATUS` with any lock changes and the next parallel tasks.
 
 **Verification:** Documentation review only.
 
-**Handoff notes:** Add when complete.
+**Handoff notes:**
+8 decisions locked in spec.md §2.2:
+1. VM init signatures — `nil`-defaulted protocol params, concrete fallback in body.
+2. `fetchSets` added to `WorkoutRepositoryProviding` protocol AND concrete class (and fake in tests).
+3. `SessionDetailData.exerciseLookup` is `[UUID: Exercise]` (non-optional); `ExerciseRepositoryProviding` injected; fallback key `session.exercise.unknown`.
+4. `HistoryData` gains `dayNames: [UUID: String]`; `HistoryViewModel` injects `ProgramRepositoryProviding`; fallback key `history.session.custom`.
+5. Next-day fallback: nil/stale `programDayId` → first day (lowest `dayOrder`).
+6. `StreakService` uses `Calendar(identifier: .iso8601)` — never `Calendar.current`.
+7. `fetchActive()` returns a fully-hydrated `Program`; Tasks 2/5 rely on `nextDay.exercises` directly.
+8. `TodayView` pushes `WorkoutSessionScreen` via `.navigationDestination(item:)` within the tab's `NavigationStack` (matching `DayBuilderView` pattern) — not a modal.
 
 ---
 
@@ -101,13 +114,15 @@ Task 8 (sequential, after all above)
 - `Gymbros/App/RootView.swift`
 - `Gymbros/Resources/Localizable.xcstrings`
 
-- [ ] Add `func fetchSets(sessionId: UUID) async throws -> [WorkoutSet]` to `WorkoutRepository`.
+- [ ] Add `func fetchSets(sessionId: UUID) async throws -> [WorkoutSet]` to **both** the `WorkoutRepositoryProviding` protocol and the `WorkoutRepository` concrete class.
+  - `FakeWorkoutRepository` in tests must implement it too.
   - Query `workout_sets` filtered by `session_id`, ordered by `exercise_id` then `set_number`.
   - Map through `ErrorMapper.map(error, context:)`.
   - Return `[]` (not nil) when no sets exist.
 - [ ] Create `Gymbros/Data/Services/StreakService.swift` as a pure Swift struct with no I/O.
   - `func streak(from sessions: [WorkoutSession], today: Date = .now) -> Int`
-  - Use ISO calendar week grouping (`.yearForWeekOfYear` + `.weekOfYear`).
+  - Use `Calendar(identifier: .iso8601)` — **never** `Calendar.current` (locale-dependent first weekday makes tests non-deterministic).
+  - Group by `.yearForWeekOfYear` + `.weekOfYear` using that calendar.
   - Current week never counts or breaks streak.
   - Return 0 when result < 2.
 - [ ] Create `GymbrosTests/StreakServiceTests.swift` using Swift Testing.
@@ -150,11 +165,13 @@ xcodebuild test -project Gymbros.xcodeproj -scheme Gymbros -destination 'platfor
 
 - [ ] Create `Gymbros/Presentation/Today/TodayViewModel.swift`.
   - `@MainActor @Observable final class TodayViewModel`.
+  - Locked init: `init(programRepository: ProgramRepositoryProviding? = nil, workoutRepository: WorkoutRepositoryProviding? = nil)` — default `nil` → concrete fallback. Tests inject `FakeProgramRepository` / `FakeWorkoutRepository`.
   - `var state: ViewState<TodayData>`, `var transientError: AppError?`.
   - `func load() async` and `func refresh() async`.
   - Call `fetchActive()` and `fetchHistory(limit: 50)` concurrently (use `async let` or `withTaskGroup`).
   - Pass completed sessions to `StreakService.streak(from:)`.
-  - Derive `nextDay` by: sort active program days by `dayOrder`, find the day after the most-recently-completed session's `programDayId`, wrap around. First day if no history.
+  - Derive `nextDay`: sort active program days by `dayOrder`; find the day whose `dayOrder` immediately follows the most-recently-completed session's `programDayId`. **Fallback rule (locked):** if the most-recent completed session has a `nil` `programDayId` OR its id is not among the active program's days, use the first day (lowest `dayOrder`). Wrap around after the last day. First day if no history.
+  - `fetchActive()` is fully hydrated — `nextDay.exercises` is populated; no extra fetch needed for exercise preview.
   - Set `isWelcomeBack = true` when history is empty (and program exists) or last session ≥7 days ago.
   - Map repository errors through `AppError`/`ViewState`.
 - [ ] Define `TodayData` struct in the same file or a shared file — accessible from both ViewModel and mock data.
@@ -198,20 +215,25 @@ xcodebuild test -project Gymbros.xcodeproj -scheme Gymbros -destination 'platfor
 
 - [ ] Create `Gymbros/Presentation/History/HistoryViewModel.swift`.
   - `@MainActor @Observable final class HistoryViewModel`.
+  - Locked init: `init(workoutRepository: WorkoutRepositoryProviding? = nil, programRepository: ProgramRepositoryProviding? = nil)`.
   - `var state: ViewState<HistoryData>`, `var transientError: AppError?`.
   - `func load() async`.
-  - Calls `WorkoutRepository.fetchHistory(limit: 50)`.
-  - Empty sessions → `.empty`; sessions present → `.success`.
-- [ ] Define `HistoryData` struct accessible from ViewModel and mock.
+  - Calls `WorkoutRepository.fetchHistory(limit: 50)` and `ProgramRepository.fetchAll()` **concurrently**.
+  - Flattens every program's `.days` into `dayNames: [UUID: String]` (programDayId → day name string).
+  - Empty sessions → `.empty`; sessions present → `.success(HistoryData(sessions:dayNames:))`.
+- [ ] Define `HistoryData` struct with `sessions: [WorkoutSession]` and `dayNames: [UUID: String]`, accessible from ViewModel and mock.
 - [ ] Create `Gymbros/Presentation/History/SessionDetailViewModel.swift`.
   - `@MainActor @Observable final class SessionDetailViewModel`.
-  - `init(session: WorkoutSession)`.
+  - Locked init: `init(session: WorkoutSession, workoutRepository: WorkoutRepositoryProviding? = nil, exerciseRepository: ExerciseRepositoryProviding? = nil)`.
   - `var state: ViewState<SessionDetailData>`, `var transientError: AppError?`.
-  - `func load() async` calls `WorkoutRepository.fetchSets(sessionId:)`.
-- [ ] Define `SessionDetailData` struct.
+  - `func load() async` — calls `WorkoutRepository.fetchSets(sessionId:)` and `ExerciseRepository.fetchAll()` **concurrently**.
+  - Builds `exerciseLookup: [UUID: Exercise]` using `ProgramViewModelSupport.exerciseLookup(from:)`. Falls back to empty dict on exercise-fetch failure.
+- [ ] Define `SessionDetailData` struct with `session: WorkoutSession`, `sets: [WorkoutSet]`, `exerciseLookup: [UUID: Exercise]` (non-optional).
 - [ ] Create `GymbrosTests/HistoryViewModelTests.swift`.
   - No sessions → `.empty`.
   - Sessions returned → `.success`.
+  - Session with known `programDayId` → `dayNames` resolves correct day name string.
+  - Session with `nil` or unknown `programDayId` → `dayNames` lookup misses; view renders `history.session.custom`.
   - Session with no sets → `.success` with empty set list.
   - Session with sets → sets present in data.
   - Repository error → `.error`.
@@ -322,12 +344,12 @@ xcodebuild -project Gymbros.xcodeproj -scheme Gymbros -destination 'platform=iOS
 - `Gymbros/Resources/Localizable.xcstrings`
 
 - [ ] Build `HistoryView` with loading, empty, error, and success states.
-  - Session row: day name (headline), date (`workoutDisplayString`), duration (e.g. "42 min").
-  - Empty state: "No workouts yet. Your first one is waiting." (no judgment copy).
+  - Session row (locked layout): **headline** = program day name from `HistoryData.dayNames[session.programDayId]`. When `programDayId` is `nil` or missing from the lookup, render the localized `history.session.custom` key ("Custom workout"). **Subheadline** = `workoutDisplayString` date + duration (e.g. "42 min").
+  - Empty state: `history.empty` key ("No workouts yet. Your first one is waiting.") — no judgment copy.
   - Tap navigates to `SessionDetailView`.
 - [ ] Build `SessionDetailView` with loading, error, and success states.
   - Title: session date. Subheader: total duration.
-  - Sets grouped per exercise: exercise name section header, then rows of set# / weight / reps / optional RPE.
+  - Sets grouped per exercise: exercise name from `SessionDetailData.exerciseLookup` as section header. When a set's `exerciseId` is not in the lookup, use the localized `session.exercise.unknown` key ("Exercise") as the fallback header. Then rows of set# / weight / reps / optional RPE.
   - Read-only: no inputs, no delete, no add-set affordance.
 - [ ] Create `HistoryMockData.swift` with `#if DEBUG` sample data.
 - [ ] Add previews for: HistoryView loading / empty / error / success (multiple sessions); SessionDetailView loading / error / success.
@@ -357,8 +379,8 @@ xcodebuild -project Gymbros.xcodeproj -scheme Gymbros -destination 'platform=iOS
 - `Gymbros/Data/Repository/WorkoutRepository.swift`
 
 - [ ] Add `today.*` keys with Thai and English: `today.title`, `today.greeting.morning`, `today.greeting.afternoon`, `today.greeting.evening`, `today.next_workout.title`, `today.start_cta`, `today.streak.weeks`, `today.last_workout`, `today.welcome_back`, `today.empty.no_program`, `today.empty.programs_cta`.
-- [ ] Add `history.*` keys: `history.title`, `history.empty`, `history.session.duration`.
-- [ ] Add `session.*` keys: `session.title` (or use date formatting directly), `session.duration`, `session.set.weight_reps`, `session.set.rpe`.
+- [ ] Add `history.*` keys: `history.title`, `history.empty`, `history.session.duration`, `history.session.custom` ("Custom workout" / "เวิร์กเอาท์ทั่วไป").
+- [ ] Add `session.*` keys: `session.title` (or use date formatting directly), `session.duration`, `session.set.weight_reps`, `session.set.rpe`, `session.exercise.unknown` ("Exercise" / "ท่าออกกำลังกาย").
 - [ ] Add `accessibility.*` keys: `accessibility.today.start`, `accessibility.today.streak`, `accessibility.history.session_row`.
 - [ ] Verify every new key has both English and Thai values.
 - [ ] Search `Presentation/Today/` and `Presentation/History/` for hardcoded user-facing strings and replace with keys (if Task 5/6 views are available).

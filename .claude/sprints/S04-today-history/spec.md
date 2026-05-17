@@ -153,6 +153,52 @@ Task 0 locks these decisions before parallel work starts:
 - Empty state: "Ready when you are." (no judgment).
 - Last-workout date: show as relative/natural date in `.secondary` colour only.
 
+---
+
+## 2.2 Locked at Task 0
+
+These decisions were open or ambiguous in the original spec and are now locked. All parallel tasks (1–7) must follow these as-written.
+
+**Lock 1 — ViewModel init signatures (canonical codebase pattern):**
+- `TodayViewModel(programRepository: ProgramRepositoryProviding? = nil, workoutRepository: WorkoutRepositoryProviding? = nil)`
+- `HistoryViewModel(workoutRepository: WorkoutRepositoryProviding? = nil, programRepository: ProgramRepositoryProviding? = nil)`
+- `SessionDetailViewModel(session: WorkoutSession, workoutRepository: WorkoutRepositoryProviding? = nil, exerciseRepository: ExerciseRepositoryProviding? = nil)`
+- Default `nil` → concrete fallback (e.g. `workoutRepository ?? WorkoutRepository()`). Tests inject `Fake*Repository`.
+
+**Lock 2 — `fetchSets` on the protocol, not only the class:**
+- Task 1 adds `func fetchSets(sessionId: UUID) async throws -> [WorkoutSet]` to `WorkoutRepositoryProviding` AND `WorkoutRepository`.
+- `FakeWorkoutRepository` (used in tests) must also implement it.
+
+**Lock 3 — `SessionDetailData.exerciseLookup` is non-optional:**
+- Type is `[UUID: Exercise]` (not `[UUID: Exercise]?`).
+- `SessionDetailViewModel` injects `ExerciseRepositoryProviding`, calls `fetchAll()`, builds the lookup via the existing `ProgramViewModelSupport.exerciseLookup(from:)` helper.
+- If the exercise fetch fails: use an empty dict; set rows still render. An unresolved `exerciseId` falls back to the key `session.exercise.unknown` ("Exercise" / "ท่าออกกำลังกาย") as the section header.
+
+**Lock 4 — History row day-name resolution:**
+- `HistoryData` gains `dayNames: [UUID: String]` (programDayId → day name string).
+- `HistoryViewModel` injects `ProgramRepositoryProviding`, calls `fetchHistory(limit: 50)` and `fetchAll()` concurrently, flattens every program's `.days` into the lookup.
+- Row layout: program day name as headline; `workoutDisplayString` date + duration as subheadline.
+- Session with `nil` `programDayId` or an id not in the lookup → show localized `history.session.custom` ("Custom workout" / "เวิร์กเอาท์ทั่วไป").
+
+**Lock 5 — Next-day fallback when `programDayId` is nil or stale:**
+- In `TodayViewModel`, after finding the most-recently-completed session: if its `programDayId` is `nil` OR not among the active program's days, fall back to the first day (lowest `dayOrder`). Otherwise pick the day immediately after it (ascending `dayOrder`), wrapping to the first day after the last.
+
+**Lock 6 — StreakService calendar is always `iso8601`:**
+- `StreakService` creates `Calendar(identifier: .iso8601)` explicitly. Never `Calendar.current`.
+- This makes all week-grouping and current-week computation deterministic regardless of device locale.
+
+**Lock 7 — `fetchActive()` returns a fully-hydrated Program:**
+- `ProgramRepository.fetchActive()` calls `fetchFull(id:)` internally; `Program.days` is populated and each `ProgramDay.exercises` is populated.
+- Tasks 2 and 5 rely on `nextDay.exercises` directly — no extra exercise fetch needed for the Today card exercise preview.
+
+**Lock 8 — Workout session presentation: push, not modal:**
+- Verified: the only existing `WorkoutSessionScreen` call site (`DayBuilderView.swift:98`) uses `.navigationDestination(isPresented:)` — a push within the surrounding `NavigationStack`.
+- `TodayView` must match this pattern: use `.navigationDestination(item:)` bound to an optional `UUID?` state (the next-day id). Do NOT use `.sheet` or `.fullScreenCover`.
+- No "streak broken", "missed", "failed", "behind", "you haven't trained", "don't break the streak".
+- Welcome-back banner copy: positive framing only ("Welcome back! Ready to pick up where you left off?").
+- Empty state: "Ready when you are." (no judgment).
+- Last-workout date: show as relative/natural date in `.secondary` colour only.
+
 **Mock data:**
 - Each new view file has a corresponding `*MockData.swift` in the same folder used only in `#if DEBUG` / `PreviewProvider` scope.
 
@@ -196,6 +242,7 @@ isWelcomeBack: Bool                  // true when 7+ days since last session
 
 ```text
 sessions: [WorkoutSession]           // completed, newest first
+dayNames: [UUID: String]             // programDayId → day name; built by HistoryViewModel from fetchAll()
 ```
 
 ### SessionDetailData
@@ -203,7 +250,7 @@ sessions: [WorkoutSession]           // completed, newest first
 ```text
 session: WorkoutSession
 sets: [WorkoutSet]
-exerciseLookup: [UUID: Exercise]?    // optional; load exercise names if available
+exerciseLookup: [UUID: Exercise]     // non-optional; empty dict when exercise fetch fails
 ```
 
 ---
@@ -219,6 +266,10 @@ final class TodayViewModel {
     var state: ViewState<TodayData>
     var transientError: AppError?
 
+    init(
+        programRepository: ProgramRepositoryProviding? = nil,
+        workoutRepository: WorkoutRepositoryProviding? = nil
+    )
     func load() async
     func refresh() async
 }
@@ -227,8 +278,9 @@ final class TodayViewModel {
 Internal logic:
 - Calls `ProgramRepository.fetchActive()` and `WorkoutRepository.fetchHistory(limit: 50)` concurrently.
 - Passes completed sessions to `StreakService.streak(from:)`.
-- Derives `nextDay` from history + active program days sorted by `dayOrder`.
+- Derives `nextDay` from history + active program days sorted by `dayOrder`. If the most-recently-completed session's `programDayId` is `nil` or not in the active program's days, falls back to the first day (lowest `dayOrder`).
 - Sets `isWelcomeBack = true` when `lastSessionDate` is ≥7 days ago or history is empty and a program exists.
+- `fetchActive()` returns a fully-hydrated `Program`; rely on `nextDay.exercises` directly for exercise preview.
 
 ### HistoryViewModel
 
@@ -239,9 +291,17 @@ final class HistoryViewModel {
     var state: ViewState<HistoryData>
     var transientError: AppError?
 
+    init(
+        workoutRepository: WorkoutRepositoryProviding? = nil,
+        programRepository: ProgramRepositoryProviding? = nil
+    )
     func load() async
 }
 ```
+
+Internal logic:
+- Calls `WorkoutRepository.fetchHistory(limit: 50)` and `ProgramRepository.fetchAll()` concurrently.
+- Flattens every program's `.days` into `dayNames: [UUID: String]` (programDayId → day name).
 
 ### SessionDetailViewModel
 
@@ -252,10 +312,18 @@ final class SessionDetailViewModel {
     var state: ViewState<SessionDetailData>
     var transientError: AppError?
 
-    init(session: WorkoutSession)
+    init(
+        session: WorkoutSession,
+        workoutRepository: WorkoutRepositoryProviding? = nil,
+        exerciseRepository: ExerciseRepositoryProviding? = nil
+    )
     func load() async
 }
 ```
+
+Internal logic:
+- Calls `WorkoutRepository.fetchSets(sessionId:)` and `ExerciseRepository.fetchAll()` concurrently.
+- Builds `exerciseLookup` using `ProgramViewModelSupport.exerciseLookup(from:)`. Falls back to empty dict if exercise fetch fails.
 
 ---
 
@@ -278,10 +346,11 @@ struct StreakService {
 
 Algorithm:
 1. Filter `sessions` to only `isComplete == true`.
-2. Group by ISO calendar week (`.yearForWeekOfYear` + `.weekOfYear`).
-3. Determine `currentWeek` from `today`.
-4. Starting from the week immediately before `currentWeek`, count consecutive weeks that have ≥1 session. Stop at the first gap.
-5. If count < 2, return 0. Otherwise return count.
+2. Create `var cal = Calendar(identifier: .iso8601)` — **never** use `Calendar.current` (device locale affects first weekday, making tests non-deterministic).
+3. Group sessions by `(yearForWeekOfYear, weekOfYear)` using that calendar.
+4. Determine `currentWeek` from `today` using the same calendar.
+5. Starting from the week immediately before `currentWeek`, count consecutive weeks that have ≥1 session. Stop at the first gap.
+6. If count < 2, return 0. Otherwise return count.
 
 ---
 
@@ -301,7 +370,7 @@ Next-workout card layout:
 - Day name (title), exercise preview (2–3 names or count).
 - Streak badge (only when `streakWeeks >= 2`): e.g. "3 weeks" — no fire emoji, no pressure copy.
 - Last-workout date in `.secondary` colour (e.g. "3 days ago").
-- Start button: primary CTA.
+- Start button: primary CTA. Tapping pushes `WorkoutSessionScreen(programDayId:)` via `.navigationDestination(item:)` bound to an optional `UUID?` state — do NOT use `.sheet` or `.fullScreenCover`.
 - Welcome-back banner (visible when `isWelcomeBack`): positive tone, not a warning.
 
 Color policy: system and semantic only. Use `.primary`, `.secondary`, `.systemBackground`, `.secondarySystemBackground`. A `.blue` tint is acceptable for the Start CTA.
@@ -317,9 +386,9 @@ States:
 - `.success(HistoryData)`: session list
 
 Session row layout:
-- Leading: day name (headline) + program day name or "Custom" (subheadline)
-- Trailing: date (`workoutDisplayString`) + duration (e.g. "42 min")
-- Tap navigates to `SessionDetailView`
+- Headline: program day name (from `dayNames[session.programDayId]`). Sessions with a `nil` or unresolved `programDayId` show the localized `history.session.custom` label ("Custom workout").
+- Subheadline: `workoutDisplayString` date + duration (e.g. "42 min").
+- Tap navigates to `SessionDetailView`.
 
 ### SessionDetailView
 
@@ -331,7 +400,7 @@ States:
 Layout:
 - Navigation title: session date
 - Subheader: total duration
-- Sections per exercise: exercise name, then set rows (set number, weight, reps, optional RPE)
+- Sections per exercise: exercise name (from `exerciseLookup`), then set rows (set number, weight, reps, optional RPE). If a set's `exerciseId` is not in the lookup, use localized `session.exercise.unknown` ("Exercise") as the section header.
 - No edit affordance, no swipe-delete, no add-set
 
 ---
@@ -351,9 +420,14 @@ func fetchHistory(limit: Int = 50) async throws -> [WorkoutSession]
 ### New (Task 1 adds)
 
 ```swift
-// WorkoutRepository
+// WorkoutRepositoryProviding protocol — add this method:
+func fetchSets(sessionId: UUID) async throws -> [WorkoutSet]
+
+// WorkoutRepository concrete class — implement it:
 func fetchSets(sessionId: UUID) async throws -> [WorkoutSet]
 ```
+
+Both the **protocol** (`WorkoutRepositoryProviding`) and the **concrete class** (`WorkoutRepository`) must have this method. `FakeWorkoutRepository` in tests must implement it too.
 
 Implementation notes:
 - Query `workout_sets` filtered by `session_id == sessionId`, ordered by `exercise_id` then `set_number`.
@@ -383,11 +457,13 @@ today.empty.programs_cta      // "Create a program" / "สร้างโปร�
 history.title                 // "History" / "ประวัติ"
 history.empty                 // "No workouts yet. Your first one is waiting."
 history.session.duration      // "%lld min" / "%lld นาที"
+history.session.custom        // "Custom workout" / "เวิร์กเอาท์ทั่วไป"
 
 session.title                 // session date string
 session.duration              // "Duration: %lld min"
 session.set.weight_reps       // "%@ kg × %lld"  (or "%@ lb × %lld")
 session.set.rpe               // "RPE %@"
+session.exercise.unknown      // "Exercise" / "ท่าออกกำลังกาย"  (fallback when exerciseId not in lookup)
 
 accessibility.today.start           // "Start workout for %@"
 accessibility.today.streak          // "Streak: %lld weeks"
@@ -423,6 +499,8 @@ TodayViewModel (mock repositories):
 HistoryViewModel (mock repositories):
 - No sessions → state is `.empty`
 - Sessions returned → state is `.success`
+- Session with a known `programDayId` → `dayNames` lookup resolves correct day name
+- Session with `nil` or unknown `programDayId` → view renders `history.session.custom` label
 
 SessionDetailViewModel (mock repository):
 - Session with no sets → state is `.success` with empty set list
