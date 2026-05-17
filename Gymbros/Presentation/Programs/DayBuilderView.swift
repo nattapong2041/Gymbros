@@ -47,7 +47,7 @@ struct DayBuilderView: View {
                             Button {
                                 isShowingExercisePicker = true
                             } label: {
-                                HStack(spacing: 4) {
+                                HStack {
                                     Image(systemName: "plus.circle.fill")
                                     Text("dayBuilder.addExercise.action")
                                 }
@@ -103,7 +103,6 @@ struct DayBuilderView: View {
             Button("common.save") {
                 Task { await viewModel.renameDay(renamedDayName) }
             }
-            .tint(.blue)
             Button("common.cancel", role: .cancel) {}
         }
         .transientErrorAlert(error: Binding(
@@ -146,7 +145,6 @@ struct DayBuilderView: View {
                 isShowingExercisePicker = true
             }
             .buttonStyle(.borderedProminent)
-            .tint(.blue)
         }
     }
 }
@@ -163,7 +161,7 @@ struct ProgramExerciseRow: View {
                 Text(exercise?.name ?? "programExercise.unknownExercise")
                     .font(.headline)
 
-                HStack(spacing: 8) {
+                HStack {
                     Text(String(format: String(localized: "programExercise.setsFormat"), programExercise.targetSets))
                     Text(verbatim: "•")
                     Text(String(
@@ -178,7 +176,7 @@ struct ProgramExerciseRow: View {
                 .foregroundStyle(.secondary)
 
                 if let notes = programExercise.notes, !notes.isEmpty {
-                    HStack(spacing: 4) {
+                    HStack {
                         Image(systemName: "note.text")
                         Text(notes)
                     }

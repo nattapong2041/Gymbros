@@ -71,7 +71,7 @@ struct ProgramDetailView: View {
                                 isShowingAddDayAlert = true
                                 newDayName = ""
                             } label: {
-                                HStack(spacing: 4) {
+                                HStack {
                                     Image(systemName: "plus.circle.fill")
                                     Text("programDetail.addDay.action")
                                 }
@@ -146,14 +146,12 @@ struct ProgramDetailView: View {
                     Task { await viewModel.renameDay(day, name: renamedDayName) }
                 }
             }
-            .tint(.blue)
             Button("common.cancel", role: .cancel) {}
         }
         .alert("programs.delete.confirmation.title", isPresented: $isShowingDeleteProgramConfirmation) {
             Button("common.delete", role: .destructive) {
                 Task { await viewModel.deleteProgram() }
             }
-            .tint(.red)
             Button("common.cancel", role: .cancel) {}
         } message: {
             Text("programs.delete.confirmation.message")

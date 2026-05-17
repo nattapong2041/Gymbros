@@ -23,7 +23,7 @@ struct RestTimerRingView: View {
             ZStack {
                 // Background Track
                 Circle()
-                    .stroke(Color.gymSurface, lineWidth: 12)
+                    .stroke(.quaternary, lineWidth: 12)
                 
                 // Progress Ring
                 Circle()
@@ -48,32 +48,25 @@ struct RestTimerRingView: View {
             .frame(width: 200, height: 200)
             
             HStack(spacing: 20) {
-                Button(action: onStop) {
-                    Text("workout.timer.stop")
-                        .font(.system(.body, design: .rounded).bold())
-                        .foregroundStyle(.red)
-                        .frame(maxWidth: .infinity)
-                        .frame(height: 54)
-                        .background(Color.gymSurface)
-                        .clipShape(RoundedRectangle(cornerRadius: 12))
-                }
-                .accessibilityLabel("accessibility.workout.timer.stop")
-                
-                Button(action: onSkip) {
-                    Text("workout.timer.skip")
-                        .font(.system(.body, design: .rounded).bold())
-                        .foregroundStyle(.blue)
-                        .frame(maxWidth: .infinity)
-                        .frame(height: 54)
-                        .background(Color.blue.opacity(0.15))
-                        .clipShape(RoundedRectangle(cornerRadius: 12))
-                }
-                .accessibilityLabel("accessibility.workout.timer.skip")
+                Button("workout.timer.stop", action: onStop)
+                    .font(.system(.body, design: .rounded).bold())
+                    .tint(.red)
+                    .buttonStyle(.bordered)
+                    .controlSize(.large)
+                    .frame(maxWidth: .infinity)
+                    .accessibilityLabel("accessibility.workout.timer.stop")
+
+                Button("workout.timer.skip", action: onSkip)
+                    .font(.system(.body, design: .rounded).bold())
+                    .buttonStyle(.borderedProminent)
+                    .controlSize(.large)
+                    .frame(maxWidth: .infinity)
+                    .accessibilityLabel("accessibility.workout.timer.skip")
             }
             .padding(.horizontal)
         }
         .padding()
-        .background(Color.gymBackground)
+        .background(Color(.systemBackground))
         .onReceive(timer) { input in
             currentTime = input
             if state.remainingSeconds(at: input) <= 0 {

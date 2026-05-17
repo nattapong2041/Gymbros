@@ -56,7 +56,7 @@ struct SetRowView: View {
                 .font(.system(.body, design: .rounded).bold())
                 .multilineTextAlignment(.center)
                 .padding(.vertical, 12) // Increased padding for 48pt target
-                .background(Color.gymSurface)
+                .background(Color(.secondarySystemBackground))
                 .clipShape(RoundedRectangle(cornerRadius: 8))
                 .frame(minWidth: 64, minHeight: 48) // Mandated 48pt tap target
                 .disabled(isReadOnly)
@@ -74,7 +74,7 @@ struct SetRowView: View {
                 .font(.system(.body, design: .rounded).bold())
                 .multilineTextAlignment(.center)
                 .padding(.vertical, 12) // Increased padding for 48pt target
-                .background(Color.gymSurface)
+                .background(Color(.secondarySystemBackground))
                 .clipShape(RoundedRectangle(cornerRadius: 8))
                 .frame(minWidth: 64, minHeight: 48) // Mandated 48pt tap target
                 .disabled(isReadOnly)
@@ -99,7 +99,7 @@ struct SetRowView: View {
                     .font(.system(.caption, design: .rounded).bold())
                     .foregroundStyle(rpe != nil ? .primary : .secondary)
                     .frame(minWidth: 48, minHeight: 48) // Mandated 48pt tap target
-                    .background(Color.gymSurface)
+                    .background(Color(.secondarySystemBackground))
                     .clipShape(RoundedRectangle(cornerRadius: 8))
             }
             .disabled(isReadOnly)

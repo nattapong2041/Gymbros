@@ -26,7 +26,7 @@ struct ProgramBuilderView: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("common.cancel") {
+                    Button("common.cancel", role: .cancel) {
                         dismiss()
                     }
                 }
@@ -44,7 +44,6 @@ struct ProgramBuilderView: View {
                             }
                         }
                         .disabled(!viewModel.canSave)
-                        .tint(.blue)
                     }
                 }
             }

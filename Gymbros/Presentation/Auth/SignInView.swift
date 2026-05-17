@@ -40,7 +40,6 @@ struct SignInView: View {
                 }
                 .signInWithAppleButtonStyle(colorScheme == .dark ? .white : .black)
                 .frame(height: 56)
-                .clipShape(.rect(cornerRadius: 12, style: .continuous))
 
                 if case .error(let error) = viewModel.state, error.isVisibleToUser {
                     Text(LocalizedStringKey(error.messageKey))
@@ -50,7 +49,7 @@ struct SignInView: View {
                 }
             }
         }
-        .padding(24)
+        .padding()
     }
 }
 

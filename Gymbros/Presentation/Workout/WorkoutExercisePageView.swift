@@ -92,7 +92,7 @@ struct WorkoutExercisePageView: View {
             .foregroundStyle(.secondary)
             
             if let targetWeight = section.programExercise.targetWeight {
-                HStack(spacing: 4) {
+                HStack {
                     Text("workout.exercise.target_weight")
                     Text("\(targetWeight, specifier: "%.1f")")
                         .fontWeight(.bold)
@@ -101,9 +101,8 @@ struct WorkoutExercisePageView: View {
                 .font(.system(.caption, design: .rounded))
                 .padding(.horizontal, 8)
                 .padding(.vertical, 4)
-                .background(Color.blue.opacity(0.1))
+                .background(.quaternary, in: Capsule())
                 .foregroundStyle(.blue)
-                .clipShape(Capsule())
             }
             
             if let notes = section.programExercise.notes, !notes.isEmpty {
@@ -121,7 +120,7 @@ struct WorkoutExercisePageView: View {
     @ViewBuilder
     private var footerAction: some View {
         if section.isFinished {
-            HStack(spacing: 8) {
+            HStack {
                 Image(systemName: "checkmark.circle.fill")
                 Text("workout.exercise.finished")
             }
@@ -129,19 +128,16 @@ struct WorkoutExercisePageView: View {
             .foregroundStyle(.green)
             .padding()
             .frame(maxWidth: .infinity)
-            .background(Color.green.opacity(0.1))
-            .clipShape(RoundedRectangle(cornerRadius: 12))
+            .background(.quaternary, in: RoundedRectangle(cornerRadius: 12))
             .padding(.horizontal)
         } else {
-            Button(action: { onFinishExercise(section.programExercise.id) }) {
-                Text("workout.exercise.finish_or_skip")
-                    .font(.system(.headline, design: .rounded))
-                    .foregroundStyle(.white)
-                    .padding()
-                    .frame(maxWidth: .infinity)
-                    .background(canFinish ? Color.blue : Color.secondary.opacity(0.3))
-                    .clipShape(RoundedRectangle(cornerRadius: 12))
+            Button("workout.exercise.finish_or_skip") {
+                onFinishExercise(section.programExercise.id)
             }
+            .font(.system(.headline, design: .rounded))
+            .buttonStyle(.borderedProminent)
+            .controlSize(.large)
+            .frame(maxWidth: .infinity)
             .disabled(!canFinish)
             .padding(.horizontal)
         }

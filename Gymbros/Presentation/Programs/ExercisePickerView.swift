@@ -17,7 +17,7 @@ struct ExercisePickerView: View {
             .searchable(text: $viewModel.searchText, placement: .navigationBarDrawer(displayMode: .always), prompt: "exercisePicker.search.prompt")
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("common.cancel") {
+                    Button("common.cancel", role: .cancel) {
                         dismiss()
                     }
                 }
@@ -37,7 +37,7 @@ struct ExercisePickerView: View {
 
     private var filterBar: some View {
         ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: 8) {
+            HStack {
                 filterMenu(
                     selection: $viewModel.selectedMuscle,
                     label: "exercisePicker.filter.muscle",
@@ -56,8 +56,7 @@ struct ExercisePickerView: View {
                     options: MovementPattern.allCases
                 )
             }
-            .padding(.horizontal, 16)
-            .padding(.vertical, 12)
+            .padding()
         }
         .background(Color(.systemBackground))
         .overlay(alignment: .bottom) {
@@ -116,15 +115,19 @@ struct ExercisePickerView: View {
                 }
             }
         } label: {
-            HStack(spacing: 6) {
+            HStack {
                 Text(selection.wrappedValue?.localizedTitleKey ?? LocalizedStringKey(label))
                 Image(systemName: "chevron.down")
                     .font(.caption2.bold())
             }
             .font(.subheadline.weight(.semibold))
-            .padding(.horizontal, 16)
+            .padding(.horizontal)
             .frame(minHeight: 48) // Mandated 48pt tap target
-            .background(selection.wrappedValue == nil ? Color(.tertiarySystemBackground) : Color.blue.opacity(0.15))
+            .background(
+                selection.wrappedValue == nil
+                    ? Color(.tertiarySystemBackground)
+                    : Color(.quaternarySystemFill)
+            )
             .foregroundStyle(selection.wrappedValue == nil ? Color.primary : Color.blue)
             .clipShape(Capsule())
         }
@@ -139,7 +142,7 @@ struct ExercisePickerRow: View {
             EquipmentIconView(equipment: exercise.equipment)
 
             VStack(alignment: .leading, spacing: 2) {
-                HStack(spacing: 6) {
+                HStack {
                     Text(exercise.name)
                         .font(.headline)
 
@@ -150,7 +153,7 @@ struct ExercisePickerRow: View {
                     }
                 }
 
-                HStack(spacing: 6) {
+                HStack {
                     Text(exercise.primaryMuscle.localizedTitleKey)
                     Text(verbatim: "•")
                     Text(exercise.equipment.localizedTitleKey)

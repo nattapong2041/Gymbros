@@ -86,26 +86,20 @@ struct WorkoutSessionView: View {
             }
             
             VStack(spacing: 12) {
-                Button(action: onRestore) {
-                    Text("workout.restore.action")
-                        .font(.headline)
-                        .foregroundStyle(.white)
-                        .frame(maxWidth: .infinity)
-                        .frame(height: 50)
-                        .background(Color.blue)
-                        .clipShape(RoundedRectangle(cornerRadius: 12))
-                }
-                
-                Button(action: onDiscard) {
-                    Text("workout.restore.discard")
-                        .font(.headline)
-                        .foregroundStyle(.red)
-                        .frame(maxWidth: .infinity)
-                        .frame(height: 50)
-                }
+                Button("workout.restore.action", action: onRestore)
+                    .font(.headline)
+                    .buttonStyle(.borderedProminent)
+                    .controlSize(.large)
+                    .frame(maxWidth: .infinity)
+
+                Button("workout.restore.discard", role: .destructive, action: onDiscard)
+                    .font(.headline)
+                    .buttonStyle(.bordered)
+                    .controlSize(.large)
+                    .frame(maxWidth: .infinity)
             }
         }
-        .padding(24)
+        .padding()
     }
     
     @ViewBuilder
@@ -116,7 +110,7 @@ struct WorkoutSessionView: View {
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
             
         case .error(let error):
-            VStack(spacing: 16) {
+            VStack {
                 Image(systemName: "exclamationmark.triangle")
                     .font(.system(size: 48))
                     .foregroundStyle(.secondary)
@@ -192,9 +186,8 @@ struct WorkoutSessionView: View {
                 .font(.system(.caption, design: .rounded).bold())
                 .padding(.horizontal, 8)
                 .padding(.vertical, 4)
-                .background(Color.blue.opacity(0.1))
+                .background(.quaternary, in: Capsule())
                 .foregroundStyle(.blue)
-                .clipShape(Capsule())
         }
         .padding()
         .background(Color(uiColor: .secondarySystemGroupedBackground))

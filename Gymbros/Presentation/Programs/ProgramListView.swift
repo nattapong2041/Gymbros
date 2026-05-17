@@ -137,9 +137,8 @@ struct ProgramRow: View {
                         .font(.caption2.bold())
                         .padding(.horizontal, 6)
                         .padding(.vertical, 2)
-                        .background(Color.green.opacity(0.16))
+                        .background(.quaternary, in: Capsule())
                         .foregroundStyle(.green)
-                        .clipShape(Capsule())
                 }
             }
 

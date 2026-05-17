@@ -7,7 +7,7 @@ struct EquipmentIconView: View {
     var body: some View {
         ZStack {
             Circle()
-                .fill(Color.blue.opacity(0.12))
+                .fill(.quaternary)
                 .frame(width: size, height: size)
 
             if let symbolName = equipment?.symbolName {

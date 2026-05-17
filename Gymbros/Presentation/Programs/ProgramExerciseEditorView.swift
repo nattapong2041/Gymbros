@@ -86,7 +86,7 @@ struct ProgramExerciseEditorView: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("common.cancel") {
+                    Button("common.cancel", role: .cancel) {
                         dismiss()
                     }
                 }
@@ -97,7 +97,6 @@ struct ProgramExerciseEditorView: View {
                         dismiss()
                     }
                     .disabled(form.validate() != nil)
-                    .tint(.blue)
                 }
             }
         }
