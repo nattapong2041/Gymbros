@@ -243,6 +243,13 @@ String Catalogs (`Localizable.xcstrings`) use `sourceLanguage = "en"` for key fo
 
 ## Development Workflow
 
+### Session handoff
+
+At the **start** of every session: read `STANDUP.md` (repo root) before any other files.
+At the **end** of every session: update `STANDUP.md` — last-updated date, HEAD SHA, what was done, next-up, and any new open follow-ups.
+
+`STANDUP.md` is a complement to the sprint `plan.md` `CURRENT STATUS` block, not a replacement. Sprint-level detail (task checklist, known deviations) stays in the plan; cross-session orientation lives in `STANDUP.md`.
+
 ### Starting a sprint
 
 1. Read `.claude/GYMTRACK.md` → identify current sprint
@@ -251,7 +258,7 @@ String Catalogs (`Localizable.xcstrings`) use `sourceLanguage = "en"` for key fo
 4. Implement task-by-task, marking each step `[x]` in the plan as it completes
 5. Commit to main → Xcode Cloud → auto TestFlight
 
-Sprints 1–4 complete Phase 1 ("Usable"). See `.claude/GYMTRACK.md` §7 for the full 13-sprint roadmap.
+Sprints 1–4 complete Phase 1 ("Usable"). See `.claude/GYMTRACK.md` §9 for the full 13-sprint roadmap.
 
 ### Plan file conventions
 
@@ -303,4 +310,4 @@ Task 4 — Wire + Verify (sequential)
 - **Module name:** `Gymbros` (not `GymBros`) — use `@testable import Gymbros` in all tests.
 - **Test framework:** Swift Testing (`import Testing`, `#expect(...)`, `@Suite`, `@Test`) — not XCTest.
 
-Current status: **Sprint 3 ready to implement** — spec at `.claude/sprints/S03-logger-timer/spec.md`, plan at `.claude/sprints/S03-logger-timer/plan.md`.
+Current status: **Sprint 3 complete, Sprint 4 next** — see `STANDUP.md` for live session detail.
