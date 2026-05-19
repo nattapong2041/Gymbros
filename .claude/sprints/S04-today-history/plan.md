@@ -8,11 +8,11 @@
 
 ## CURRENT STATUS
 
-**Status:** Tasks 1 and 5 complete. Tasks 2, 3, 4, 6, and 7 remain; Task 8 waits on all.
+**Status:** Tasks 1 and 5 committed. Task 3 in progress (worktree). Tasks 2, 4, 6, and 7 remain; Task 8 waits on all.
 
-**Done:** Task 0 — Spec Lock. Task 1 — `fetchSets` + `StreakService` + tests (9/9 pass). Task 5 — TodayView + mock data + previews.
+**Done:** Task 0 — Spec Lock. Task 1 — `fetchSets` + `StreakService` + tests (9/9 pass), committed. Task 5 — TodayView + mock data + previews, committed. Task 3 — HistoryViewModel + SessionDetailViewModel in worktree `worktree-s04-task3-history-viewmodels`.
 
-**Last commit SHA:** b59cd8e (current HEAD; Tasks 1 and 5 not yet committed)
+**Last commit SHA:** (Task 1 commit — see git log)
 
 **Known deviations / constraints:**
 - Use simulator `iPhone 17e` in all `xcodebuild` commands.
@@ -28,7 +28,7 @@
 - `SessionDetailData.exerciseLookup` is `[UUID: Exercise]` (non-optional). Unresolved ids → `session.exercise.unknown` fallback header.
 - `HistoryData` carries `dayNames: [UUID: String]`. Unresolved/nil `programDayId` → `history.session.custom` label.
 
-**Next step:** Run Tasks 2, 3, 4, 6, and 7. Task 8 (Wire + Verify) follows.
+**Next step:** Complete Task 3 worktree (HistoryViewModelTests must pass). Then Tasks 2, 4, 6, 7, and finally Task 8.
 
 ---
 
@@ -331,7 +331,7 @@ xcodebuild -project Gymbros.xcodeproj -scheme Gymbros -destination 'platform=iOS
 - `TodayViewData` is a UI-only mirror of the locked `TodayData` shape so Task 5 builds independently from the parallel Task 2 ViewModel work. Task 8 should map/collapse this to the real `TodayData` when wiring.
 - Start CTA uses `@State private var selectedProgramDayId: UUID?` and `.navigationDestination(item:) { WorkoutSessionScreen(programDayId:) }`, matching the locked push behavior.
 - No-program Programs CTA is exposed as `onShowPrograms`; Task 8 can wire it to the tab selection.
-- Today CTAs use local `ButtonStyle` implementations instead of per-button `controlSize`, matching Apple HIG emphasis on style/content/role and keeping iPhone/iPad behavior consistent.
+- Today CTAs use default SwiftUI button styles (`.bordered` / `.borderedProminent`) with default colors; no custom button style or tint.
 - Exercise preview uses existing localized `programDetail.exerciseCount`, `programExercise.setsFormat`, `programExercise.repsFormat`, and `programExercise.restFormat` keys. New Task 7 keys still needed for `today.*` and `accessibility.today.*`.
 - Build passed: `xcodebuild -project Gymbros.xcodeproj -scheme Gymbros -destination 'platform=iOS Simulator,name=iPhone 17e' build`.
 
