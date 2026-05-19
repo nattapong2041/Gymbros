@@ -74,7 +74,6 @@ struct TodayView: View {
                 }
                 .padding()
             }
-            .background(Color.gymBackground)
         }
     }
 
@@ -83,7 +82,7 @@ struct TodayView: View {
             Label("today.empty.no_program", systemImage: "figure.strengthtraining.traditional")
         } actions: {
             Button("today.empty.programs_cta", action: onShowPrograms)
-                .buttonStyle(TodaySecondaryButtonStyle())
+                .buttonStyle(.bordered)
         }
     }
 
@@ -94,14 +93,14 @@ struct TodayView: View {
             Text(LocalizedStringKey(error.messageKey))
         } actions: {
             Button("common.retry", action: onRetry)
-                .buttonStyle(TodaySecondaryButtonStyle())
+                .buttonStyle(.bordered)
         }
     }
 
     private var welcomeBackBanner: some View {
         HStack(alignment: .top, spacing: 12) {
             Image(systemName: "hand.wave.fill")
-                .foregroundStyle(.blue)
+                .foregroundStyle(.secondary)
                 .font(.title3)
                 .accessibilityHidden(true)
 
@@ -111,7 +110,7 @@ struct TodayView: View {
                 .frame(maxWidth: .infinity, alignment: .leading)
         }
         .padding()
-        .background(Color.gymSurface, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+        .background(.quaternary, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
     }
 
     private func nextWorkoutCard(data: TodayViewData, nextDay: ProgramDay) -> some View {
@@ -147,13 +146,12 @@ struct TodayView: View {
                 selectedProgramDayId = nextDay.id
             } label: {
                 Label("today.start_cta", systemImage: "play.fill")
-                    .font(.headline)
             }
-            .buttonStyle(TodayPrimaryButtonStyle())
+            .buttonStyle(.borderedProminent)
             .accessibilityLabel(Text("accessibility.today.start \(nextDay.name)"))
         }
         .padding()
-        .background(Color.gymSurface, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+        .background(.quaternary, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
     }
 
     private func streakBadge(weeks: Int) -> some View {
@@ -165,7 +163,7 @@ struct TodayView: View {
             Image(systemName: "checkmark.seal.fill")
                 .accessibilityHidden(true)
         }
-        .foregroundStyle(.green)
+        .foregroundStyle(.secondary)
         .padding(.horizontal, 10)
         .padding(.vertical, 7)
         .background(.quaternary, in: Capsule())
@@ -215,30 +213,6 @@ struct TodayView: View {
         default:
             "today.greeting.evening"
         }
-    }
-}
-
-private struct TodayPrimaryButtonStyle: ButtonStyle {
-    func makeBody(configuration: Configuration) -> some View {
-        configuration.label
-            .frame(maxWidth: .infinity)
-            .padding(.vertical, 14)
-            .padding(.horizontal, 18)
-            .background(.blue.opacity(configuration.isPressed ? 0.82 : 1), in: RoundedRectangle(cornerRadius: 8, style: .continuous))
-            .foregroundStyle(.white)
-            .contentShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
-    }
-}
-
-private struct TodaySecondaryButtonStyle: ButtonStyle {
-    func makeBody(configuration: Configuration) -> some View {
-        configuration.label
-            .font(.headline)
-            .padding(.vertical, 12)
-            .padding(.horizontal, 18)
-            .background(.blue.opacity(configuration.isPressed ? 0.12 : 0.08), in: RoundedRectangle(cornerRadius: 8, style: .continuous))
-            .foregroundStyle(.blue)
-            .contentShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
     }
 }
 

@@ -8,9 +8,9 @@
 
 ## CURRENT STATUS
 
-**Status:** Tasks 1 and 5 committed. Task 3 in progress (worktree). Tasks 2, 4, 6, and 7 remain; Task 8 waits on all.
+**Status:** Tasks 1, 2, and 5 committed or in worktree. Task 3 in progress (worktree). Tasks 4, 6, and 7 remain; Task 8 waits on all.
 
-**Done:** Task 0 — Spec Lock. Task 1 — `fetchSets` + `StreakService` + tests (9/9 pass), committed. Task 5 — TodayView + mock data + previews, committed. Task 3 — HistoryViewModel + SessionDetailViewModel in worktree `worktree-s04-task3-history-viewmodels`.
+**Done:** Task 0 — Spec Lock. Task 1 — `fetchSets` + `StreakService` + tests (9/9 pass), committed. Task 2 — `TodayViewModel` + tests (10/10 pass), worktree `worktree-s04-task2-today-viewmodel`. Task 3 — HistoryViewModel + SessionDetailViewModel in worktree `worktree-s04-task3-history-viewmodels`. Task 5 — TodayView + mock data + previews, committed.
 
 **Last commit SHA:** (Task 1 commit — see git log)
 
@@ -27,8 +27,9 @@
 - `StreakService` must use `Calendar(identifier: .iso8601)`, never `Calendar.current`.
 - `SessionDetailData.exerciseLookup` is `[UUID: Exercise]` (non-optional). Unresolved ids → `session.exercise.unknown` fallback header.
 - `HistoryData` carries `dayNames: [UUID: String]`. Unresolved/nil `programDayId` → `history.session.custom` label.
+- Task 2 `StreakService.swift` in worktree matches Task 1's committed version — no conflict on merge.
 
-**Next step:** Complete Task 3 worktree (HistoryViewModelTests must pass). Then Tasks 2, 4, 6, 7, and finally Task 8.
+**Next step:** Complete Task 3 worktree. Then Tasks 4, 6, 7, and finally Task 8.
 
 ---
 
@@ -168,7 +169,7 @@ xcodebuild test -project Gymbros.xcodeproj -scheme Gymbros -destination 'platfor
 - `Gymbros/Resources/Localizable.xcstrings`
 - `Gymbros/Data/Repository/WorkoutRepository.swift`
 
-- [ ] Create `Gymbros/Presentation/Today/TodayViewModel.swift`.
+- [x] Create `Gymbros/Presentation/Today/TodayViewModel.swift`.
   - `@MainActor @Observable final class TodayViewModel`.
   - Locked init: `init(programRepository: ProgramRepositoryProviding? = nil, workoutRepository: WorkoutRepositoryProviding? = nil)` — default `nil` → concrete fallback. Tests inject `FakeProgramRepository` / `FakeWorkoutRepository`.
   - `var state: ViewState<TodayData>`, `var transientError: AppError?`.
@@ -179,16 +180,16 @@ xcodebuild test -project Gymbros.xcodeproj -scheme Gymbros -destination 'platfor
   - `fetchActive()` is fully hydrated — `nextDay.exercises` is populated; no extra fetch needed for exercise preview.
   - Set `isWelcomeBack = true` when history is empty (and program exists) or last session ≥7 days ago.
   - Map repository errors through `AppError`/`ViewState`.
-- [ ] Define `TodayData` struct in the same file or a shared file — accessible from both ViewModel and mock data.
-- [ ] Create `GymbrosTests/TodayViewModelTests.swift` with mock repositories.
+- [x] Define `TodayData` struct in the same file — accessible from both ViewModel and mock data.
+- [x] Create `GymbrosTests/TodayViewModelTests.swift` with mock repositories.
   - No active program → `.success` with nil nextDay.
   - Active program, no history → nextDay is first day.
   - Active program, one session → nextDay wraps correctly.
   - Last session > 7 days ago → `isWelcomeBack == true`.
   - Last session within 7 days → `isWelcomeBack == false`.
   - Repository error → `.error`.
-- [ ] Run targeted tests.
-- [ ] Update `CURRENT STATUS` and handoff notes with concrete VM initializer signature.
+- [x] Run targeted tests. 10/10 pass.
+- [x] Update `CURRENT STATUS` and handoff notes with concrete VM initializer signature.
 
 **Verification command:**
 ```bash
@@ -331,7 +332,7 @@ xcodebuild -project Gymbros.xcodeproj -scheme Gymbros -destination 'platform=iOS
 - `TodayViewData` is a UI-only mirror of the locked `TodayData` shape so Task 5 builds independently from the parallel Task 2 ViewModel work. Task 8 should map/collapse this to the real `TodayData` when wiring.
 - Start CTA uses `@State private var selectedProgramDayId: UUID?` and `.navigationDestination(item:) { WorkoutSessionScreen(programDayId:) }`, matching the locked push behavior.
 - No-program Programs CTA is exposed as `onShowPrograms`; Task 8 can wire it to the tab selection.
-- Today CTAs use default SwiftUI button styles (`.bordered` / `.borderedProminent`) with default colors; no custom button style or tint.
+- Today CTAs use default SwiftUI button styles (`.bordered` / `.borderedProminent`) with default colors; Today UI uses only SwiftUI semantic system color styles, with no custom/project color helpers or explicit accent colors.
 - Exercise preview uses existing localized `programDetail.exerciseCount`, `programExercise.setsFormat`, `programExercise.repsFormat`, and `programExercise.restFormat` keys. New Task 7 keys still needed for `today.*` and `accessibility.today.*`.
 - Build passed: `xcodebuild -project Gymbros.xcodeproj -scheme Gymbros -destination 'platform=iOS Simulator,name=iPhone 17e' build`.
 

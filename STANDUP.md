@@ -29,7 +29,7 @@ Phase 1 ("Real Life Works") is ~75% done — Sprints 1–3 complete. Sprint 4 is
   - Added `Gymbros/Presentation/Today/TodayView.swift` and `Gymbros/Presentation/Today/TodayMockData.swift`.
   - Covered loading, error, no-program, active-program/no-history, streak, and welcome-back preview states.
   - Start CTA pushes `WorkoutSessionScreen(programDayId:)` via `.navigationDestination(item:)`.
-  - Updated Today CTAs to use local `ButtonStyle` implementations instead of per-button `controlSize`, following Apple HIG style/content/role guidance for iPhone and iPad consistency.
+  - Updated Today CTAs to use default SwiftUI button styles and default colors. Today UI now uses only SwiftUI semantic system color styles, with no custom/project color helpers or explicit accent colors.
   - `TodayViewData` is a UI-only mirror for Task 5; Task 8 should map/collapse it to the real `TodayData` from Task 2.
   - Verified with `xcodebuild -project Gymbros.xcodeproj -scheme Gymbros -destination 'platform=iOS Simulator,name=iPhone 17e' build`.
 - Sprint 4 Task 1 — `fetchSets` + `StreakService` + tests:
