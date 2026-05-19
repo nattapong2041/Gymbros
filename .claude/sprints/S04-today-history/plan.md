@@ -12,7 +12,7 @@
 
 **Done:** Task 0 — Spec Lock. Task 1 — `fetchSets` + `StreakService` + tests (9/9 pass), committed. Task 2 — `TodayViewModel` + tests (10/10 pass), worktree `worktree-s04-task2-today-viewmodel`. Task 3 — HistoryViewModel + SessionDetailViewModel in worktree `worktree-s04-task3-history-viewmodels`. Task 5 — TodayView + mock data + previews, committed. Task 6 — HistoryView + SessionDetailView + mock data + previews, committed. Task 7 — Sprint 4 localization keys added to `Localizable.xcstrings` with Thai and English values, committed.
 
-**Last commit SHA:** (Task 7 merge in progress — see git log after merge commit)
+**Last commit SHA:** a230556 (Task 6 handoff docs after Task 6/7 merges)
 
 **Known deviations / constraints:**
 - Use simulator `iPhone 17e` in all `xcodebuild` commands.
@@ -28,6 +28,7 @@
 - `SessionDetailData.exerciseLookup` is `[UUID: Exercise]` (non-optional). Unresolved ids → `session.exercise.unknown` fallback header.
 - `HistoryData` carries `dayNames: [UUID: String]`. Unresolved/nil `programDayId` → `history.session.custom` label.
 - Task 2 `StreakService.swift` in worktree matches Task 1's committed version — no conflict on merge.
+- Task 6 uses display-only data structs (`HistoryDisplayData`, `SessionDetailDisplayData`) so the UI compiles before Task 3 ViewModels land. Task 8 should either map real ViewModel data into these structs or collapse them into the final `HistoryData`/`SessionDetailData` once Task 3 is merged.
 - Task 7 worktree is based on `b59cd8e`, so `Presentation/Today/` and `Presentation/History/` view files were not available for hardcoded-string replacement here. Task 8 should run the final SwiftUI string grep after merging UI tasks.
 - Anti-guilt grep has one pre-existing stale non-Sprint-4 key, `workout.sync.failed`; no new Sprint 4 copy uses shaming language.
 
@@ -364,25 +365,36 @@ xcodebuild -project Gymbros.xcodeproj -scheme Gymbros -destination 'platform=iOS
 - `Gymbros/Data/Repository/*`
 - `Gymbros/Resources/Localizable.xcstrings`
 
-- [ ] Build `HistoryView` with loading, empty, error, and success states.
+- [x] Build `HistoryView` with loading, empty, error, and success states.
   - Session row (locked layout): **headline** = program day name from `HistoryData.dayNames[session.programDayId]`. When `programDayId` is `nil` or missing from the lookup, render the localized `history.session.custom` key ("Custom workout"). **Subheadline** = `workoutDisplayString` date + duration (e.g. "42 min").
   - Empty state: `history.empty` key ("No workouts yet. Your first one is waiting.") — no judgment copy.
   - Tap navigates to `SessionDetailView`.
-- [ ] Build `SessionDetailView` with loading, error, and success states.
+- [x] Build `SessionDetailView` with loading, error, and success states.
   - Title: session date. Subheader: total duration.
   - Sets grouped per exercise: exercise name from `SessionDetailData.exerciseLookup` as section header. When a set's `exerciseId` is not in the lookup, use the localized `session.exercise.unknown` key ("Exercise") as the fallback header. Then rows of set# / weight / reps / optional RPE.
   - Read-only: no inputs, no delete, no add-set affordance.
-- [ ] Create `HistoryMockData.swift` with `#if DEBUG` sample data.
-- [ ] Add previews for: HistoryView loading / empty / error / success (multiple sessions); SessionDetailView loading / error / success.
-- [ ] Build check.
-- [ ] Update `CURRENT STATUS` and handoff notes.
+- [x] Create `HistoryMockData.swift` with `#if DEBUG` sample data.
+- [x] Add previews for: HistoryView loading / empty / error / success (multiple sessions); SessionDetailView loading / error / success.
+- [x] Build check.
+- [x] Update `CURRENT STATUS` and handoff notes.
 
 **Verification command:**
 ```bash
 xcodebuild -project Gymbros.xcodeproj -scheme Gymbros -destination 'platform=iOS Simulator,name=iPhone 17e' build
 ```
 
-**Handoff notes:** Add when complete.
+**Handoff notes:**
+- Added pure state-rendering History UI under `Gymbros/Presentation/History/`.
+- `HistoryView(state:onRetry:onRetrySessionDetail:)` renders `.idle/.loading/.empty/.error/.success`, owns `navigationDestination(for: UUID.self)`, and navigates to `SessionDetailView` using preview/detail states from `HistoryDisplayData`.
+- `SessionDetailView(state:onRetry:)` renders read-only session duration and grouped set rows. It has no edit, delete, add-set, or input affordances.
+- Retry actions use default SwiftUI `Button` styling with `systemImage: "arrow.clockwise"`; no explicit button style, custom color, fixed button size, or `controlSize` override is used.
+- The History UI uses default SwiftUI colors only: no `Color(...)`, custom colors, `tint`, `foregroundStyle`, or `foregroundColor` overrides in `Gymbros/Presentation/History`.
+- Mock/previews live in `HistoryMockData.swift` under `#if DEBUG`, including multiple sessions, known day names, custom-workout fallback, and unknown-exercise fallback.
+- Build verification passed with:
+  ```bash
+  xcodebuild -quiet -project Gymbros.xcodeproj -scheme Gymbros -destination 'platform=iOS Simulator,name=iPhone 17e' build
+  ```
+  Existing unrelated warning remains: `SignInViewModel` references `AuthService.shared` from a nonisolated default argument.
 
 ---
 
