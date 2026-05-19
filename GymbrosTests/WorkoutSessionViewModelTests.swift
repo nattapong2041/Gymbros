@@ -317,6 +317,8 @@ private final class FakeWorkoutRepository: WorkoutRepositoryProviding {
     var nextUploadError: AppError?
     var completeSessionError: AppError?
     var lastLoggedSetError: AppError?
+    var fetchSetsError: AppError?
+    var sets: [WorkoutSet] = []
 
     func createSession(programDayId: UUID, startedAt: Date) async throws -> WorkoutSession {
         createdSessions.append((programDayId, startedAt))
@@ -360,6 +362,13 @@ private final class FakeWorkoutRepository: WorkoutRepositoryProviding {
 
     func fetchHistory(limit: Int) async throws -> [WorkoutSession] {
         [session]
+    }
+
+    func fetchSets(sessionId: UUID) async throws -> [WorkoutSet] {
+        if let fetchSetsError {
+            throw fetchSetsError
+        }
+        return sets
     }
 }
 

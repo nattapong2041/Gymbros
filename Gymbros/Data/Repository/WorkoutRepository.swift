@@ -10,6 +10,7 @@ protocol WorkoutRepositoryProviding {
     func completeSession(_ sessionId: UUID, endedAt: Date) async throws
     func fetchLastLoggedSet(exerciseId: UUID, before: Date) async throws -> WorkoutSet?
     func fetchHistory(limit: Int) async throws -> [WorkoutSession]
+    func fetchSets(sessionId: UUID) async throws -> [WorkoutSet]
 }
 
 @MainActor
@@ -142,6 +143,22 @@ final class WorkoutRepository: WorkoutRepositoryProviding {
             return sessions
         } catch {
             throw ErrorMapper.map(error, context: .init(operation: "fetchWorkoutHistory", table: "workout_sessions"))
+        }
+    }
+
+    func fetchSets(sessionId: UUID) async throws -> [WorkoutSet] {
+        do {
+            let sets: [WorkoutSet] = try await client
+                .from("workout_sets")
+                .select()
+                .eq("session_id", value: sessionId)
+                .order("exercise_id", ascending: true)
+                .order("set_number", ascending: true)
+                .execute()
+                .value
+            return sets
+        } catch {
+            throw ErrorMapper.map(error, context: .init(operation: "fetchWorkoutSets", table: "workout_sets"))
         }
     }
 }

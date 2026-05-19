@@ -8,11 +8,11 @@
 
 ## CURRENT STATUS
 
-**Status:** Task 0 complete. Tasks 1–7 may now run in parallel.
+**Status:** Tasks 1 and 5 complete. Tasks 2, 3, 4, 6, and 7 remain; Task 8 waits on all.
 
-**Done:** Task 0 — Spec Lock: 8 ambiguities resolved (see §2.2 in spec.md for all locked decisions).
+**Done:** Task 0 — Spec Lock. Task 1 — `fetchSets` + `StreakService` + tests (9/9 pass). Task 5 — TodayView + mock data + previews.
 
-**Last commit SHA:** dde0a8c (Sprint 3 HIG pass — last Sprint 3 commit)
+**Last commit SHA:** b59cd8e (current HEAD; Tasks 1 and 5 not yet committed)
 
 **Known deviations / constraints:**
 - Use simulator `iPhone 17e` in all `xcodebuild` commands.
@@ -28,7 +28,7 @@
 - `SessionDetailData.exerciseLookup` is `[UUID: Exercise]` (non-optional). Unresolved ids → `session.exercise.unknown` fallback header.
 - `HistoryData` carries `dayNames: [UUID: String]`. Unresolved/nil `programDayId` → `history.session.custom` label.
 
-**Next step:** Run Tasks 1, 2, 3, 4, 5, 6, 7 in parallel. Task 8 (Wire + Verify) follows.
+**Next step:** Run Tasks 2, 3, 4, 6, and 7. Task 8 (Wire + Verify) follows.
 
 ---
 
@@ -114,18 +114,18 @@ Task 8 (sequential, after all above)
 - `Gymbros/App/RootView.swift`
 - `Gymbros/Resources/Localizable.xcstrings`
 
-- [ ] Add `func fetchSets(sessionId: UUID) async throws -> [WorkoutSet]` to **both** the `WorkoutRepositoryProviding` protocol and the `WorkoutRepository` concrete class.
+- [x] Add `func fetchSets(sessionId: UUID) async throws -> [WorkoutSet]` to **both** the `WorkoutRepositoryProviding` protocol and the `WorkoutRepository` concrete class.
   - `FakeWorkoutRepository` in tests must implement it too.
   - Query `workout_sets` filtered by `session_id`, ordered by `exercise_id` then `set_number`.
   - Map through `ErrorMapper.map(error, context:)`.
   - Return `[]` (not nil) when no sets exist.
-- [ ] Create `Gymbros/Data/Services/StreakService.swift` as a pure Swift struct with no I/O.
+- [x] Create `Gymbros/Data/Services/StreakService.swift` as a pure Swift struct with no I/O.
   - `func streak(from sessions: [WorkoutSession], today: Date = .now) -> Int`
   - Use `Calendar(identifier: .iso8601)` — **never** `Calendar.current` (locale-dependent first weekday makes tests non-deterministic).
   - Group by `.yearForWeekOfYear` + `.weekOfYear` using that calendar.
   - Current week never counts or breaks streak.
   - Return 0 when result < 2.
-- [ ] Create `GymbrosTests/StreakServiceTests.swift` using Swift Testing.
+- [x] Create `GymbrosTests/StreakServiceTests.swift` using Swift Testing.
   - Test: zero sessions → 0.
   - Test: sessions only in current week → 0.
   - Test: one prior week → 0 (below threshold).
@@ -133,16 +133,21 @@ Task 8 (sequential, after all above)
   - Test: five consecutive prior weeks → 5.
   - Test: gap two weeks ago → 0 (count=1, below threshold).
   - Test: incomplete sessions excluded.
-  - Test: year boundary (Dec week into Jan).
-- [ ] Run targeted tests.
-- [ ] Update `CURRENT STATUS` and handoff notes.
+  - Test: year boundary (Dec week into Jan): 2024-W52 + 2025-W01 → 2.
+- [x] Run targeted tests.
+- [x] Update `CURRENT STATUS` and handoff notes.
 
 **Verification command:**
 ```bash
 xcodebuild test -project Gymbros.xcodeproj -scheme Gymbros -destination 'platform=iOS Simulator,name=iPhone 17e' -only-testing:GymbrosTests/StreakServiceTests
 ```
 
-**Handoff notes:** Add when complete.
+**Handoff notes:**
+- `fetchSets` signature: `func fetchSets(sessionId: UUID) async throws -> [WorkoutSet]` on both `WorkoutRepositoryProviding` and `WorkoutRepository`. Chains `.order("exercise_id", ascending: true).order("set_number", ascending: true)`. Returns `[]` for empty.
+- Private `FakeWorkoutRepository` in `WorkoutSessionViewModelTests.swift` updated: `var sets: [WorkoutSet] = []` + `var fetchSetsError: AppError?` + matching `fetchSets` implementation.
+- `StreakService.streak(from:today:)` is a pure struct method. Uses `Calendar(identifier: .iso8601)`, groups sessions by `session.startedAt`, returns `count >= 2 ? count : 0`.
+- 9 StreakServiceTests all pass. All `WorkoutSessionViewModelTests` still pass.
+- `Gymbros/Data/Services/` directory created; Xcode 16 auto-discovers it — no `project.pbxproj` edit needed.
 
 ---
 
@@ -300,27 +305,35 @@ xcodebuild -project Gymbros.xcodeproj -scheme Gymbros -destination 'platform=iOS
 - `Gymbros/Data/Repository/*`
 - `Gymbros/Resources/Localizable.xcstrings`
 
-- [ ] Build `TodayView` with loading, error, and success states.
-- [ ] Success layout:
+- [x] Build `TodayView` with loading, error, and success states.
+- [x] Success layout:
   - Greeting text by time-of-day.
   - Optional welcome-back banner (when `isWelcomeBack == true`): positive tone, no warning styling.
   - No-program empty state: "Ready when you are." + CTA to Programs tab.
   - Next-workout card: day name, exercise preview, last-workout date in `.secondary`, optional streak badge (`streakWeeks >= 2`).
   - Start button (primary `.blue` tint), min 48pt tap target, navigates to `WorkoutSessionScreen(programDayId:)`.
-- [ ] Anti-guilt copy rules enforced: no negative copy, no fire/broken emoji, no pressure language.
-- [ ] Use localization keys from spec (e.g. `today.greeting.morning`, `today.start_cta`).
-- [ ] Create `TodayMockData.swift` with `#if DEBUG` sample data for all preview states.
-- [ ] Add previews for: loading, error, no-program empty, has-program-no-history, has-program-with-streak, welcome-back-banner.
-- [ ] Accessibility labels on the Start button and streak badge.
-- [ ] Build check.
-- [ ] Update `CURRENT STATUS` and handoff notes with view initializer / action callback signatures.
+- [x] Anti-guilt copy rules enforced: no negative copy, no fire/broken emoji, no pressure language.
+- [x] Use localization keys from spec (e.g. `today.greeting.morning`, `today.start_cta`).
+- [x] Create `TodayMockData.swift` with `#if DEBUG` sample data for all preview states.
+- [x] Add previews for: loading, error, no-program empty, has-program-no-history, has-program-with-streak, welcome-back-banner.
+- [x] Accessibility labels on the Start button and streak badge.
+- [x] Build check.
+- [x] Update `CURRENT STATUS` and handoff notes with view initializer / action callback signatures.
 
 **Verification command:**
 ```bash
 xcodebuild -project Gymbros.xcodeproj -scheme Gymbros -destination 'platform=iOS Simulator,name=iPhone 17e' build
 ```
 
-**Handoff notes:** Add when complete.
+**Handoff notes:**
+- Added `Gymbros/Presentation/Today/TodayView.swift` and `Gymbros/Presentation/Today/TodayMockData.swift`.
+- `TodayView` initializer: `TodayView(state: ViewState<TodayViewData> = .loading, date: Date = .now, onRetry: @escaping () -> Void = {}, onShowPrograms: @escaping () -> Void = {})`.
+- `TodayViewData` is a UI-only mirror of the locked `TodayData` shape so Task 5 builds independently from the parallel Task 2 ViewModel work. Task 8 should map/collapse this to the real `TodayData` when wiring.
+- Start CTA uses `@State private var selectedProgramDayId: UUID?` and `.navigationDestination(item:) { WorkoutSessionScreen(programDayId:) }`, matching the locked push behavior.
+- No-program Programs CTA is exposed as `onShowPrograms`; Task 8 can wire it to the tab selection.
+- Today CTAs use local `ButtonStyle` implementations instead of per-button `controlSize`, matching Apple HIG emphasis on style/content/role and keeping iPhone/iPad behavior consistent.
+- Exercise preview uses existing localized `programDetail.exerciseCount`, `programExercise.setsFormat`, `programExercise.repsFormat`, and `programExercise.restFormat` keys. New Task 7 keys still needed for `today.*` and `accessibility.today.*`.
+- Build passed: `xcodebuild -project Gymbros.xcodeproj -scheme Gymbros -destination 'platform=iOS Simulator,name=iPhone 17e' build`.
 
 ---
 
