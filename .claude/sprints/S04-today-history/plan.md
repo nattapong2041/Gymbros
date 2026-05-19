@@ -8,11 +8,11 @@
 
 ## CURRENT STATUS
 
-**Status:** Task 0 complete. Tasks 1–7 may now run in parallel.
+**Status:** Task 7 complete in `worktree-s04-task7-localization`. Other parallel Sprint 4 tasks may continue; Task 8 waits on all handoffs.
 
-**Done:** Task 0 — Spec Lock: 8 ambiguities resolved (see §2.2 in spec.md for all locked decisions).
+**Done:** Task 0 — Spec Lock: 8 ambiguities resolved (see §2.2 in spec.md for all locked decisions). Task 7 — Sprint 4 localization keys added to `Localizable.xcstrings` with Thai and English values.
 
-**Last commit SHA:** dde0a8c (Sprint 3 HIG pass — last Sprint 3 commit)
+**Last commit SHA:** b59cd8e (Task 7 worktree base; Task 7 changes not committed)
 
 **Known deviations / constraints:**
 - Use simulator `iPhone 17e` in all `xcodebuild` commands.
@@ -27,8 +27,10 @@
 - `StreakService` must use `Calendar(identifier: .iso8601)`, never `Calendar.current`.
 - `SessionDetailData.exerciseLookup` is `[UUID: Exercise]` (non-optional). Unresolved ids → `session.exercise.unknown` fallback header.
 - `HistoryData` carries `dayNames: [UUID: String]`. Unresolved/nil `programDayId` → `history.session.custom` label.
+- Task 7 worktree is based on `b59cd8e`, so `Presentation/Today/` and `Presentation/History/` view files were not available for hardcoded-string replacement here. Task 8 should run the final SwiftUI string grep after merging UI tasks.
+- Anti-guilt grep has one pre-existing stale non-Sprint-4 key, `workout.sync.failed`; no new Sprint 4 copy uses shaming language.
 
-**Next step:** Run Tasks 1, 2, 3, 4, 5, 6, 7 in parallel. Task 8 (Wire + Verify) follows.
+**Next step:** Continue/merge remaining parallel tasks, then run Task 8 (Wire + Verify).
 
 ---
 
@@ -378,17 +380,21 @@ xcodebuild -project Gymbros.xcodeproj -scheme Gymbros -destination 'platform=iOS
 - All Swift source files in `Presentation/Today/` and `Presentation/History/`.
 - `Gymbros/Data/Repository/WorkoutRepository.swift`
 
-- [ ] Add `today.*` keys with Thai and English: `today.title`, `today.greeting.morning`, `today.greeting.afternoon`, `today.greeting.evening`, `today.next_workout.title`, `today.start_cta`, `today.streak.weeks`, `today.last_workout`, `today.welcome_back`, `today.empty.no_program`, `today.empty.programs_cta`.
-- [ ] Add `history.*` keys: `history.title`, `history.empty`, `history.session.duration`, `history.session.custom` ("Custom workout" / "เวิร์กเอาท์ทั่วไป").
-- [ ] Add `session.*` keys: `session.title` (or use date formatting directly), `session.duration`, `session.set.weight_reps`, `session.set.rpe`, `session.exercise.unknown` ("Exercise" / "ท่าออกกำลังกาย").
-- [ ] Add `accessibility.*` keys: `accessibility.today.start`, `accessibility.today.streak`, `accessibility.history.session_row`.
-- [ ] Verify every new key has both English and Thai values.
-- [ ] Search `Presentation/Today/` and `Presentation/History/` for hardcoded user-facing strings and replace with keys (if Task 5/6 views are available).
-- [ ] Update `CURRENT STATUS`.
+- [x] Add `today.*` keys with Thai and English: `today.title`, `today.greeting.morning`, `today.greeting.afternoon`, `today.greeting.evening`, `today.next_workout.title`, `today.start_cta`, `today.streak.weeks`, `today.last_workout`, `today.welcome_back`, `today.empty.no_program`, `today.empty.programs_cta`.
+- [x] Add `history.*` keys: `history.title`, `history.empty`, `history.session.duration`, `history.session.custom` ("Custom workout" / "เวิร์กเอาท์ทั่วไป").
+- [x] Add `session.*` keys: `session.title` (or use date formatting directly), `session.duration`, `session.set.weight_reps`, `session.set.rpe`, `session.exercise.unknown` ("Exercise" / "ท่าออกกำลังกาย").
+- [x] Add `accessibility.*` keys: `accessibility.today.start`, `accessibility.today.streak`, `accessibility.history.session_row`.
+- [x] Verify every new key has both English and Thai values.
+- [x] Search `Presentation/Today/` and `Presentation/History/` for hardcoded user-facing strings and replace with keys (if Task 5/6 views are available).
+- [x] Update `CURRENT STATUS`.
 
 **Verification:** Inspect string catalog; spot-check English and Thai for completeness.
 
-**Handoff notes:** Add when complete.
+**Handoff notes:** Complete in `worktree-s04-task7-localization`.
+- Added canonical keys and SwiftUI interpolation-shaped variants for formatted strings, including `today.streak.weeks %lld`, `today.last_workout %@`, `accessibility.today.start %@`, `accessibility.today.streak %lld`, `history.session.duration %lld`, `session.duration %lld`, `session.set.weight_reps %@ %lld`, `session.set.rpe %@`, and `accessibility.history.session_row %@ %lld`.
+- Verified JSON with `jq empty Gymbros/Resources/Localizable.xcstrings`.
+- Verified required keys have both English and Thai values with `jq` (`all-present`).
+- `Presentation/Today/` and `Presentation/History/` were not present in this isolated base branch, so no Swift source replacements were possible in Task 7.
 
 ---
 

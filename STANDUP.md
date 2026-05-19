@@ -4,7 +4,7 @@
 
 ---
 
-**Last updated:** 2026-05-19 | HEAD `0afa409` | Branch `main` (workout session bug fixes modified, not committed)
+**Last updated:** 2026-05-19 | HEAD `b59cd8e` | Branch `worktree-s04-task7-localization` (Task 7 localization changes not committed)
 
 ---
 
@@ -25,6 +25,15 @@ Phase 1 ("Real Life Works") is ~75% done — Sprints 1–3 complete. Sprint 4 is
 
 ## Last session did
 
+- Completed Sprint 4 Task 7 in `.claude/worktrees/s04-task7-localization`.
+  - Added all Sprint 4 Today, History, Session Detail, and accessibility localization keys to `Gymbros/Resources/Localizable.xcstrings`.
+  - Added both canonical format keys and SwiftUI interpolation-shaped variants for Task 5/6 compatibility.
+  - Verified `Localizable.xcstrings` parses with `jq empty`.
+  - Verified all new Task 7 keys have both English and Thai values.
+  - Noted that `Presentation/Today/` and `Presentation/History/` were not present in this isolated base branch, so Task 8 must run the final hardcoded-string grep after UI branches merge.
+
+## Previous session did
+
 - Fixed two S03 workout-session regressions:
   - Rest timer full-screen background now uses the adaptive system background instead of black, avoiding black/white mismatch in light mode.
   - Continuing a previous workout no longer triggers the discard/start-new-session path during restore sheet dismissal.
@@ -33,7 +42,7 @@ Phase 1 ("Real Life Works") is ~75% done — Sprints 1–3 complete. Sprint 4 is
 - Verified with:
   - `xcodebuild test -project Gymbros.xcodeproj -scheme Gymbros -destination 'platform=iOS Simulator,name=iPhone 17e' -only-testing:GymbrosTests/WorkoutSessionViewModelTests`
 
-## Previous session did
+## Earlier session did
 
 - Task 0 (Spec Lock) for Sprint 4: identified and locked 8 ambiguities in `spec.md` and `plan.md`.
   - Locked ViewModel init signatures (protocol-typed repo params, nil-default → concrete fallback).
@@ -58,7 +67,7 @@ Phase 1 ("Real Life Works") is ~75% done — Sprints 1–3 complete. Sprint 4 is
 4. Task 4: Replace `RootView` authenticated branch with `TabView` shell (Today/Programs/History).
 5. Task 5: Build `TodayView` + mock data + previews.
 6. Task 6: Build `HistoryView` + `SessionDetailView` + mock data + previews.
-7. Task 7: Add all Sprint 4 localization keys (Thai + English) to `Localizable.xcstrings`.
+7. Task 7: Add all Sprint 4 localization keys (Thai + English) to `Localizable.xcstrings`. **Complete in `worktree-s04-task7-localization`.**
 8. Task 8: Wire everything together, run tests, smoke test.
 
 ---
