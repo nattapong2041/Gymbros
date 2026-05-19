@@ -4,7 +4,7 @@
 
 ---
 
-**Last updated:** 2026-05-19 | HEAD `b59cd8e` | Branch `main` (Sprint 4 Tasks 1 and 5 changes uncommitted)
+**Last updated:** 2026-05-19 | HEAD `(Task 6/7 merge in progress)` | Branch `main`
 
 ---
 
@@ -25,6 +25,20 @@ Phase 1 ("Real Life Works") is ~75% done — Sprints 1–3 complete. Sprint 4 is
 
 ## Last session did
 
+- Sprint 4 Task 6 — HistoryView + SessionDetailView + mock data + previews:
+  - Merged branch `worktree-s04-task6-history-ui` into `main`.
+  - Added state-rendering `HistoryView` with loading, empty, error, and success states.
+  - Added read-only `SessionDetailView` with duration and grouped set rows.
+  - Added History mock data and previews for loading, empty/error, success, grouped sets, custom-workout fallback, and unknown-exercise fallback.
+  - Retry buttons use default SwiftUI styling and colors, with no explicit button style or fixed sizing/control-size overrides.
+  - History UI uses default SwiftUI colors only: no `Color(...)`, custom colors, `tint`, `foregroundStyle`, or `foregroundColor` overrides in `Gymbros/Presentation/History`.
+  - Verified with `xcodebuild -quiet -project Gymbros.xcodeproj -scheme Gymbros -destination 'platform=iOS Simulator,name=iPhone 17e' build`.
+- Completed Sprint 4 Task 7 in `.claude/worktrees/s04-task7-localization`, then merged it toward `main`.
+  - Added all Sprint 4 Today, History, Session Detail, and accessibility localization keys to `Gymbros/Resources/Localizable.xcstrings`.
+  - Added both canonical format keys and SwiftUI interpolation-shaped variants for Task 5/6 compatibility.
+  - Verified `Localizable.xcstrings` parses with `jq empty`.
+  - Verified all new Task 7 keys have both English and Thai values.
+  - Noted that `Presentation/Today/` and `Presentation/History/` were not present in the isolated Task 7 base branch, so Task 8 must run the final hardcoded-string grep after UI branches merge.
 - Sprint 4 Task 5 — TodayView + mock data + previews:
   - Added `Gymbros/Presentation/Today/TodayView.swift` and `Gymbros/Presentation/Today/TodayMockData.swift`.
   - Covered loading, error, no-program, active-program/no-history, streak, and welcome-back preview states.
@@ -39,7 +53,7 @@ Phase 1 ("Real Life Works") is ~75% done — Sprints 1–3 complete. Sprint 4 is
   - Created `GymbrosTests/StreakServiceTests.swift` — 9 tests (zero/current-week/one-prior/two-consecutive/five-consecutive/gap/incomplete-excluded/incomplete-mixed/year-boundary), all pass.
   - All existing `WorkoutSessionViewModelTests` still pass.
 
-## Previous session did
+## Earlier session did
 
 - Fixed two S03 workout-session regressions (rest timer background, restore sheet path).
 - Task 0 (Spec Lock) for Sprint 4: 8 ambiguities locked in `spec.md` §2.2.
@@ -48,15 +62,15 @@ Phase 1 ("Real Life Works") is ~75% done — Sprints 1–3 complete. Sprint 4 is
 
 ## Next up
 
-**Sprint 4 — Tasks 2–4, 6–7 remain (can run in parallel), then Task 8 (sequential)**
+**Sprint 4 — Tasks 2–4 remain / need integration, then Task 8 (sequential)**
 
 1. ~~Task 1: done — `fetchSets` + `StreakService` + tests.~~
-2. Task 2: Create `TodayViewModel` + tests.
+2. Task 2: Create `TodayViewModel` + tests. **Complete in `worktree-s04-task2-today-viewmodel`; merge/integrate when ready.**
 3. Task 3: Create `HistoryViewModel` + `SessionDetailViewModel` + tests.
 4. Task 4: Replace `RootView` authenticated branch with `TabView` shell (Today/Programs/History).
 5. ~~Task 5: done — `TodayView` + mock data + previews.~~
-6. Task 6: Build `HistoryView` + `SessionDetailView` + mock data + previews.
-7. Task 7: Add all Sprint 4 localization keys (Thai + English) to `Localizable.xcstrings`.
+6. ~~Task 6: done — `HistoryView` + `SessionDetailView` + mock data + previews.~~
+7. ~~Task 7: done — all Sprint 4 localization keys (Thai + English).~~
 8. Task 8: Wire everything together, run tests, smoke test.
 
 ---
@@ -65,6 +79,7 @@ Phase 1 ("Real Life Works") is ~75% done — Sprints 1–3 complete. Sprint 4 is
 
 - [ ] Light/dark visual sweep of `WorkoutSessionView`, `WorkoutExercisePageView`, `SetRowView`, `RestTimerRingView`, `ProgramExerciseEditorView` in Xcode before broad TestFlight.
 - [ ] Task 8: map/collapse `TodayViewData` into the real `TodayData` once `TodayViewModel` lands, and wire `onShowPrograms` to tab selection.
+- [ ] Task 8: map/collapse `HistoryDisplayData` and `SessionDetailDisplayData` into the real History/Session detail ViewModel data once Task 3 lands.
 - [ ] Confirm S05 Settings rows at Task 0 of Sprint 5 before any code lands (weight unit toggle, sign out, app version, privacy placeholder, delete placeholder).
 
 ---
