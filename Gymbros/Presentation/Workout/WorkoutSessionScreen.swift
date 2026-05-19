@@ -88,9 +88,8 @@ struct WorkoutSessionScreen: View {
     }
 
     private func discardAndStartWorkout() async {
-        if let snapshot = viewModel.pendingRestore {
-            await viewModel.discardRestore(snapshot)
-        }
+        guard let snapshot = viewModel.pendingRestore else { return }
+        await viewModel.discardRestore(snapshot)
         await startWorkout()
     }
 

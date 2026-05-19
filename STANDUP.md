@@ -4,7 +4,7 @@
 
 ---
 
-**Last updated:** 2026-05-18 | HEAD `dde0a8c` | Branch `main` (sprint docs modified, not committed)
+**Last updated:** 2026-05-19 | HEAD `0afa409` | Branch `main` (workout session bug fixes modified, not committed)
 
 ---
 
@@ -24,6 +24,16 @@ Phase 1 ("Real Life Works") is ~75% done — Sprints 1–3 complete. Sprint 4 is
 ---
 
 ## Last session did
+
+- Fixed two S03 workout-session regressions:
+  - Rest timer full-screen background now uses the adaptive system background instead of black, avoiding black/white mismatch in light mode.
+  - Continuing a previous workout no longer triggers the discard/start-new-session path during restore sheet dismissal.
+  - Restore keeps jumping to the first unfinished exercise, which is the intended continue-session behavior.
+- Kept `WorkoutSessionViewModelTests.restoreMovesToFirstUnfinishedExercise` covering restore navigation.
+- Verified with:
+  - `xcodebuild test -project Gymbros.xcodeproj -scheme Gymbros -destination 'platform=iOS Simulator,name=iPhone 17e' -only-testing:GymbrosTests/WorkoutSessionViewModelTests`
+
+## Previous session did
 
 - Task 0 (Spec Lock) for Sprint 4: identified and locked 8 ambiguities in `spec.md` and `plan.md`.
   - Locked ViewModel init signatures (protocol-typed repo params, nil-default → concrete fallback).

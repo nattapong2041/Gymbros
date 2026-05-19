@@ -45,18 +45,19 @@ struct WorkoutSessionView: View {
             }
             .sheet(isPresented: Binding(
                 get: { pendingRestore },
-                set: { if !$0 { onDiscard() } }
+                set: { _ in }
             )) {
                 restoreSheetContent
                     .presentationDetents([.medium])
                     .presentationDragIndicator(.visible)
+                    .interactiveDismissDisabled()
             }
             .fullScreenCover(item: Binding(
                 get: { activeTimer },
                 set: { if $0 == nil { onStopTimer() } }
             )) { timerState in
                 ZStack {
-                    Color.black.ignoresSafeArea()
+                    Color(uiColor: .systemBackground).ignoresSafeArea()
                     
                     RestTimerRingView(
                         state: timerState,
