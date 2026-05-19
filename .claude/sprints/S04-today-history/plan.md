@@ -8,9 +8,9 @@
 
 ## CURRENT STATUS
 
-**Status:** Tasks 1, 2, and 5 committed or in worktree. Task 3 in progress (worktree). Tasks 4, 6, and 7 remain; Task 8 waits on all.
+**Status:** Tasks 1, 2, 3, and 5 complete (committed or in worktrees). Tasks 4, 6, and 7 remain; Task 8 waits on all.
 
-**Done:** Task 0 — Spec Lock. Task 1 — `fetchSets` + `StreakService` + tests (9/9 pass), committed. Task 2 — `TodayViewModel` + tests (10/10 pass), worktree `worktree-s04-task2-today-viewmodel`. Task 3 — HistoryViewModel + SessionDetailViewModel in worktree `worktree-s04-task3-history-viewmodels`. Task 5 — TodayView + mock data + previews, committed.
+**Done:** Task 0 — Spec Lock. Task 1 — `fetchSets` + `StreakService` + tests (9/9 pass), committed. Task 2 — `TodayViewModel` + tests (10/10 pass), worktree `worktree-s04-task2-today-viewmodel`. Task 3 — `HistoryViewModel` + `SessionDetailViewModel` + tests (10/10 pass), worktree `worktree-s04-task3-history-viewmodels`. Task 5 — TodayView + mock data + previews, committed.
 
 **Last commit SHA:** (Task 1 commit — see git log)
 
@@ -28,8 +28,9 @@
 - `SessionDetailData.exerciseLookup` is `[UUID: Exercise]` (non-optional). Unresolved ids → `session.exercise.unknown` fallback header.
 - `HistoryData` carries `dayNames: [UUID: String]`. Unresolved/nil `programDayId` → `history.session.custom` label.
 - Task 2 `StreakService.swift` in worktree matches Task 1's committed version — no conflict on merge.
+- **Task 8 type bridge needed:** Task 3 spec types (`HistoryData`, `SessionDetailData`) diverge from Task 6's display types (`HistoryDisplayData`, `SessionDetailDisplayData`). Task 8 must reconcile.
 
-**Next step:** Complete Task 3 worktree. Then Tasks 4, 6, 7, and finally Task 8.
+**Next step:** Tasks 4, 6, 7 in parallel, then Task 8 (Wire + Verify).
 
 ---
 
@@ -219,7 +220,7 @@ xcodebuild test -project Gymbros.xcodeproj -scheme Gymbros -destination 'platfor
 - `Gymbros/Resources/Localizable.xcstrings`
 - `Gymbros/Data/Repository/WorkoutRepository.swift`
 
-- [ ] Create `Gymbros/Presentation/History/HistoryViewModel.swift`.
+- [x] Create `Gymbros/Presentation/History/HistoryViewModel.swift`.
   - `@MainActor @Observable final class HistoryViewModel`.
   - Locked init: `init(workoutRepository: WorkoutRepositoryProviding? = nil, programRepository: ProgramRepositoryProviding? = nil)`.
   - `var state: ViewState<HistoryData>`, `var transientError: AppError?`.
@@ -227,15 +228,15 @@ xcodebuild test -project Gymbros.xcodeproj -scheme Gymbros -destination 'platfor
   - Calls `WorkoutRepository.fetchHistory(limit: 50)` and `ProgramRepository.fetchAll()` **concurrently**.
   - Flattens every program's `.days` into `dayNames: [UUID: String]` (programDayId → day name string).
   - Empty sessions → `.empty`; sessions present → `.success(HistoryData(sessions:dayNames:))`.
-- [ ] Define `HistoryData` struct with `sessions: [WorkoutSession]` and `dayNames: [UUID: String]`, accessible from ViewModel and mock.
-- [ ] Create `Gymbros/Presentation/History/SessionDetailViewModel.swift`.
+- [x] Define `HistoryData` struct with `sessions: [WorkoutSession]` and `dayNames: [UUID: String]`, accessible from ViewModel and mock.
+- [x] Create `Gymbros/Presentation/History/SessionDetailViewModel.swift`.
   - `@MainActor @Observable final class SessionDetailViewModel`.
   - Locked init: `init(session: WorkoutSession, workoutRepository: WorkoutRepositoryProviding? = nil, exerciseRepository: ExerciseRepositoryProviding? = nil)`.
   - `var state: ViewState<SessionDetailData>`, `var transientError: AppError?`.
   - `func load() async` — calls `WorkoutRepository.fetchSets(sessionId:)` and `ExerciseRepository.fetchAll()` **concurrently**.
   - Builds `exerciseLookup: [UUID: Exercise]` using `ProgramViewModelSupport.exerciseLookup(from:)`. Falls back to empty dict on exercise-fetch failure.
-- [ ] Define `SessionDetailData` struct with `session: WorkoutSession`, `sets: [WorkoutSet]`, `exerciseLookup: [UUID: Exercise]` (non-optional).
-- [ ] Create `GymbrosTests/HistoryViewModelTests.swift`.
+- [x] Define `SessionDetailData` struct with `session: WorkoutSession`, `sets: [WorkoutSet]`, `exerciseLookup: [UUID: Exercise]` (non-optional).
+- [x] Create `GymbrosTests/HistoryViewModelTests.swift`.
   - No sessions → `.empty`.
   - Sessions returned → `.success`.
   - Session with known `programDayId` → `dayNames` resolves correct day name string.
@@ -243,15 +244,21 @@ xcodebuild test -project Gymbros.xcodeproj -scheme Gymbros -destination 'platfor
   - Session with no sets → `.success` with empty set list.
   - Session with sets → sets present in data.
   - Repository error → `.error`.
-- [ ] Run targeted tests.
-- [ ] Update `CURRENT STATUS` and handoff notes.
+- [x] Run targeted tests. 10/10 pass.
+- [x] Update `CURRENT STATUS` and handoff notes.
 
 **Verification command:**
 ```bash
 xcodebuild test -project Gymbros.xcodeproj -scheme Gymbros -destination 'platform=iOS Simulator,name=iPhone 17e' -only-testing:GymbrosTests/HistoryViewModelTests
 ```
 
-**Handoff notes:** Add when complete.
+**Handoff notes:**
+- `HistoryData` shape: `struct HistoryData { var sessions: [WorkoutSession]; var dayNames: [UUID: String] }` — defined in `HistoryViewModel.swift`.
+- `SessionDetailData` shape: `struct SessionDetailData { var session: WorkoutSession; var sets: [WorkoutSet]; var exerciseLookup: [UUID: Exercise] }` — defined in `SessionDetailViewModel.swift`.
+- `HistoryViewModel.init(workoutRepository:programRepository:)` — both params nil-defaulted.
+- `SessionDetailViewModel.init(session:workoutRepository:exerciseRepository:)` — latter two nil-defaulted.
+- **TYPE NAME DIVERGENCE for Task 8:** Task 6's `HistoryView` takes `ViewState<HistoryDisplayData>` (has extra `detailStates` dict), and `SessionDetailView` takes `ViewState<SessionDetailDisplayData>`. Task 3's spec types are `HistoryData` / `SessionDetailData`. Task 8 must bridge or align these type names — either rename Task 3's types to match Task 6's display types, or update Task 6's views to accept the spec types.
+- All 10 `HistoryViewModelTests` pass. Worktree branch: `worktree-s04-task3-history-viewmodels`.
 
 ---
 
