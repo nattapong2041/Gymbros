@@ -8,9 +8,9 @@
 
 ## CURRENT STATUS
 
-**Status:** Tasks 1, 2, 3, 5, 6, and 7 complete/committed or in worktree. Task 4 remains; Task 8 waits on all handoffs.
+**Status:** Tasks 1, 2, 3, 4, 5, 6, and 7 complete/committed or in worktree. Task 8 up next.
 
-**Done:** Task 0 — Spec Lock. Task 1 — `fetchSets` + `StreakService` + tests (9/9 pass), committed. Task 2 — `TodayViewModel` + tests (10/10 pass), worktree `worktree-s04-task2-today-viewmodel`. Task 3 — `HistoryViewModel` + `SessionDetailViewModel` . Task 5 — TodayView + mock data + previews, committed. Task 6 — HistoryView + SessionDetailView + mock data + previews, committed. Task 7 — Sprint 4 localization keys added to `Localizable.xcstrings` with Thai and English values, committed.
+**Done:** Task 0 — Spec Lock. Task 1 — `fetchSets` + `StreakService` + tests (9/9 pass), committed. Task 2 — `TodayViewModel` + tests (10/10 pass), worktree `worktree-s04-task2-today-viewmodel`. Task 3 — `HistoryViewModel` + `SessionDetailViewModel` . Task 4 — Tab Navigation Shell implemented in `RootView.swift`. Task 5 — TodayView + mock data + previews, committed. Task 6 — HistoryView + SessionDetailView + mock data + previews, committed. Task 7 — Sprint 4 localization keys added to `Localizable.xcstrings` with Thai and English values, committed.
 
 **Last commit SHA:** a230556 (Task 6 handoff docs after Task 6/7 merges)
 
@@ -32,7 +32,7 @@
 - Task 7 worktree is based on `b59cd8e`, so `Presentation/Today/` and `Presentation/History/` view files were not available for hardcoded-string replacement here. Task 8 should run the final SwiftUI string grep after merging UI tasks.
 - Anti-guilt grep has one pre-existing stale non-Sprint-4 key, `workout.sync.failed`; no new Sprint 4 copy uses shaming language.
 
-**Next step:** Complete Task 4, and finally Task 8.
+**Next step:** Complete Task 8.
 
 ---
 
@@ -284,22 +284,27 @@ xcodebuild test -project Gymbros.xcodeproj -scheme Gymbros -destination 'platfor
 - `Gymbros/Data/Repository/*`
 - `Gymbros/Resources/Localizable.xcstrings`
 
-- [ ] Replace the authenticated branch in `RootView` (currently `ProgramListView`) with a `TabView`.
+- [x] Replace the authenticated branch in `RootView` (currently `ProgramListView`) with a `TabView`.
   - Tab 0 — Today: `NavigationStack { TodayView() }` with `Label("today.title", systemImage: "house")`.
   - Tab 1 — Programs: `NavigationStack { ProgramListView() }` with `Label("programs.title", systemImage: "list.bullet")` (key already exists).
   - Tab 2 — History: `NavigationStack { HistoryView() }` with `Label("history.title", systemImage: "clock")`.
   - Today is selected by default (`.tabItem` order = Today first).
-- [ ] Use placeholder views (`Text("Today")`, `Text("History")`) if the real views are not yet compiled. Real wiring happens in Task 8.
-- [ ] Ensure the unauthenticated branch is untouched (still shows `SignInView`).
-- [ ] Build check.
-- [ ] Update `CURRENT STATUS`.
+- [x] Use placeholder views (`Text("Today")`, `Text("History")`) if the real views are not yet compiled. Real wiring happens in Task 8.
+- [x] Ensure the unauthenticated branch is untouched (still shows `SignInView`).
+- [x] Build check.
+- [x] Update `CURRENT STATUS`.
 
 **Verification command:**
 ```bash
 xcodebuild -project Gymbros.xcodeproj -scheme Gymbros -destination 'platform=iOS Simulator,name=iPhone 17e' build
 ```
 
-**Handoff notes:** Add when complete.
+**Handoff notes:**
+- Replaced authenticated root in `RootView.swift` with a three-tab `TabView`.
+- Tabs are: Today (`TodayView`), Programs (`ProgramListView`), and History (`HistoryView`).
+- Each tab is wrapped in a `NavigationStack`.
+- Today tab is first and thus selected by default.
+- Build verified. Task 8 will handle final ViewModel wiring and data alignment.
 
 ---
 

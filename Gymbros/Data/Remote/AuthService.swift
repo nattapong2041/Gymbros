@@ -3,7 +3,7 @@ import Supabase
 
 @MainActor
 @Observable
-final class AuthService {
+class AuthService {
     static let shared = AuthService()
 
     private let client = SupabaseClientManager.shared.client
@@ -11,7 +11,7 @@ final class AuthService {
     var currentUser: User?
     var isAuthenticated: Bool { currentUser != nil }
 
-    private init() {
+    init() {
         Task { await loadCurrentSession() }
     }
 
