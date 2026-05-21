@@ -101,7 +101,10 @@ final class WorkoutRepository: WorkoutRepositoryProviding {
         do {
             try await client
                 .from("workout_sessions")
-                .update(["ended_at": endedAt.ISO8601Format()])
+                .update(
+                    WorkoutSessionCompletionPayload(endedAt: endedAt),
+                    returning: .minimal
+                )
                 .eq("id", value: sessionId)
                 .execute()
         } catch {
@@ -172,6 +175,18 @@ struct WorkoutSessionInsertPayload: Encodable {
         case userId = "user_id"
         case programDayId = "program_day_id"
         case startedAt = "started_at"
+    }
+}
+
+struct WorkoutSessionCompletionPayload: Encodable {
+    let endedAt: String
+
+    init(endedAt: Date) {
+        self.endedAt = endedAt.ISO8601Format()
+    }
+
+    enum CodingKeys: String, CodingKey {
+        case endedAt = "ended_at"
     }
 }
 

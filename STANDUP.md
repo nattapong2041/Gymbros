@@ -4,26 +4,43 @@
 
 ---
 
-**Last updated:** 2026-05-19 | HEAD `a230556` | Branch `main`
+**Last updated:** 2026-05-21 | HEAD `1294e65` | Branch `main`
 
 ---
 
 ## Where we are
 
-Phase 1 ("Real Life Works") is ~75% done — Sprints 1–3 complete. Sprint 4 is in progress. Settings was split into its own Sprint 5; old Sprints 5–13 renumbered to 6–14.
+Phase 1 ("Real Life Works") is ~80% done — Sprints 1–4 complete. Settings was split into its own Sprint 5; old Sprints 5–13 renumbered to 6–14.
 
 | Sprint | Name | Status |
 |--------|------|--------|
 | S01 | Foundation + Data | complete |
 | S02 | Custom Program Builder | complete |
 | S03 | Logger + Timer | complete |
-| **S04** | **Today + History + Navigation + Anti-Guilt UX** | **in progress** |
-| S05 | Settings | not started |
+| S04 | Today + History + Navigation + Anti-Guilt UX | complete |
+| **S05** | **Settings** | **next** |
 | S06 | Next Best Session v1 / Smart Comeback | not started |
 
 ---
 
 ## Last session did
+
+- Fixed Sprint 4 wire-up regressions from review:
+  - Restored concrete `@Observable` `TodayViewModel`, `HistoryViewModel`, and `SessionDetailViewModel` implementations.
+  - Removed stale debug preview repository conformances that used old `ProgramRepositoryProviding` method names.
+  - Kept Today/History/Session Detail views wired to real ViewModels for runtime.
+  - Deleted the old UI-only display/mock data files from runtime wiring.
+  - Previews now use simple preloaded ViewModel states with `loadsOnAppear: false` instead of mock repositories.
+  - Verified targeted tests: `xcodebuild test -project Gymbros.xcodeproj -scheme Gymbros -destination 'platform=iOS Simulator,name=iPhone 17e' -only-testing:GymbrosTests/TodayViewModelTests -only-testing:GymbrosTests/HistoryViewModelTests`.
+  - Verified full suite: `xcodebuild test -project Gymbros.xcodeproj -scheme Gymbros -destination 'platform=iOS Simulator,name=iPhone 17e'`.
+- Fixed workout finish-session API error:
+  - Changed `WorkoutRepository.completeSession` to send a typed `WorkoutSessionCompletionPayload` containing only `ended_at`.
+  - Set the Supabase update to `returning: .minimal` so finishing does not depend on a returned representation.
+  - Added `WorkoutRepositoryPayloadTests` coverage for the completion payload.
+  - Verified focused tests: `xcodebuild test -project Gymbros.xcodeproj -scheme Gymbros -destination 'platform=iOS Simulator,name=iPhone 17e' -only-testing:GymbrosTests/WorkoutRepositoryPayloadTests -only-testing:GymbrosTests/WorkoutSessionViewModelTests`.
+  - Verified full suite: `xcodebuild test -project Gymbros.xcodeproj -scheme Gymbros -destination 'platform=iOS Simulator,name=iPhone 17e'`.
+
+## Earlier session did
 
 - Sprint 4 Task 6 — HistoryView + SessionDetailView + mock data + previews:
   - Merged branch `worktree-s04-task6-history-ui` into `main`.
@@ -53,8 +70,6 @@ Phase 1 ("Real Life Works") is ~75% done — Sprints 1–3 complete. Sprint 4 is
   - Created `GymbrosTests/StreakServiceTests.swift` — 9 tests (zero/current-week/one-prior/two-consecutive/five-consecutive/gap/incomplete-excluded/incomplete-mixed/year-boundary), all pass.
   - All existing `WorkoutSessionViewModelTests` still pass.
 
-## Earlier session did
-
 - Fixed two S03 workout-session regressions (rest timer background, restore sheet path).
 - Task 0 (Spec Lock) for Sprint 4: 8 ambiguities locked in `spec.md` §2.2.
 
@@ -62,24 +77,15 @@ Phase 1 ("Real Life Works") is ~75% done — Sprints 1–3 complete. Sprint 4 is
 
 ## Next up
 
-**Sprint 4 — Tasks 2–4 remain / need integration, then Task 8 (sequential)**
+**Sprint 5 — Settings**
 
-1. ~~Task 1: done — `fetchSets` + `StreakService` + tests.~~
-2. Task 2: Create `TodayViewModel` + tests. **Complete in `worktree-s04-task2-today-viewmodel`; merge/integrate when ready.**
-3. Task 3: Create `HistoryViewModel` + `SessionDetailViewModel` + tests.
-4. Task 4: Replace `RootView` authenticated branch with `TabView` shell (Today/Programs/History).
-5. ~~Task 5: done — `TodayView` + mock data + previews.~~
-6. ~~Task 6: done — `HistoryView` + `SessionDetailView` + mock data + previews.~~
-7. ~~Task 7: done — all Sprint 4 localization keys (Thai + English).~~
-8. Task 8: Wire everything together, run tests, smoke test.
+Start with Sprint 5 Task 0: confirm settings rows and spec details before implementing UI or repository changes.
 
 ---
 
 ## Open follow-ups
 
 - [ ] Light/dark visual sweep of `WorkoutSessionView`, `WorkoutExercisePageView`, `SetRowView`, `RestTimerRingView`, `ProgramExerciseEditorView` in Xcode before broad TestFlight.
-- [ ] Task 8: map/collapse `TodayViewData` into the real `TodayData` once `TodayViewModel` lands, and wire `onShowPrograms` to tab selection.
-- [ ] Task 8: map/collapse `HistoryDisplayData` and `SessionDetailDisplayData` into the real History/Session detail ViewModel data once Task 3 lands.
 - [ ] Confirm S05 Settings rows at Task 0 of Sprint 5 before any code lands (weight unit toggle, sign out, app version, privacy placeholder, delete placeholder).
 
 ---

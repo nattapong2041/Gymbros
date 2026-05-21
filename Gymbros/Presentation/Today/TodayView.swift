@@ -1,31 +1,23 @@
 import SwiftUI
 
-struct TodayViewData {
-    var activeProgram: Program?
-    var nextDay: ProgramDay?
-    var recentSessions: [WorkoutSession]
-    var streakWeeks: Int
-    var lastSessionDate: Date?
-    var isWelcomeBack: Bool
-}
-
 struct TodayView: View {
-    let state: ViewState<TodayViewData>
+    @State var viewModel: TodayViewModel
     let date: Date
-    let onRetry: () -> Void
     let onShowPrograms: () -> Void
+    private let loadsOnAppear: Bool
 
     @State private var selectedProgramDayId: UUID?
 
+    @MainActor
     init(
-        state: ViewState<TodayViewData> = .loading,
+        viewModel: TodayViewModel? = nil,
         date: Date = .now,
-        onRetry: @escaping () -> Void = {},
+        loadsOnAppear: Bool = true,
         onShowPrograms: @escaping () -> Void = {}
     ) {
-        self.state = state
+        self._viewModel = State(initialValue: viewModel ?? TodayViewModel())
         self.date = date
-        self.onRetry = onRetry
+        self.loadsOnAppear = loadsOnAppear
         self.onShowPrograms = onShowPrograms
     }
 
@@ -35,11 +27,19 @@ struct TodayView: View {
             .navigationDestination(item: $selectedProgramDayId) { programDayId in
                 WorkoutSessionScreen(programDayId: programDayId)
             }
+            .task {
+                guard loadsOnAppear else { return }
+                await viewModel.load()
+            }
+            .refreshable {
+                guard loadsOnAppear else { return }
+                await viewModel.refresh()
+            }
     }
 
     @ViewBuilder
     private var content: some View {
-        switch state {
+        switch viewModel.state {
         case .idle, .loading:
             ProgressView()
         case .empty:
@@ -52,7 +52,7 @@ struct TodayView: View {
     }
 
     @ViewBuilder
-    private func successState(_ data: TodayViewData) -> some View {
+    private func successState(_ data: TodayData) -> some View {
         if data.activeProgram == nil || data.nextDay == nil {
             noProgramState
         } else {
@@ -92,8 +92,10 @@ struct TodayView: View {
         } description: {
             Text(LocalizedStringKey(error.messageKey))
         } actions: {
-            Button("common.retry", action: onRetry)
-                .buttonStyle(.bordered)
+            Button("common.retry") {
+                Task { await viewModel.load() }
+            }
+            .buttonStyle(.bordered)
         }
     }
 
@@ -113,7 +115,7 @@ struct TodayView: View {
         .background(.quaternary, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
     }
 
-    private func nextWorkoutCard(data: TodayViewData, nextDay: ProgramDay) -> some View {
+    private func nextWorkoutCard(data: TodayData, nextDay: ProgramDay) -> some View {
         VStack(alignment: .leading, spacing: 16) {
             HStack(alignment: .top, spacing: 12) {
                 VStack(alignment: .leading, spacing: 6) {
@@ -218,36 +220,36 @@ struct TodayView: View {
 
 #Preview("Loading") {
     NavigationStack {
-        TodayView(state: .loading)
+        TodayView(viewModel: .loading, loadsOnAppear: false)
     }
 }
 
 #Preview("Error") {
     NavigationStack {
-        TodayView(state: .error(.network(.offline)))
+        TodayView(viewModel: .error, loadsOnAppear: false)
     }
 }
 
 #Preview("No Program") {
     NavigationStack {
-        TodayView(state: .success(.noProgram))
+        TodayView(viewModel: .noProgram, loadsOnAppear: false)
     }
 }
 
 #Preview("Has Program, No History") {
     NavigationStack {
-        TodayView(state: .success(.hasProgramNoHistory), date: TodayMockData.morning)
+        TodayView(viewModel: .hasProgramNoHistory, date: TodayViewModel.morning, loadsOnAppear: false)
     }
 }
 
 #Preview("Has Program With Streak") {
     NavigationStack {
-        TodayView(state: .success(.hasProgramWithStreak), date: TodayMockData.afternoon)
+        TodayView(viewModel: .hasProgramWithStreak, date: TodayViewModel.afternoon, loadsOnAppear: false)
     }
 }
 
 #Preview("Welcome Back") {
     NavigationStack {
-        TodayView(state: .success(.welcomeBack), date: TodayMockData.evening)
+        TodayView(viewModel: .welcomeBack, date: TodayViewModel.evening, loadsOnAppear: false)
     }
 }

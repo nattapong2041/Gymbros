@@ -1,12 +1,18 @@
 import SwiftUI
 
 struct SessionDetailView: View {
-    let state: ViewState<SessionDetailDisplayData>
-    var onRetry: () -> Void = {}
+    @State var viewModel: SessionDetailViewModel
+    private let loadsOnAppear: Bool
+
+    @MainActor
+    init(viewModel: SessionDetailViewModel, loadsOnAppear: Bool = true) {
+        self._viewModel = State(initialValue: viewModel)
+        self.loadsOnAppear = loadsOnAppear
+    }
 
     var body: some View {
         Group {
-            switch state {
+            switch viewModel.state {
             case .idle, .loading:
                 ProgressView()
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -21,7 +27,9 @@ struct SessionDetailView: View {
                 } description: {
                     Text(LocalizedStringKey(error.messageKey))
                 } actions: {
-                    Button("common.retry", systemImage: "arrow.clockwise", action: onRetry)
+                    Button("common.retry", systemImage: "arrow.clockwise") {
+                        Task { await viewModel.load() }
+                    }
                 }
             case .success(let data):
                 List {
@@ -44,6 +52,10 @@ struct SessionDetailView: View {
                 .navigationBarTitleDisplayMode(.inline)
             }
         }
+        .task {
+            guard loadsOnAppear else { return }
+            await viewModel.load()
+        }
     }
 
     private func durationText(for session: WorkoutSession) -> String {
@@ -58,7 +70,7 @@ struct SessionDetailView: View {
         return max(1, Int(duration / 60))
     }
 
-    private func exerciseGroups(from data: SessionDetailDisplayData) -> [SessionExerciseSetGroup] {
+    private func exerciseGroups(from data: SessionDetailData) -> [SessionExerciseSetGroup] {
         Dictionary(grouping: data.sets) { $0.exerciseId }
             .map { exerciseId, sets in
                 SessionExerciseSetGroup(
@@ -78,18 +90,18 @@ struct SessionDetailView: View {
 
 #Preview("Loading") {
     NavigationStack {
-        SessionDetailView(state: .loading)
+        SessionDetailView(viewModel: .loading, loadsOnAppear: false)
     }
 }
 
 #Preview("Error") {
     NavigationStack {
-        SessionDetailView(state: .error(.network(.offline)))
+        SessionDetailView(viewModel: .error, loadsOnAppear: false)
     }
 }
 
 #Preview("Success") {
     NavigationStack {
-        SessionDetailView(state: .success(.mock))
+        SessionDetailView(viewModel: .success, loadsOnAppear: false)
     }
 }

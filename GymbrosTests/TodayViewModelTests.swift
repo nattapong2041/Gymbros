@@ -258,5 +258,6 @@ private final class FakeTodayWorkoutRepository: WorkoutRepositoryProviding {
     func updateSet(_ set: WorkoutSet) async throws -> WorkoutSet { throw AppError.notFound }
     func deleteSet(id: UUID) async throws {}
     func completeSession(_ sessionId: UUID, endedAt: Date) async throws {}
+    func fetchSets(sessionId: UUID) async throws -> [WorkoutSet] { return [] }
     func fetchLastLoggedSet(exerciseId: UUID, before: Date) async throws -> WorkoutSet? { nil }
 }

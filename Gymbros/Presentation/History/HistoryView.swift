@@ -1,13 +1,18 @@
 import SwiftUI
 
 struct HistoryView: View {
-    let state: ViewState<HistoryDisplayData>
-    var onRetry: () -> Void = {}
-    var onRetrySessionDetail: (WorkoutSession) -> Void = { _ in }
+    @State var viewModel: HistoryViewModel
+    private let loadsOnAppear: Bool
+
+    @MainActor
+    init(viewModel: HistoryViewModel? = nil, loadsOnAppear: Bool = true) {
+        self._viewModel = State(initialValue: viewModel ?? HistoryViewModel())
+        self.loadsOnAppear = loadsOnAppear
+    }
 
     var body: some View {
         Group {
-            switch state {
+            switch viewModel.state {
             case .idle, .loading:
                 ProgressView()
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -22,7 +27,9 @@ struct HistoryView: View {
                 } description: {
                     Text(LocalizedStringKey(error.messageKey))
                 } actions: {
-                    Button("common.retry", systemImage: "arrow.clockwise", action: onRetry)
+                    Button("common.retry", systemImage: "arrow.clockwise") {
+                        Task { await viewModel.load() }
+                    }
                 }
             case .success(let data):
                 List {
@@ -30,53 +37,61 @@ struct HistoryView: View {
                         NavigationLink(value: session.id) {
                             HistorySessionRow(
                                 session: session,
-                                dayName: data.dayName(for: session)
+                                dayName: dayName(for: session, in: data)
                             )
                         }
                     }
                 }
                 .refreshable {
-                    onRetry()
+                    guard loadsOnAppear else { return }
+                    await viewModel.load()
                 }
                 .navigationDestination(for: UUID.self) { sessionId in
                     if let session = data.sessions.first(where: { $0.id == sessionId }) {
-                        SessionDetailView(
-                            state: data.detailState(for: session),
-                            onRetry: { onRetrySessionDetail(session) }
-                        )
+                        SessionDetailView(viewModel: SessionDetailViewModel(session: session))
                     } else {
-                        SessionDetailView(
-                            state: .error(.notFound),
-                            onRetry: {}
+                        // Fallback for edge cases where session ID is lost
+                        ContentUnavailableView(
+                            LocalizedStringKey("session.exercise.unknown"),
+                            systemImage: "exclamationmark.triangle"
                         )
                     }
                 }
             }
         }
         .navigationTitle("history.title")
+        .task {
+            guard loadsOnAppear else { return }
+            await viewModel.load()
+        }
+    }
+
+    private func dayName(for session: WorkoutSession, in data: HistoryData) -> String? {
+        guard let programDayId = session.programDayId else { return nil }
+        return data.dayNames[programDayId]
     }
 }
 
 #Preview("Loading") {
     NavigationStack {
-        HistoryView(state: .loading)
+        HistoryView(viewModel: .loading, loadsOnAppear: false)
     }
 }
 
 #Preview("Empty") {
     NavigationStack {
-        HistoryView(state: .empty)
+        HistoryView(viewModel: .empty, loadsOnAppear: false)
     }
 }
 
 #Preview("Error") {
     NavigationStack {
-        HistoryView(state: .error(.network(.offline)))
+        HistoryView(viewModel: .error, loadsOnAppear: false)
     }
 }
 
 #Preview("Success") {
     NavigationStack {
-        HistoryView(state: .success(.mock))
+        HistoryView(viewModel: .success, loadsOnAppear: false)
     }
 }

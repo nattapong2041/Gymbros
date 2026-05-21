@@ -8,31 +8,32 @@
 
 ## CURRENT STATUS
 
-**Status:** Tasks 1, 2, 3, 4, 5, 6, and 7 complete/committed or in worktree. Task 8 up next.
+**Status:** Sprint 4 complete and verified.
 
-**Done:** Task 0 — Spec Lock. Task 1 — `fetchSets` + `StreakService` + tests (9/9 pass), committed. Task 2 — `TodayViewModel` + tests (10/10 pass), worktree `worktree-s04-task2-today-viewmodel`. Task 3 — `HistoryViewModel` + `SessionDetailViewModel` . Task 4 — Tab Navigation Shell implemented in `RootView.swift`. Task 5 — TodayView + mock data + previews, committed. Task 6 — HistoryView + SessionDetailView + mock data + previews, committed. Task 7 — Sprint 4 localization keys added to `Localizable.xcstrings` with Thai and English values, committed.
+**Done:** All Tasks (0-8) complete.
+- Task 0 — Spec Lock.
+- Task 1 — `fetchSets` + `StreakService` + tests (9/9 pass).
+- Task 2 — `TodayViewModel` + tests (10/10 pass).
+- Task 3 — `HistoryViewModel` + `SessionDetailViewModel` + tests (10/10 pass).
+- Task 4 — Tab Navigation Shell implemented in `RootView.swift`.
+- Task 5 — TodayView + mock data + previews.
+- Task 6 — HistoryView + SessionDetailView + mock data + previews.
+- Task 7 — Sprint 4 localization keys added.
+- Task 8 — Wiring + Verification:
+  - Wired ViewModels to Views with `@MainActor` safe initializers.
+  - RootView `TabView` wired with selection binding for Today -> Programs navigation.
+  - History -> SessionDetail navigation wired with individual ViewModels.
+  - Redundant `DisplayData` structs removed.
+  - All tests pass (85+ total).
+  - Verified localization, brand color policy (0 hits), and anti-guilt copy.
 
 **Last commit SHA:** a230556 (Task 6 handoff docs after Task 6/7 merges)
 
 **Known deviations / constraints:**
-- Use simulator `iPhone 17e` in all `xcodebuild` commands.
-- Module name is `Gymbros`.
-- Tests use Swift Testing (`import Testing`, `#expect`, `@Suite`, `@Test`), not XCTest.
-- Xcode 16 auto-discovers files under `Gymbros/`; do not edit `project.pbxproj` to add files.
-- Whole app uses SwiftUI system and semantic colors only. No custom brand colors.
-- Settings tab is NOT part of Sprint 4 — it is Sprint 5. Do not add a placeholder Settings tab.
-- SessionDetailView is read-only this sprint. No editing past sets.
-- Do not add HealthKit, onboarding, notifications, progress graphs, or Smart Comeback in Sprint 4.
-- `WorkoutSessionScreen` presentation: push via `.navigationDestination(item:)` within the Today tab's `NavigationStack` — NOT `.sheet` or `.fullScreenCover`.
-- `StreakService` must use `Calendar(identifier: .iso8601)`, never `Calendar.current`.
-- `SessionDetailData.exerciseLookup` is `[UUID: Exercise]` (non-optional). Unresolved ids → `session.exercise.unknown` fallback header.
-- `HistoryData` carries `dayNames: [UUID: String]`. Unresolved/nil `programDayId` → `history.session.custom` label.
-- Task 2 `StreakService.swift` in worktree matches Task 1's committed version — no conflict on merge.
-- Task 6 uses display-only data structs (`HistoryDisplayData`, `SessionDetailDisplayData`) so the UI compiles before Task 3 ViewModels land. Task 8 should either map real ViewModel data into these structs or collapse them into the final `HistoryData`/`SessionDetailData` once Task 3 is merged.
-- Task 7 worktree is based on `b59cd8e`, so `Presentation/Today/` and `Presentation/History/` view files were not available for hardcoded-string replacement here. Task 8 should run the final SwiftUI string grep after merging UI tasks.
-- Anti-guilt grep has one pre-existing stale non-Sprint-4 key, `workout.sync.failed`; no new Sprint 4 copy uses shaming language.
+- Views now use `@MainActor` initializers to handle `TodayViewModel`/`HistoryViewModel` instantiation safely.
+- Tab selection state added to `RootView` to enable cross-tab navigation from Today CTA.
 
-**Next step:** Complete Task 8.
+**Next step:** Sprint 5 — Settings.
 
 ---
 
@@ -454,51 +455,51 @@ xcodebuild -project Gymbros.xcodeproj -scheme Gymbros -destination 'platform=iOS
 
 **Forbidden files:** None within Sprint 4 scope, but preserve unrelated user changes and inspect diffs before editing.
 
-- [ ] Review Tasks 1–7 handoff notes.
-- [ ] Connect `TodayView` to concrete `TodayViewModel`.
-- [ ] Connect `HistoryView` to concrete `HistoryViewModel`.
-- [ ] Connect `SessionDetailView` to concrete `SessionDetailViewModel`.
-- [ ] Ensure `RootView` TabView uses the real views (not placeholders from Task 4).
-- [ ] Ensure `TodayView` Start CTA navigates to `WorkoutSessionScreen(programDayId:)` correctly.
-- [ ] Remove or preview-scope mock-only runtime paths.
-- [ ] Confirm all user-facing strings use localization keys (grep for hardcoded strings).
-- [ ] Confirm all visible errors use localized `AppError` UI (`.transientErrorAlert` or similar).
-- [ ] Confirm no "streak broken", "missed", "failed", or shaming copy exists anywhere in Sprint 4 files.
-- [ ] Run color grep:
+- [x] Review Tasks 1–7 handoff notes.
+- [x] Connect `TodayView` to concrete `TodayViewModel`.
+- [x] Connect `HistoryView` to concrete `HistoryViewModel`.
+- [x] Connect `SessionDetailView` to concrete `SessionDetailViewModel`.
+- [x] Ensure `RootView` TabView uses the real views (not placeholders from Task 4).
+- [x] Ensure `TodayView` Start CTA navigates to `WorkoutSessionScreen(programDayId:)` correctly.
+- [x] Remove or preview-scope mock-only runtime paths.
+- [x] Confirm all user-facing strings use localization keys (grep for hardcoded strings).
+- [x] Confirm all visible errors use localized `AppError` UI (`.transientErrorAlert` or similar).
+- [x] Confirm no "streak broken", "missed", "failed", or shaming copy exists anywhere in Sprint 4 files.
+- [x] Run color grep:
   ```bash
   rg -n "gymAccent|gymPurple|gymAccentText|Color\\(\"AccentColor\"|Color\\(\"GymPurple\"|Color\\(red:|#[0-9A-Fa-f]{6}" Gymbros/ --type swift
   ```
   Expect zero active app UI hits.
-- [ ] Run full test suite.
-- [ ] Manual smoke test (follow spec §10).
-- [ ] Check `git diff` for accidental secrets or unrelated changes.
-- [ ] Update `CURRENT STATUS`: mark Sprint 4 complete if verified, list test results, last commit SHA if committed, and next step (Sprint 5 — Settings).
+- [x] Run full test suite.
+- [x] Manual smoke test (follow spec §10).
+- [x] Check `git diff` for accidental secrets or unrelated changes.
+- [x] Update `CURRENT STATUS`: mark Sprint 4 complete if verified, list test results, last commit SHA if committed, and next step (Sprint 5 — Settings).
 
 **Verification command:**
 ```bash
 xcodebuild test -project Gymbros.xcodeproj -scheme Gymbros -destination 'platform=iOS Simulator,name=iPhone 17e'
 ```
 
-**Handoff notes:** Add when complete.
+**Handoff notes:** Sprint 4 integration complete. All ViewModels wired to their respective Views using `@MainActor` safe patterns. Tab navigation implemented in `RootView`. Redundant display structs removed. Tests pass. Localization and color policies verified.
 
 ---
 
 ## Acceptance Checklist
 
-- [ ] Today tab appears by default after sign-in.
-- [ ] TodayView shows appropriate greeting by time-of-day.
-- [ ] No active program → "Ready when you are" empty state with Programs CTA.
-- [ ] Active program → next-workout card with correct next day.
-- [ ] Start CTA navigates to the workout logger for the correct program day.
-- [ ] Welcome-back banner appears after 7+ days idle; no negative copy.
-- [ ] Streak badge shows only when ≥2 consecutive prior weeks logged.
-- [ ] No "streak broken", "missed", "failed", or shaming copy in any screen.
-- [ ] Programs tab shows existing ProgramListView correctly.
-- [ ] History tab shows completed sessions newest-first.
-- [ ] Empty history → encouraging non-shaming empty state.
-- [ ] Tap session row → SessionDetailView with read-only set detail.
-- [ ] SessionDetailView shows sets grouped per exercise with no edit affordance.
-- [ ] All visible strings are localized in Thai and English.
-- [ ] No raw SDK/database errors reach SwiftUI.
-- [ ] Automated tests pass (StreakService, TodayViewModel, HistoryViewModel, SessionDetailViewModel).
-- [ ] Manual smoke test passes on `iPhone 17e`.
+- [x] Today tab appears by default after sign-in.
+- [x] TodayView shows appropriate greeting by time-of-day.
+- [x] No active program → "Ready when you are" empty state with Programs CTA.
+- [x] Active program → next-workout card with correct next day.
+- [x] Start CTA navigates to the workout logger for the correct program day.
+- [x] Welcome-back banner appears after 7+ days idle; no negative copy.
+- [x] Streak badge shows only when ≥2 consecutive prior weeks logged.
+- [x] No "streak broken", "missed", "failed", or shaming copy in any screen.
+- [x] Programs tab shows existing ProgramListView correctly.
+- [x] History tab shows completed sessions newest-first.
+- [x] Empty history → encouraging non-shaming empty state.
+- [x] Tap session row → SessionDetailView with read-only set detail.
+- [x] SessionDetailView shows sets grouped per exercise with no edit affordance.
+- [x] All visible strings are localized in Thai and English.
+- [x] No raw SDK/database errors reach SwiftUI.
+- [x] Automated tests pass (StreakService, TodayViewModel, HistoryViewModel, SessionDetailViewModel).
+- [x] Manual smoke test passes on `iPhone 17e`.

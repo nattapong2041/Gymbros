@@ -29,6 +29,7 @@
       }
     },
     "accessibility.history.session_row %@ %lld" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -45,6 +46,7 @@
       }
     },
     "accessibility.today.start" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -77,6 +79,7 @@
       }
     },
     "accessibility.today.streak" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -408,86 +411,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "เปลี่ยนชื่อวัน"
-          }
-        }
-      }
-    },
-    "history.empty" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "No workouts yet. Your first one is waiting."
-          }
-        },
-        "th" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "ยังไม่มีเวิร์กเอาท์ เวิร์กเอาท์แรกของคุณรออยู่"
-          }
-        }
-      }
-    },
-    "history.session.custom" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Custom workout"
-          }
-        },
-        "th" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "เวิร์กเอาท์ทั่วไป"
-          }
-        }
-      }
-    },
-    "history.session.duration" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%lld min"
-          }
-        },
-        "th" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%lld นาที"
-          }
-        }
-      }
-    },
-    "history.session.duration %lld" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%lld min"
-          }
-        },
-        "th" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%lld นาที"
-          }
-        }
-      }
-    },
-    "history.title" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "History"
-          }
-        },
-        "th" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "ประวัติ"
           }
         }
       }
@@ -1194,6 +1117,87 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "GymBros"
+          }
+        }
+      }
+    },
+    "history.empty" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No workouts yet. Your first one is waiting."
+          }
+        },
+        "th" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ยังไม่มีเวิร์กเอาท์ เวิร์กเอาท์แรกของคุณรออยู่"
+          }
+        }
+      }
+    },
+    "history.session.custom" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Custom workout"
+          }
+        },
+        "th" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "เวิร์กเอาท์ทั่วไป"
+          }
+        }
+      }
+    },
+    "history.session.duration" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld min"
+          }
+        },
+        "th" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld นาที"
+          }
+        }
+      }
+    },
+    "history.session.duration %lld" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld min"
+          }
+        },
+        "th" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld นาที"
+          }
+        }
+      }
+    },
+    "history.title" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "History"
+          }
+        },
+        "th" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ประวัติ"
           }
         }
       }
@@ -2115,6 +2119,7 @@
       }
     },
     "session.duration %lld" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -2163,6 +2168,7 @@
       }
     },
     "session.set.rpe %@" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -2195,6 +2201,7 @@
       }
     },
     "session.set.weight_reps %@ %lld" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -2211,6 +2218,7 @@
       }
     },
     "session.title" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -2307,6 +2315,7 @@
       }
     },
     "today.last_workout" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -2371,6 +2380,7 @@
       }
     },
     "today.streak.weeks" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {

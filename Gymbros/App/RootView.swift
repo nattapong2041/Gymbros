@@ -4,20 +4,24 @@ struct RootView: View {
     @Environment(\.scenePhase) private var scenePhase
     @State private var auth: AuthService
 
-    init(auth: AuthService = .shared) {
-        self._auth = State(initialValue: auth)
+    @MainActor
+    init(auth: AuthService? = nil) {
+        self._auth = State(initialValue: auth ?? .shared)
     }
+
+    @State private var selectedTab = 0
 
     var body: some View {
         Group {
             if auth.isAuthenticated {
-                TabView {
+                TabView(selection: $selectedTab) {
                     NavigationStack {
-                        TodayView()
+                        TodayView(onShowPrograms: { selectedTab = 1 })
                     }
                     .tabItem {
                         Label("today.title", systemImage: "house")
                     }
+                    .tag(0)
 
                     NavigationStack {
                         ProgramListView(viewModel: ProgramListViewModel())
@@ -25,13 +29,15 @@ struct RootView: View {
                     .tabItem {
                         Label("programs.title", systemImage: "list.bullet")
                     }
+                    .tag(1)
 
                     NavigationStack {
-                        HistoryView(state: .loading)
+                        HistoryView(viewModel: HistoryViewModel())
                     }
                     .tabItem {
                         Label("history.title", systemImage: "clock")
                     }
+                    .tag(2)
                 }
             } else {
                 SignInView()
