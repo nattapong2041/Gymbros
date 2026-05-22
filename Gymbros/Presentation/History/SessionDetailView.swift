@@ -41,7 +41,12 @@ struct SessionDetailView: View {
                     ForEach(exerciseGroups(from: data), id: \.id) { group in
                         Section {
                             ForEach(group.sets) { set in
-                                SessionSetRow(workoutSet: set)
+                                Button {
+                                    viewModel.editingSet = set
+                                } label: {
+                                    SessionSetRow(workoutSet: set)
+                                }
+                                .buttonStyle(.plain)
                             }
                         } header: {
                             Text(group.name)
@@ -52,6 +57,18 @@ struct SessionDetailView: View {
                 .navigationBarTitleDisplayMode(.inline)
             }
         }
+        .sheet(item: Binding(
+            get: { viewModel.editingSet },
+            set: { viewModel.editingSet = $0 }
+        )) { set in
+            EditSetSheet(set: set, viewModel: viewModel)
+                .presentationDetents([.medium])
+                .presentationDragIndicator(.visible)
+        }
+        .transientErrorAlert(error: Binding(
+            get: { viewModel.transientError },
+            set: { viewModel.transientError = $0 }
+        ))
         .task {
             guard loadsOnAppear else { return }
             await viewModel.load()
@@ -85,6 +102,90 @@ struct SessionDetailView: View {
                 }
                 return lhsFirstSet.completedAt < rhsFirstSet.completedAt
             }
+    }
+}
+
+private struct EditSetSheet: View {
+    let set: WorkoutSet
+    let viewModel: SessionDetailViewModel
+
+    @State private var weightText: String
+    @State private var repsText: String
+    @State private var rpe: Double?
+    @Environment(\.dismiss) private var dismiss
+
+    init(set: WorkoutSet, viewModel: SessionDetailViewModel) {
+        self.set = set
+        self.viewModel = viewModel
+        _weightText = State(initialValue: set.weight.formatted(.number.precision(.fractionLength(0...2))))
+        _repsText = State(initialValue: "\(set.reps)")
+        _rpe = State(initialValue: set.rpe)
+    }
+
+    var body: some View {
+        NavigationStack {
+            Form {
+                Section {
+                    HStack {
+                        Text("workout.set.weight")
+                        Spacer()
+                        TextField("0", text: $weightText)
+                            .keyboardType(.decimalPad)
+                            .multilineTextAlignment(.trailing)
+                    }
+                    HStack {
+                        Text("workout.set.reps")
+                        Spacer()
+                        TextField("0", text: $repsText)
+                            .keyboardType(.numberPad)
+                            .multilineTextAlignment(.trailing)
+                    }
+                    Menu {
+                        ForEach(Array(stride(from: 10.0, through: 1.0, by: -0.5)), id: \.self) { rpeValue in
+                            Button { rpe = rpeValue } label: {
+                                Text(String(format: "%.1f", rpeValue))
+                            }
+                        }
+                        Button(role: .destructive) { rpe = nil } label: {
+                            Text("workout.set.rpe.clear")
+                        }
+                    } label: {
+                        HStack {
+                            Text("workout.set.rpe")
+                            Spacer()
+                            Text(rpe.map { String(format: "%.1f", $0) } ?? "-")
+                                .foregroundStyle(rpe != nil ? .primary : .secondary)
+                        }
+                    }
+                }
+            }
+            .navigationTitle("session.set.edit.title")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("common.cancel") { dismiss() }
+                }
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("common.save") {
+                        guard let weight = parsedWeight, let reps = parsedReps else { return }
+                        Task { await viewModel.updateSet(set, weight: weight, reps: reps, rpe: rpe) }
+                    }
+                    .disabled(parsedWeight == nil || parsedReps == nil)
+                }
+            }
+        }
+    }
+
+    private var parsedWeight: Double? {
+        let trimmed = weightText.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard let v = Double(trimmed), v >= 0 else { return nil }
+        return v
+    }
+
+    private var parsedReps: Int? {
+        let trimmed = repsText.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard let v = Int(trimmed), v >= 1 else { return nil }
+        return v
     }
 }
 

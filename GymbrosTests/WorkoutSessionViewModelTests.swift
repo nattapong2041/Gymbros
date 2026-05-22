@@ -106,9 +106,8 @@ struct WorkoutSessionViewModelTests {
         #expect(sets.map(\.setNumber) == [1, 2])
     }
 
-    @Test func uploadFailureCanBeRetried() async throws {
+    @Test func completeSetDoesNotUpload() async throws {
         let workoutRepository = FakeWorkoutRepository()
-        workoutRepository.nextUploadError = .network(.offline)
         let viewModel = makeViewModel(workoutRepository: workoutRepository)
 
         await viewModel.start(programDayId: ProgramSamples.upperDayId)
@@ -116,14 +115,8 @@ struct WorkoutSessionViewModelTests {
         await viewModel.updateDraft(setId: row.id, weightText: "80", repsText: "8", rpe: 7.5)
         await viewModel.completeSet(setId: row.id)
 
-        guard case .failed(.network(.offline)) = try rowState(viewModel, id: row.id).syncState else {
-            throw AppError.unknown(debugID: "expected-upload-failure")
-        }
-
-        await viewModel.retryUpload(setId: row.id)
-
-        #expect(try rowState(viewModel, id: row.id).syncState == .uploaded)
-        #expect(workoutRepository.uploadedSets.count == 2)
+        #expect(workoutRepository.uploadedSets.isEmpty)
+        #expect(try rowState(viewModel, id: row.id).isCompleted)
     }
 
     @Test func completeSetCopiesActualWeightAndRepsToNextUnmodifiedRowWithoutRPE() async throws {
@@ -194,7 +187,6 @@ struct WorkoutSessionViewModelTests {
         await viewModel.finishExercise(programExerciseId: ProgramSamples.benchProgramExerciseId)
         await viewModel.finishSession()
 
-        #expect(try rowState(viewModel, id: row.id).syncState == .uploaded)
         #expect(workoutRepository.updatedSets.map(\.id) == [row.id])
         #expect(workoutRepository.completedSessions.map(\.sessionId) == [workoutRepository.session.id])
         #expect(backupRepository.clearCount == 1)
@@ -238,8 +230,9 @@ struct WorkoutSessionViewModelTests {
         #expect(viewModel.transientError == .network(.offline))
     }
 
-    @Test func finishSessionSkipsInvalidReuploadForCompletedSets() async throws {
-        // Regression: completing a set then editing reps to >100 blocked finishSession.
+    @Test func finishSessionSkipsInvalidSets() async throws {
+        // A completed set whose text is later edited to an out-of-range value is
+        // skipped during batch upload — the session still finishes successfully.
         let workoutRepository = FakeWorkoutRepository()
         let backupRepository = FakeBackupRepository()
         let viewModel = makeViewModel(workoutRepository: workoutRepository, backupRepository: backupRepository)
@@ -249,17 +242,39 @@ struct WorkoutSessionViewModelTests {
 
         await viewModel.updateDraft(setId: row.id, weightText: "59", repsText: "8", rpe: nil)
         await viewModel.completeSet(setId: row.id)
-        #expect(try rowState(viewModel, id: row.id).syncState == .uploaded)
+        #expect(try rowState(viewModel, id: row.id).isCompleted)
 
-        // Edit reps to out-of-range value — syncState resets to .pending
+        // Edit reps to out-of-range — set is marked completed but invalid text
         await viewModel.updateDraft(setId: row.id, weightText: "59", repsText: "110", rpe: nil)
-        #expect(try rowState(viewModel, id: row.id).syncState == .pending)
 
         await viewModel.finishExercise(programExerciseId: ProgramSamples.benchProgramExerciseId)
         await viewModel.finishSession()
 
         #expect(viewModel.transientError == nil)
         #expect(workoutRepository.completedSessions.map(\.sessionId) == [workoutRepository.session.id])
+    }
+
+    @Test func finishSessionUploadsAllCompletedSets() async throws {
+        let workoutRepository = FakeWorkoutRepository()
+        let backupRepository = FakeBackupRepository()
+        let programRepository = FakeWorkoutProgramRepository()
+        programRepository.programExercises = [ProgramSamples.benchProgramExercise]
+        let viewModel = makeViewModel(workoutRepository: workoutRepository, programRepository: programRepository, backupRepository: backupRepository)
+
+        await viewModel.start(programDayId: ProgramSamples.upperDayId)
+        let sets = try successValue(viewModel.state).exerciseSections[0].sets
+        for row in sets {
+            await viewModel.updateDraft(setId: row.id, weightText: "80", repsText: "8", rpe: nil)
+            await viewModel.completeSet(setId: row.id)
+        }
+        #expect(workoutRepository.uploadedSets.isEmpty)
+
+        await viewModel.finishExercise(programExerciseId: ProgramSamples.benchProgramExerciseId)
+        await viewModel.finishSession()
+
+        #expect(workoutRepository.uploadedSets.count == sets.count)
+        #expect(workoutRepository.completedSessions.count == 1)
+        #expect(backupRepository.clearCount == 1)
     }
 
     @Test func finishClearsBackupWhenCompletionSucceeds() async throws {

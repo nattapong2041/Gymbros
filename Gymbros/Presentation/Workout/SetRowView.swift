@@ -7,9 +7,8 @@ struct SetRowView: View {
     // Actions handed down from the parent view or VM
     var onUpdate: (String, String, Double?) -> Void
     var onComplete: () -> Void
-    var onRetry: () -> Void
     var onDelete: () -> Void
-    
+
     @State private var weightText: String
     @State private var repsText: String
     @State private var rpe: Double?
@@ -21,14 +20,12 @@ struct SetRowView: View {
         isReadOnly: Bool = false,
         onUpdate: @escaping (String, String, Double?) -> Void,
         onComplete: @escaping () -> Void,
-        onRetry: @escaping () -> Void,
         onDelete: @escaping () -> Void
     ) {
         self.state = state
         self.isReadOnly = isReadOnly
         self.onUpdate = onUpdate
         self.onComplete = onComplete
-        self.onRetry = onRetry
         self.onDelete = onDelete
         _weightText = State(initialValue: state.weightText)
         _repsText = State(initialValue: state.repsText)
@@ -107,11 +104,9 @@ struct SetRowView: View {
             
             Spacer(minLength: 0)
             
-            // Sync & Completion
+            // Completion
             HStack(spacing: 8) {
                 if !isReadOnly {
-                    syncIndicator
-
                     Button(role: .destructive, action: onDelete) {
                         Label("workout.set.delete", systemImage: "trash")
                             .labelStyle(.iconOnly)
@@ -119,7 +114,7 @@ struct SetRowView: View {
                             .frame(width: 48, height: 48) // Mandated 48pt tap target
                     }
                 }
-                
+
                 Button(action: onComplete) {
                     Label("accessibility.workout.set.complete", systemImage: state.isCompleted ? "checkmark.circle.fill" : "circle")
                         .labelStyle(.iconOnly)
@@ -163,29 +158,6 @@ struct SetRowView: View {
         }
     }
     
-    @ViewBuilder
-    private var syncIndicator: some View {
-        switch state.syncState {
-        case .pending:
-            EmptyView()
-        case .uploading:
-            ProgressView()
-                .controlSize(.small)
-                .frame(width: 24, height: 24)
-        case .uploaded:
-            Image(systemName: "cloud.checkmark")
-                .font(.caption2)
-                .foregroundStyle(.secondary)
-        case .failed:
-            Button(action: onRetry) {
-                Label("workout.sync.retry", systemImage: "exclamationmark.icloud.fill")
-                    .labelStyle(.iconOnly)
-                    .font(.system(size: 20))
-                    .foregroundStyle(.red)
-                    .frame(width: 32, height: 32)
-            }
-        }
-    }
 }
 
 #Preview("Active") {
@@ -194,14 +166,12 @@ struct SetRowView: View {
             state: WorkoutSessionData.mock.exerciseSections[0].sets[0],
             onUpdate: { _, _, _ in },
             onComplete: {},
-            onRetry: {},
             onDelete: {}
         )
         SetRowView(
             state: WorkoutSessionData.mock.exerciseSections[0].sets[1],
             onUpdate: { _, _, _ in },
             onComplete: {},
-            onRetry: {},
             onDelete: {}
         )
     }
@@ -215,7 +185,6 @@ struct SetRowView: View {
             isReadOnly: true,
             onUpdate: { _, _, _ in },
             onComplete: {},
-            onRetry: {},
             onDelete: {}
         )
     }

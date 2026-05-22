@@ -126,9 +126,6 @@ final class WorkoutSessionViewModel {
             row.weightText = weightText
             row.repsText = repsText
             row.rpe = rpe
-            if row.isCompleted {
-                row.syncState = .pending
-            }
         }) else {
             transientError = .notFound
             return
@@ -140,33 +137,15 @@ final class WorkoutSessionViewModel {
             transientError = .notFound
             return
         }
-        guard let set = makeWorkoutSet(from: row) else {
+        guard makeWorkoutSet(from: row) != nil else {
             transientError = .validation(.invalidInput)
             return
         }
 
-        markSetUploadingAndCarryForward(setId: setId, sourceRow: row)
+        markSetCompletedAndCarryForward(setId: setId, sourceRow: row)
         if let targetRestSeconds = row.targetRestSeconds, targetRestSeconds > 0 {
             startRestTimer(seconds: targetRestSeconds, sourceSetId: setId)
         }
-        await upload(set, setId: setId)
-    }
-
-    func retryUpload(setId: UUID) async {
-        guard let row = rowState(setId: setId) else {
-            transientError = .notFound
-            return
-        }
-        guard let set = makeWorkoutSet(from: row) else {
-            transientError = .validation(.invalidInput)
-            return
-        }
-
-        updateRow(setId: setId, save: true) { row in
-            row.syncState = .uploading
-            row.isCompleted = true
-        }
-        await upload(set, setId: setId)
     }
 
     func addSet(after setId: UUID) async {
@@ -191,7 +170,6 @@ final class WorkoutSessionViewModel {
             repsText: sourceRow?.repsText ?? "\(data.exerciseSections[sectionIndex].programExercise.targetRepsMin)",
             rpe: sourceRow?.rpe,
             targetRestSeconds: data.exerciseSections[sectionIndex].programExercise.targetRestSeconds,
-            syncState: .pending,
             isCompleted: false
         )
         data.exerciseSections[sectionIndex].sets.append(newRow)
@@ -231,20 +209,13 @@ final class WorkoutSessionViewModel {
             transientError = .notFound
             return
         }
-        guard let sectionIndex = data.exerciseSections.firstIndex(where: { section in
+        guard data.exerciseSections.contains(where: { section in
             section.sets.contains { $0.id == setId }
-        }), let row = data.exerciseSections[sectionIndex].sets.first(where: { $0.id == setId }) else {
+        }), let sectionIndex = data.exerciseSections.firstIndex(where: { section in
+            section.sets.contains { $0.id == setId }
+        }) else {
             transientError = .notFound
             return
-        }
-
-        if row.isCompleted, row.syncState == .uploaded {
-            do {
-                try await workoutRepository.deleteSet(id: setId)
-            } catch {
-                transientError = appError(error, operation: "deleteWorkoutSet").visibleOrNil
-                return
-            }
         }
 
         data.exerciseSections[sectionIndex].sets.removeAll { $0.id == setId }
@@ -287,19 +258,20 @@ final class WorkoutSessionViewModel {
         isFinishing = true
         defer { isFinishing = false }
 
-        let uploadableRows = data.exerciseSections
-            .flatMap(\.sets)
-            .filter { $0.isCompleted && $0.syncState != .uploaded }
+        let completedRows = data.exerciseSections.flatMap(\.sets).filter(\.isCompleted)
 
-        for row in uploadableRows {
+        for row in completedRows {
             guard let set = makeWorkoutSet(from: row) else {
-                workoutLogger.warning("finishSession: skipping re-upload for setId=\(row.id) — invalid text (weight='\(row.weightText)' reps='\(row.repsText)'); set already uploaded with valid data")
+                workoutLogger.warning("finishSession: skipping setId=\(row.id) — invalid text (weight='\(row.weightText)' reps='\(row.repsText)')")
                 continue
             }
-            updateRow(setId: row.id, save: true) { $0.syncState = .uploading }
-            await upload(set, setId: row.id)
-            if case .failed(let uploadError) = rowState(setId: row.id)?.syncState {
-                workoutLogger.error("finishSession-blocked: upload failed for setId=\(row.id) error=\(String(describing: uploadError))")
+            do {
+                try await upload(set)
+            } catch {
+                let mapped = appError(error, operation: "uploadWorkoutSet")
+                workoutLogger.error("finishSession-blocked: upload failed for setId=\(row.id) error=\(String(describing: mapped))")
+                transientError = mapped.visibleOrNil
+                saveBackup()
                 return
             }
         }
@@ -334,7 +306,6 @@ final class WorkoutSessionViewModel {
                     repsText: setNumber == 1 ? "\(programExercise.targetRepsMin)" : "",
                     rpe: nil,
                     targetRestSeconds: programExercise.targetRestSeconds,
-                    syncState: .pending,
                     isCompleted: false
                 )
             }
@@ -365,43 +336,26 @@ final class WorkoutSessionViewModel {
         return defaultWeights
     }
 
-    private func upload(_ set: WorkoutSet, setId: UUID) async {
+    private func upload(_ set: WorkoutSet) async throws {
         do {
             _ = try await workoutRepository.uploadSet(set)
-            updateRow(setId: setId, save: true) { row in
-                row.syncState = .uploaded
-                row.isCompleted = true
-            }
         } catch {
             let mapped = appError(error, operation: "uploadWorkoutSet")
             if mapped == .conflict {
-                await updateExistingSet(set, setId: setId)
+                try await updateExistingSet(set)
                 return
             }
-            workoutLogger.error("upload-failed: setId=\(setId) error=\(String(describing: mapped))")
-            updateRow(setId: setId, save: true) { row in
-                row.syncState = .failed(mapped)
-                row.isCompleted = true
-            }
-            transientError = mapped.visibleOrNil
+            throw mapped
         }
     }
 
-    private func updateExistingSet(_ set: WorkoutSet, setId: UUID) async {
+    private func updateExistingSet(_ set: WorkoutSet) async throws {
         do {
             _ = try await workoutRepository.updateSet(set)
-            updateRow(setId: setId, save: true) { row in
-                row.syncState = .uploaded
-                row.isCompleted = true
-            }
         } catch {
             let mapped = appError(error, operation: "updateWorkoutSetAfterConflict")
-            workoutLogger.error("updateExistingSet-failed: setId=\(setId) error=\(String(describing: mapped))")
-            updateRow(setId: setId, save: true) { row in
-                row.syncState = .failed(mapped)
-                row.isCompleted = true
-            }
-            transientError = mapped.visibleOrNil
+            workoutLogger.error("updateExistingSet-failed: setId=\(set.id) error=\(String(describing: mapped))")
+            throw mapped
         }
     }
 
@@ -521,14 +475,13 @@ final class WorkoutSessionViewModel {
         return data.exerciseSections.flatMap(\.sets).first { $0.id == setId }
     }
 
-    private func markSetUploadingAndCarryForward(setId: UUID, sourceRow: WorkoutSetRowState) {
+    private func markSetCompletedAndCarryForward(setId: UUID, sourceRow: WorkoutSetRowState) {
         guard case var .success(data) = state else { return }
         for sectionIndex in data.exerciseSections.indices {
             guard let rowIndex = data.exerciseSections[sectionIndex].sets.firstIndex(where: { $0.id == setId }) else {
                 continue
             }
             data.exerciseSections[sectionIndex].sets[rowIndex].isCompleted = true
-            data.exerciseSections[sectionIndex].sets[rowIndex].syncState = .uploading
 
             if let nextIndex = data.exerciseSections[sectionIndex].sets[
                 data.exerciseSections[sectionIndex].sets.index(after: rowIndex)..<data.exerciseSections[sectionIndex].sets.endIndex
@@ -611,7 +564,6 @@ private extension WorkoutSetRowState {
             repsText: snapshot.repsText,
             rpe: snapshot.rpe,
             targetRestSeconds: snapshot.targetRestSeconds,
-            syncState: WorkoutSetSyncState(snapshot.syncState),
             isCompleted: snapshot.isCompleted
         )
     }
@@ -628,38 +580,7 @@ private extension ActiveSessionSetSnapshot {
             repsText: rowState.repsText,
             rpe: rowState.rpe,
             targetRestSeconds: rowState.targetRestSeconds,
-            syncState: ActiveSessionSetSyncState(rowState.syncState),
             isCompleted: rowState.isCompleted
         )
-    }
-}
-
-private extension WorkoutSetSyncState {
-    init(_ snapshot: ActiveSessionSetSyncState) {
-        switch snapshot {
-        case .pending:
-            self = .pending
-        case .uploading:
-            self = .uploading
-        case .uploaded:
-            self = .uploaded
-        case .failed(let error):
-            self = .failed(error)
-        }
-    }
-}
-
-private extension ActiveSessionSetSyncState {
-    init(_ rowState: WorkoutSetSyncState) {
-        switch rowState {
-        case .pending:
-            self = .pending
-        case .uploading:
-            self = .uploading
-        case .uploaded:
-            self = .uploaded
-        case .failed(let error):
-            self = .failed(error)
-        }
     }
 }

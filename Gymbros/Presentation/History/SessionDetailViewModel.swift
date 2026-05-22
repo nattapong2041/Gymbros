@@ -16,6 +16,7 @@ final class SessionDetailViewModel {
     let session: WorkoutSession
     var state: ViewState<SessionDetailData> = .idle
     var transientError: AppError?
+    var editingSet: WorkoutSet?
 
     private let workoutRepository: WorkoutRepositoryProviding
     private let exerciseRepository: ExerciseRepositoryProviding
@@ -28,6 +29,26 @@ final class SessionDetailViewModel {
         self.session = session
         self.workoutRepository = workoutRepository ?? WorkoutRepository()
         self.exerciseRepository = exerciseRepository ?? ExerciseRepository()
+    }
+
+    func updateSet(_ set: WorkoutSet, weight: Double, reps: Int, rpe: Double?) async {
+        guard case var .success(data) = state else { return }
+        var updated = set
+        updated.weight = weight
+        updated.reps = reps
+        updated.rpe = rpe
+        do {
+            _ = try await workoutRepository.updateSet(updated)
+            if let idx = data.sets.firstIndex(where: { $0.id == set.id }) {
+                data.sets[idx] = updated
+            }
+            state = .success(data)
+            editingSet = nil
+        } catch {
+            let appError = ProgramViewModelSupport.appError(error, operation: "updateSessionSet")
+            logger.error("updateSet failed: \(String(describing: appError))")
+            transientError = appError
+        }
     }
 
     func load() async {

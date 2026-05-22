@@ -36,9 +36,6 @@ struct WorkoutSessionScreen: View {
             onCompleteSet: { setId in
                 Task { await viewModel.completeSet(setId: setId) }
             },
-            onRetryUpload: { setId in
-                Task { await viewModel.retryUpload(setId: setId) }
-            },
             onDeleteSet: { setId in
                 Task { await viewModel.deleteSet(setId: setId) }
             },

@@ -15,7 +15,6 @@ struct WorkoutSessionView: View {
     var onAddSet: (UUID) -> Void // setId
     var onUpdateSet: (UUID, String, String, Double?) -> Void // setId
     var onCompleteSet: (UUID) -> Void // setId
-    var onRetryUpload: (UUID) -> Void // setId
     var onDeleteSet: (UUID) -> Void // setId
     var onFinishExercise: (UUID) -> Void // programExerciseId
     var onStopTimer: () -> Void
@@ -148,7 +147,6 @@ struct WorkoutSessionView: View {
                             onAddSet: onAddSet,
                             onUpdateSet: onUpdateSet,
                             onCompleteSet: onCompleteSet,
-                            onRetryUpload: onRetryUpload,
                             onDeleteSet: onDeleteSet,
                             onFinishExercise: onFinishExercise
                         )
@@ -216,7 +214,7 @@ extension RestTimerState: Identifiable {
             onAddSet: { _ in },
             onUpdateSet: { _, _, _, _ in },
             onCompleteSet: { _ in },
-            onRetryUpload: { _ in },
+
             onDeleteSet: { _ in },
             onFinishExercise: { _ in },
             onStopTimer: {},
@@ -238,7 +236,7 @@ extension RestTimerState: Identifiable {
         onAddSet: { _ in },
         onUpdateSet: { _, _, _, _ in },
         onCompleteSet: { _ in },
-        onRetryUpload: { _ in },
+
         onDeleteSet: { _ in },
         onFinishExercise: { _ in },
         onStopTimer: {},
@@ -259,7 +257,7 @@ extension RestTimerState: Identifiable {
         onAddSet: { _ in },
         onUpdateSet: { _, _, _, _ in },
         onCompleteSet: { _ in },
-        onRetryUpload: { _ in },
+
         onDeleteSet: { _ in },
         onFinishExercise: { _ in },
         onStopTimer: {},
@@ -279,7 +277,7 @@ extension RestTimerState: Identifiable {
         onAddSet: { _ in },
         onUpdateSet: { _, _, _, _ in },
         onCompleteSet: { _ in },
-        onRetryUpload: { _ in },
+
         onDeleteSet: { _ in },
         onFinishExercise: { _ in },
         onStopTimer: {},
@@ -299,7 +297,7 @@ extension RestTimerState: Identifiable {
         onAddSet: { _ in },
         onUpdateSet: { _, _, _, _ in },
         onCompleteSet: { _ in },
-        onRetryUpload: { _ in },
+
         onDeleteSet: { _ in },
         onFinishExercise: { _ in },
         onStopTimer: {},

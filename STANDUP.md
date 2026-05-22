@@ -4,7 +4,7 @@
 
 ---
 
-**Last updated:** 2026-05-22 | HEAD `e0e7c01` | Branch `main`
+**Last updated:** 2026-05-22 | HEAD `9ee6054` | Branch `main`
 
 ---
 
@@ -25,12 +25,19 @@ Phase 1 ("Real Life Works") is ~80% done — Sprints 1–4 complete. Settings wa
 
 ## Last session did
 
-- Fixed "Unknown error / cannot save session" bug:
-  - Root cause: a completed+uploaded set whose reps text was later edited to an out-of-range value (>100) caused `makeWorkoutSet` in `finishSession` to return nil, blocking the entire session close with "Unknown error".
-  - Fix: changed `finishSession` to `continue` (skip re-upload) instead of `return` when `makeWorkoutSet` fails for an already-completed set. The set already exists in Supabase with valid data from the original upload; the invalid edit is silently discarded.
-  - Added comprehensive diagnostic logging to all `finishSession` error paths (state guard, exercises not finished, invalid set text, upload failure, `completeSession` failure).
-  - Added `WorkoutSessionViewModelTests/finishSessionSkipsInvalidReuploadForCompletedSets` regression test — exactly reproduces the reported bug (weight='59', reps='110').
-  - All 18 `WorkoutSessionViewModelTests` pass.
+- Batch-upload architecture (removes per-set sync, all sets upload at Finish):
+  - Deleted `WorkoutSetSyncState` enum and `syncState` field from `WorkoutSetRowState` and `ActiveSessionSetSnapshot`.
+  - Bumped `ActiveSessionSnapshot.currentVersion` 2→3 (invalidates old backups gracefully).
+  - `completeSet()` no longer calls `upload()` — sets stay local until Finish.
+  - `finishSession()` batch-uploads all `isCompleted` sets, throws on failure (backup preserved for retry), clears backup only after `completeSession()` succeeds.
+  - `deleteSet()` no longer calls remote `workoutRepository.deleteSet()` (no sets in DB during active session).
+  - Deleted `retryUpload()`, `markSetUploadingAndCarryForward` — replaced by `markSetCompletedAndCarryForward`.
+  - Removed `syncIndicator`, `onRetry` from `SetRowView`; removed `onRetryUpload` from `WorkoutExercisePageView`, `WorkoutSessionView`, `WorkoutSessionScreen`.
+  - Session editing: `SessionDetailViewModel.updateSet()` updates a set in Supabase and patches local state in-place.
+  - `EditSetSheet` in `SessionDetailView` — tap any set row to edit weight/reps/RPE.
+  - Added `session.set.edit.title` localization key (en/th).
+  - Updated tests: deleted `uploadFailureCanBeRetried`, removed syncState assertions from `uploadConflictUpdatesExistingSetAndAllowsFinish`, rewrote `finishSessionSkipsInvalidReuploadForCompletedSets` → `finishSessionSkipsInvalidSets`, added `completeSetDoesNotUpload`, `finishSessionUploadsAllCompletedSets`.
+  - All 20 `WorkoutSessionViewModelTests` + 2 `ActiveSessionBackupTests` pass. Full suite passes.
 
 ## Earlier session did — fixed Sprint 4 wire-up regressions:
 

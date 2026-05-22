@@ -2151,6 +2151,22 @@
         }
       }
     },
+    "session.set.edit.title" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Edit Set"
+          }
+        },
+        "th" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "แก้ไขเซ็ต"
+          }
+        }
+      }
+    },
     "session.set.rpe" : {
       "localizations" : {
         "en" : {
@@ -2813,7 +2829,6 @@
       }
     },
     "workout.set.reps" : {
-      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -2862,7 +2877,6 @@
       }
     },
     "workout.set.weight" : {
-      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -2929,6 +2943,7 @@
       }
     },
     "workout.sync.retry" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {

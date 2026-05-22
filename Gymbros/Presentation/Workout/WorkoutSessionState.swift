@@ -29,13 +29,5 @@ struct WorkoutSetRowState: Identifiable, Equatable {
     var repsText: String
     var rpe: Double?
     var targetRestSeconds: Int?
-    var syncState: WorkoutSetSyncState
     var isCompleted: Bool
-}
-
-enum WorkoutSetSyncState: Equatable {
-    case pending
-    case uploading
-    case uploaded
-    case failed(AppError)
 }

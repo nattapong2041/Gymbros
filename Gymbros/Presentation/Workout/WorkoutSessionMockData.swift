@@ -89,7 +89,6 @@ extension WorkoutSessionData {
                 repsText: "10",
                 rpe: 8.0,
                 targetRestSeconds: 90,
-                syncState: .uploaded,
                 isCompleted: true
             ),
             WorkoutSetRowState(
@@ -101,7 +100,6 @@ extension WorkoutSessionData {
                 repsText: "10",
                 rpe: 8.5,
                 targetRestSeconds: 90,
-                syncState: .uploaded,
                 isCompleted: true
             ),
             WorkoutSetRowState(
@@ -113,11 +111,10 @@ extension WorkoutSessionData {
                 repsText: "10",
                 rpe: 9.0,
                 targetRestSeconds: 90,
-                syncState: .uploaded,
                 isCompleted: true
             )
         ]
-        
+
         let squatSets = [
             WorkoutSetRowState(
                 id: UUID(),
@@ -128,7 +125,6 @@ extension WorkoutSessionData {
                 repsText: "5",
                 rpe: 7.0,
                 targetRestSeconds: 180,
-                syncState: .pending,
                 isCompleted: false
             )
         ]

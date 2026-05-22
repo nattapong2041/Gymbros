@@ -68,7 +68,6 @@ func makeSnapshot() -> ActiveSessionSnapshot {
         repsText: "8",
         rpe: 7.5,
         targetRestSeconds: 90,
-        syncState: .failed(.network(.offline)),
         isCompleted: true
     )
     var day = ProgramSamples.days[0]
