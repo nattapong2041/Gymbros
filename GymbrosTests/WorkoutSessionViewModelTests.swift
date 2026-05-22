@@ -238,6 +238,30 @@ struct WorkoutSessionViewModelTests {
         #expect(viewModel.transientError == .network(.offline))
     }
 
+    @Test func finishSessionSkipsInvalidReuploadForCompletedSets() async throws {
+        // Regression: completing a set then editing reps to >100 blocked finishSession.
+        let workoutRepository = FakeWorkoutRepository()
+        let backupRepository = FakeBackupRepository()
+        let viewModel = makeViewModel(workoutRepository: workoutRepository, backupRepository: backupRepository)
+
+        await viewModel.start(programDayId: ProgramSamples.upperDayId)
+        let row = try firstRow(viewModel)
+
+        await viewModel.updateDraft(setId: row.id, weightText: "59", repsText: "8", rpe: nil)
+        await viewModel.completeSet(setId: row.id)
+        #expect(try rowState(viewModel, id: row.id).syncState == .uploaded)
+
+        // Edit reps to out-of-range value — syncState resets to .pending
+        await viewModel.updateDraft(setId: row.id, weightText: "59", repsText: "110", rpe: nil)
+        #expect(try rowState(viewModel, id: row.id).syncState == .pending)
+
+        await viewModel.finishExercise(programExerciseId: ProgramSamples.benchProgramExerciseId)
+        await viewModel.finishSession()
+
+        #expect(viewModel.transientError == nil)
+        #expect(workoutRepository.completedSessions.map(\.sessionId) == [workoutRepository.session.id])
+    }
+
     @Test func finishClearsBackupWhenCompletionSucceeds() async throws {
         let workoutRepository = FakeWorkoutRepository()
         let backupRepository = FakeBackupRepository()

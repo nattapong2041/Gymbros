@@ -271,12 +271,15 @@ final class WorkoutSessionViewModel {
 
     func finishSession() async {
         guard case let .success(data) = state else {
+            workoutLogger.error("finishSession-blocked: state is not success")
             transientError = .notFound
             return
         }
         guard isFinishing == false else { return }
         guard data.exerciseSections.isEmpty == false,
               data.exerciseSections.allSatisfy(\.isFinished) else {
+            let unfinished = data.exerciseSections.filter { !$0.isFinished }.map { $0.programExercise.id.uuidString }
+            workoutLogger.error("finishSession-blocked: exercises not finished: \(unfinished.joined(separator: ", "))")
             transientError = .validation(.missingRequiredField)
             return
         }
@@ -290,23 +293,28 @@ final class WorkoutSessionViewModel {
 
         for row in uploadableRows {
             guard let set = makeWorkoutSet(from: row) else {
-                transientError = .validation(.invalidInput)
-                return
+                workoutLogger.warning("finishSession: skipping re-upload for setId=\(row.id) — invalid text (weight='\(row.weightText)' reps='\(row.repsText)'); set already uploaded with valid data")
+                continue
             }
             updateRow(setId: row.id, save: true) { $0.syncState = .uploading }
             await upload(set, setId: row.id)
-            if case .failed = rowState(setId: row.id)?.syncState {
+            if case .failed(let uploadError) = rowState(setId: row.id)?.syncState {
+                workoutLogger.error("finishSession-blocked: upload failed for setId=\(row.id) error=\(String(describing: uploadError))")
                 return
             }
         }
 
         do {
+            workoutLogger.debug("finishSession: calling completeSession sessionId=\(data.session.id)")
             try await workoutRepository.completeSession(data.session.id, endedAt: now())
+            workoutLogger.debug("finishSession: completeSession succeeded")
             backupRepository.clearBackup()
             activeTimer = nil
             updateSessionEndedAt(now())
         } catch {
-            transientError = appError(error, operation: "finishWorkoutSession").visibleOrNil
+            let mapped = appError(error, operation: "finishWorkoutSession")
+            workoutLogger.error("finishSession-blocked: completeSession failed error=\(String(describing: mapped))")
+            transientError = mapped.visibleOrNil
             saveBackup()
         }
     }
@@ -370,6 +378,7 @@ final class WorkoutSessionViewModel {
                 await updateExistingSet(set, setId: setId)
                 return
             }
+            workoutLogger.error("upload-failed: setId=\(setId) error=\(String(describing: mapped))")
             updateRow(setId: setId, save: true) { row in
                 row.syncState = .failed(mapped)
                 row.isCompleted = true
@@ -387,6 +396,7 @@ final class WorkoutSessionViewModel {
             }
         } catch {
             let mapped = appError(error, operation: "updateWorkoutSetAfterConflict")
+            workoutLogger.error("updateExistingSet-failed: setId=\(setId) error=\(String(describing: mapped))")
             updateRow(setId: setId, save: true) { row in
                 row.syncState = .failed(mapped)
                 row.isCompleted = true

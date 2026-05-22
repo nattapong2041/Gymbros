@@ -4,7 +4,7 @@
 
 ---
 
-**Last updated:** 2026-05-21 | HEAD `1294e65` | Branch `main`
+**Last updated:** 2026-05-22 | HEAD `e0e7c01` | Branch `main`
 
 ---
 
@@ -24,6 +24,15 @@ Phase 1 ("Real Life Works") is ~80% done — Sprints 1–4 complete. Settings wa
 ---
 
 ## Last session did
+
+- Fixed "Unknown error / cannot save session" bug:
+  - Root cause: a completed+uploaded set whose reps text was later edited to an out-of-range value (>100) caused `makeWorkoutSet` in `finishSession` to return nil, blocking the entire session close with "Unknown error".
+  - Fix: changed `finishSession` to `continue` (skip re-upload) instead of `return` when `makeWorkoutSet` fails for an already-completed set. The set already exists in Supabase with valid data from the original upload; the invalid edit is silently discarded.
+  - Added comprehensive diagnostic logging to all `finishSession` error paths (state guard, exercises not finished, invalid set text, upload failure, `completeSession` failure).
+  - Added `WorkoutSessionViewModelTests/finishSessionSkipsInvalidReuploadForCompletedSets` regression test — exactly reproduces the reported bug (weight='59', reps='110').
+  - All 18 `WorkoutSessionViewModelTests` pass.
+
+## Earlier session did — fixed Sprint 4 wire-up regressions:
 
 - Fixed Sprint 4 wire-up regressions from review:
   - Restored concrete `@Observable` `TodayViewModel`, `HistoryViewModel`, and `SessionDetailViewModel` implementations.
