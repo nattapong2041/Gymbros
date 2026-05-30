@@ -531,6 +531,54 @@ App Store: phase-level releases
 
 **Goal:** A beta user can create/select a program, log workouts, and experience the key differentiator: after missing time, the app handles the comeback.
 
+### Phase 1 Trial Feedback Polish Backlog
+
+Hands-on feedback after trying the current logger should be considered before wider TestFlight, either as Sprint 5/6 polish or a short Phase 1 stabilization pass.
+
+```text
+☐ Rest timer background awareness
+  User problem:
+    If the user scrolls another app during rest, they may miss the in-app timer.
+  Product direction:
+    Match the practical feel of the iOS Clock timer without over-notifying.
+  iOS constraint:
+    The app cannot shake or animate the screen while another app is foregrounded.
+    Use local notifications for background completion; use haptic + subtle ring
+    pulse/shake only while GymBros is foregrounded.
+  Acceptance:
+    - Foreground: timer completion gives haptic feedback and a clear visual pulse.
+    - Respect Reduce Motion; avoid aggressive shaking for accessibility.
+    - Background: schedule a local notification when rest starts, cancel/reschedule
+      when the timer stops or changes, and play the default notification sound.
+    - Ask notification permission contextually, not at first launch.
+    - Localize title/body in Thai and English.
+
+☐ Hide keyboard on outside tap
+  User problem:
+    Weight/reps entry keeps the keyboard open when the user taps elsewhere.
+  Product direction:
+    Workout logging should feel fast with sweaty hands and one-handed use.
+  Acceptance:
+    - Tapping outside an input dismisses the keyboard on workout/program forms.
+    - Scrolling dismisses the keyboard interactively where the layout scrolls.
+    - No draft weight/reps values are lost when the keyboard is dismissed.
+    - Apply through a shared SwiftUI helper if repeated across screens.
+
+☐ Show latest session kg/reps beside current inputs
+  User problem:
+    During a workout, the user wants to compare today's set with the latest
+    completed session for the same exercise.
+  Product direction:
+    Make progression obvious without making the user open History mid-workout.
+  Acceptance:
+    - For each exercise, show latest completed session reference in the logger,
+      e.g. "Last: 60 kg x 8, 8, 7" or compact per-set hints.
+    - Prefer same program exercise history; fall back to same exercise history.
+    - Respect the user's weight unit setting.
+    - Treat missing history as a normal empty state, not an error.
+    - In comeback mode, label this as baseline/last time without shaming copy.
+```
+
 ---
 
 ### Sprint 1 — Foundation + Data ✅ DONE

@@ -4,7 +4,7 @@
 
 ---
 
-**Last updated:** 2026-05-22 | HEAD `9ee6054` | Branch `main`
+**Last updated:** 2026-05-30 | HEAD `0863eea` | Branch `main`
 
 ---
 
@@ -24,6 +24,11 @@ Phase 1 ("Real Life Works") is ~80% done — Sprints 1–4 complete. Settings wa
 ---
 
 ## Last session did
+
+- Captured hands-on Phase 1 polish feedback in `.claude/GYMTRACK.md` under "Phase 1 Trial Feedback Polish Backlog":
+  - Rest timer should be harder to miss when the user leaves GymBros during rest. iOS cannot shake another foreground app, so the roadmap now calls for foreground haptic/visual pulse plus background local notifications with contextual permission.
+  - Workout/program inputs should dismiss the keyboard when tapping outside or scrolling, without losing draft values.
+  - Logger should show latest completed session kg/reps for the same exercise so the user can compare today's set against last time.
 
 - Batch-upload architecture (removes per-set sync, all sets upload at Finish):
   - Deleted `WorkoutSetSyncState` enum and `syncState` field from `WorkoutSetRowState` and `ActiveSessionSetSnapshot`.
@@ -95,7 +100,7 @@ Phase 1 ("Real Life Works") is ~80% done — Sprints 1–4 complete. Settings wa
 
 **Sprint 5 — Settings**
 
-Start with Sprint 5 Task 0: confirm settings rows and spec details before implementing UI or repository changes.
+Start with Sprint 5 Task 0: confirm settings rows and spec details before implementing UI or repository changes. Keep the new Phase 1 Trial Feedback Polish Backlog in `.claude/GYMTRACK.md` in mind for either Sprint 5/6 polish or a short stabilization pass before wider TestFlight.
 
 ---
 
@@ -103,6 +108,7 @@ Start with Sprint 5 Task 0: confirm settings rows and spec details before implem
 
 - [ ] Light/dark visual sweep of `WorkoutSessionView`, `WorkoutExercisePageView`, `SetRowView`, `RestTimerRingView`, `ProgramExerciseEditorView` in Xcode before broad TestFlight.
 - [ ] Confirm S05 Settings rows at Task 0 of Sprint 5 before any code lands (weight unit toggle, sign out, app version, privacy placeholder, delete placeholder).
+- [ ] Decide where to schedule Phase 1 trial-feedback polish: rest timer background notification, keyboard dismissal, and latest-session kg/reps reference in logger.
 
 ---
 
