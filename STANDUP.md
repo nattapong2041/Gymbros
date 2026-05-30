@@ -10,7 +10,7 @@
 
 ## Where we are
 
-Phase 1 ("Real Life Works") is ~80% done — Sprints 1–4 complete. Settings was split into its own Sprint 5; old Sprints 5–13 renumbered to 6–14.
+Phase 1 ("Real Life Works") is ~90% done — Sprints 1–5 complete. A new stabilization sprint S05p (Phase 1 Polish) has been specced and sits between Settings and Smart Comeback.
 
 | Sprint | Name | Status |
 |--------|------|--------|
@@ -18,25 +18,42 @@ Phase 1 ("Real Life Works") is ~80% done — Sprints 1–4 complete. Settings wa
 | S02 | Custom Program Builder | complete |
 | S03 | Logger + Timer | complete |
 | S04 | Today + History + Navigation + Anti-Guilt UX | complete |
-| **S05** | **Settings** | **next** |
-| S06 | Next Best Session v1 / Smart Comeback | not started |
+| S05 | Settings | complete |
+| **S05p** | **Phase 1 Polish (spec written, implementation next)** | **ready to implement** |
+| S06 | Next Best Session v1 / Smart Comeback | planned |
 
 ---
 
 ## Last session did
 
-- Captured hands-on Phase 1 polish feedback in `.claude/GYMTRACK.md` under "Phase 1 Trial Feedback Polish Backlog":
-  - Rest timer should be harder to miss when the user leaves GymBros during rest. iOS cannot shake another foreground app, so the roadmap now calls for foreground haptic/visual pulse plus background local notifications with contextual permission.
-  - Workout/program inputs should dismiss the keyboard when tapping outside or scrolling, without losing draft values.
-  - Logger should show latest completed session kg/reps for the same exercise so the user can compare today's set against last time.
+- Wrote Sprint S05p — Phase 1 Polish spec at `.claude/sprints/S05p-phase1-polish/spec.md`.
+  - Covers all three trial-feedback items from GYMTRACK.md §9 Phase 1 backlog:
+    rest timer background notifications, keyboard dismissal helper, last-session kg/reps reference in logger.
+  - Sprint slots between S05 (Settings) and S06 (Smart Comeback) without renumbering existing sprints.
+  - No GYMTRACK.md Sprint Tracking table edit yet — to be done when the sprint is scheduled.
 
-- Batch-upload architecture (removes per-set sync, all sets upload at Finish):
+## Earlier session did
+
+- Reviewed Sprint 5 Settings implementation.
+  - Verified focused Settings tests pass:
+    `xcodebuild test -project Gymbros.xcodeproj -scheme Gymbros -destination 'platform=iOS Simulator,name=iPhone 17e' -only-testing:GymbrosTests/SettingsViewModelTests`
+  - Verified full test suite passes:
+    `xcodebuild test -project Gymbros.xcodeproj -scheme Gymbros -destination 'platform=iOS Simulator,name=iPhone 17e'`
+  - Review follow-ups: avoid surfacing `.cancelled` as a Settings transient alert, fix the formatted weight-unit accessibility label/value, localize or remove the `settings.empty` state, and add the new Settings source/test files before committing.
+
+- Refreshed spec and plan to align with codebase.
+- Implemented Sprint 5 — Settings:
+  - Created `ProfileRepositoryProviding` protocol and updated `ProfileRepository` to conform to it.
+  - Implemented `@Observable` `SettingsViewModel` with loading, weight unit updating, and Apple Sign Out integration.
+  - Implemented `SettingsView` using SwiftUI forms, custom picker for weight units (kg/lb), sign out confirmation alert, and placeholder sheets for Privacy Policy and Delete Account.
+  - Added full unit test coverage under `GymbrosTests/SettingsViewModelTests.swift` (covering success/failure loading, weight unit persistence, and signing out), all verified passing.
+  - Wired `SettingsView` as the 4th tab (gear icon) in `RootView`'s tab navigation.
+  - Populated all localized strings (`settings.*`) for both English and Thai in `Localizable.xcstrings`.
   - Deleted `WorkoutSetSyncState` enum and `syncState` field from `WorkoutSetRowState` and `ActiveSessionSetSnapshot`.
   - Bumped `ActiveSessionSnapshot.currentVersion` 2→3 (invalidates old backups gracefully).
   - `completeSet()` no longer calls `upload()` — sets stay local until Finish.
   - `finishSession()` batch-uploads all `isCompleted` sets, throws on failure (backup preserved for retry), clears backup only after `completeSession()` succeeds.
   - `deleteSet()` no longer calls remote `workoutRepository.deleteSet()` (no sets in DB during active session).
-  - Deleted `retryUpload()`, `markSetUploadingAndCarryForward` — replaced by `markSetCompletedAndCarryForward`.
   - Removed `syncIndicator`, `onRetry` from `SetRowView`; removed `onRetryUpload` from `WorkoutExercisePageView`, `WorkoutSessionView`, `WorkoutSessionScreen`.
   - Session editing: `SessionDetailViewModel.updateSet()` updates a set in Supabase and patches local state in-place.
   - `EditSetSheet` in `SessionDetailView` — tap any set row to edit weight/reps/RPE.
@@ -98,24 +115,35 @@ Phase 1 ("Real Life Works") is ~80% done — Sprints 1–4 complete. Settings wa
 
 ## Next up
 
-**Sprint 5 — Settings**
+**Sprint S05p — Phase 1 Polish** (spec complete, ready to implement)
 
-Start with Sprint 5 Task 0: confirm settings rows and spec details before implementing UI or repository changes. Keep the new Phase 1 Trial Feedback Polish Backlog in `.claude/GYMTRACK.md` in mind for either Sprint 5/6 polish or a short stabilization pass before wider TestFlight.
+Start with S05p Task 0 (Spec Lock): read `.claude/sprints/S05p-phase1-polish/spec.md` in full, confirm the three locked decisions, then proceed with implementation tasks:
+1. `RestTimerNotificationScheduler` + tests
+2. `LastSessionLookupService` + tests + `WorkoutSessionViewModel` changes
+3. `View+DismissKeyboard` helper + apply to workout/program forms
+4. UI wiring: reference row in `WorkoutExercisePageView`, pulse in `RestTimerRingView`
+5. Localization keys in `Localizable.xcstrings`
+6. Full test suite + manual smoke test
 
 ---
 
 ## Open follow-ups
 
+- [ ] Sprint 5 review: filter `.cancelled` in `SettingsViewModel.updateWeightUnit(_:)` and `signOut()` so user-cancelled operations do not show alerts.
+- [ ] Sprint 5 review: fix Settings weight-unit accessibility so VoiceOver gets the current unit instead of a raw `%@` placeholder.
+- [ ] Sprint 5 review: localize or remove `settings.empty`, which is currently extract-only in `Localizable.xcstrings`.
+- [ ] Sprint 5 review: add the untracked Settings source/test files before committing; leave local `.antigravitycli/` and `.codex/config.toml` out unless intentionally needed.
 - [ ] Light/dark visual sweep of `WorkoutSessionView`, `WorkoutExercisePageView`, `SetRowView`, `RestTimerRingView`, `ProgramExerciseEditorView` in Xcode before broad TestFlight.
-- [ ] Confirm S05 Settings rows at Task 0 of Sprint 5 before any code lands (weight unit toggle, sign out, app version, privacy placeholder, delete placeholder).
-- [ ] Decide where to schedule Phase 1 trial-feedback polish: rest timer background notification, keyboard dismissal, and latest-session kg/reps reference in logger.
+- [x] Decided Phase 1 trial-feedback polish → Sprint S05p (spec written at `.claude/sprints/S05p-phase1-polish/spec.md`).
+- [ ] Add `| 5p | Phase 1 Polish | ☐ | — | Pre-TestFlight stabilization |` to GYMTRACK.md §9 Sprint Tracking table when scheduling S05p.
+- [ ] After S05p ships, update GYMTRACK.md §9 Phase 1 Trial Feedback Polish Backlog items from ☐ to ✓.
 
 ---
 
 ## How to resume
 
 1. Read this file.
-2. Read `.claude/sprints/S04-today-history/spec.md` for Sprint 4 scope.
-3. Read `.claude/sprints/S04-today-history/plan.md` — start at the first unchecked task.
+2. Read `.claude/sprints/S05p-phase1-polish/spec.md` for S05p scope.
+3. Create `.claude/sprints/S05p-phase1-polish/plan.md` and start at Task 0 (Spec Lock).
 4. Update the `## CURRENT STATUS` block in the sprint plan as you go.
 5. Update this file before ending the session.
