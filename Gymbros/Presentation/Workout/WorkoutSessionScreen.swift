@@ -4,6 +4,7 @@ struct WorkoutSessionScreen: View {
     let programDayId: UUID
 
     @Environment(\.dismiss) private var dismiss
+    @Environment(AppPreferences.self) private var appPreferences
     @State private var viewModel = WorkoutSessionViewModel()
     @State private var hasStarted = false
 
@@ -62,9 +63,13 @@ struct WorkoutSessionScreen: View {
         .task {
             guard hasStarted == false else { return }
             hasStarted = true
+            viewModel.updateWeightUnit(appPreferences.weightUnit)
             await viewModel.checkForRestore()
             guard viewModel.pendingRestore == nil else { return }
             await startWorkout()
+        }
+        .onChange(of: appPreferences.weightUnit) { _, newUnit in
+            viewModel.updateWeightUnit(newUnit)
         }
     }
 

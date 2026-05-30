@@ -18,18 +18,21 @@ final class WorkoutSessionViewModel {
     private let exerciseRepository: ExerciseRepositoryProviding
     private let backupRepository: ActiveSessionBackupRepositoryProviding
     private let now: () -> Date
+    private var weightUnit: WeightUnit
 
     init(
         workoutRepository: WorkoutRepositoryProviding? = nil,
         programRepository: ProgramRepositoryProviding? = nil,
         exerciseRepository: ExerciseRepositoryProviding? = nil,
         backupRepository: ActiveSessionBackupRepositoryProviding? = nil,
+        weightUnit: WeightUnit = .kg,
         now: @escaping () -> Date = Date.init
     ) {
         self.workoutRepository = workoutRepository ?? WorkoutRepository()
         self.programRepository = programRepository ?? ProgramRepository()
         self.exerciseRepository = exerciseRepository ?? ExerciseRepository()
         self.backupRepository = backupRepository ?? ActiveSessionBackupRepository()
+        self.weightUnit = weightUnit
         self.now = now
     }
 
@@ -65,7 +68,7 @@ final class WorkoutSessionViewModel {
             let session = try await workoutRepository.createSession(programDayId: programDayId, startedAt: startedAt)
             let exerciseLookup = Dictionary(uniqueKeysWithValues: exercises.map { ($0.id, $0) })
             let defaultWeights = await resolveDefaultWeights(for: orderedProgramExercises, before: startedAt)
-            let rowStates = Self.makeInitialRows(from: orderedProgramExercises, defaultWeights: defaultWeights)
+            let rowStates = makeInitialRows(from: orderedProgramExercises, defaultWeights: defaultWeights)
             setSuccess(
                 session: session,
                 day: day,
@@ -130,6 +133,25 @@ final class WorkoutSessionViewModel {
             transientError = .notFound
             return
         }
+    }
+
+    func updateWeightUnit(_ unit: WeightUnit) {
+        let oldUnit = weightUnit
+        guard oldUnit != unit else { return }
+        weightUnit = unit
+
+        guard case var .success(data) = state else { return }
+        for sectionIndex in data.exerciseSections.indices {
+            for rowIndex in data.exerciseSections[sectionIndex].sets.indices {
+                data.exerciseSections[sectionIndex].sets[rowIndex].weightText = WeightUnit.convertDisplayText(
+                    data.exerciseSections[sectionIndex].sets[rowIndex].weightText,
+                    from: oldUnit,
+                    to: unit
+                )
+            }
+        }
+        state = .success(data)
+        saveBackup()
     }
 
     func completeSet(setId: UUID) async {
@@ -291,7 +313,7 @@ final class WorkoutSessionViewModel {
         }
     }
 
-    private static func makeInitialRows(
+    private func makeInitialRows(
         from programExercises: [ProgramExercise],
         defaultWeights: [UUID: Double]
     ) -> [WorkoutSetRowState] {
@@ -302,7 +324,7 @@ final class WorkoutSessionViewModel {
                     exerciseId: programExercise.exerciseId,
                     programExerciseId: programExercise.id,
                     setNumber: setNumber,
-                    weightText: setNumber == 1 ? Self.formatWeight(defaultWeights[programExercise.id]) : "",
+                    weightText: setNumber == 1 ? formatWeight(defaultWeights[programExercise.id]) : "",
                     repsText: setNumber == 1 ? "\(programExercise.targetRepsMin)" : "",
                     rpe: nil,
                     targetRestSeconds: programExercise.targetRestSeconds,
@@ -361,8 +383,7 @@ final class WorkoutSessionViewModel {
 
     private func makeWorkoutSet(from row: WorkoutSetRowState) -> WorkoutSet? {
         guard case let .success(data) = state,
-              let weight = Double(row.weightText.trimmingCharacters(in: .whitespacesAndNewlines)),
-              weight >= 0,
+              let weight = weightUnit.kilogramValue(fromDisplayText: row.weightText),
               let reps = Int(row.repsText.trimmingCharacters(in: .whitespacesAndNewlines)),
               (1...100).contains(reps) else {
             return nil
@@ -505,7 +526,7 @@ final class WorkoutSessionViewModel {
     }
 
     private func initialWeightText(for row: WorkoutSetRowState, in section: WorkoutExerciseSection) -> String {
-        row.setNumber == 1 ? Self.formatWeight(section.defaultWeight) : ""
+        row.setNumber == 1 ? formatWeight(section.defaultWeight) : ""
     }
 
     private func initialRepsText(for row: WorkoutSetRowState, in section: WorkoutExerciseSection) -> String {
@@ -542,8 +563,9 @@ final class WorkoutSessionViewModel {
         ErrorMapper.map(error, context: .init(operation: operation))
     }
 
-    private static func formatWeight(_ value: Double?) -> String {
-        value?.formatted(.number.precision(.fractionLength(0...2))) ?? ""
+    private func formatWeight(_ value: Double?) -> String {
+        guard let value else { return "" }
+        return weightUnit.formattedKilograms(value, fractionLength: 0...2)
     }
 }
 

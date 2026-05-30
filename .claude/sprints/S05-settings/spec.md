@@ -82,19 +82,19 @@ Task 0 locks these decisions before parallel work starts:
 
 **Settings rows (confirm or adjust at Task 0):**
 - Weight unit: segmented control or `Picker` with `.kg` / `.lb` using `WeightUnit` enum. Persists immediately on change via `updateProfile`.
-- Sign Out: destructive-styled button. Calls `AuthService.signOut()`. On success, `RootView` re-evaluates auth state and shows `SignInView`.
+- Sign Out: destructive-styled button. Calls `AuthService.signOut()` immediately. `AuthService` listens to Supabase auth-state changes and updates `currentUser` from the emitted session, so `RootView` re-evaluates auth state and shows `SignInView`.
 - App version: read from `Bundle.main.infoDictionary["CFBundleShortVersionString"]` and `CFBundleVersion`. Static `Text`, no interaction.
-- Privacy Policy: `NavigationLink` or button that presents a `WebView` (placeholder) or a simple "Coming soon" sheet. No real URL required this sprint.
+- Privacy Policy: button presents a Sheet with localized "Privacy Policy coming soon." message and a Dismiss button. No real URL or WKWebView this sprint.
 - Delete Account: button that presents a confirmation sheet with a "Not available yet" message. No actual deletion logic.
 
 **`ProfileRepositoryProviding` protocol:**
-- Protocol with `fetchCurrentProfile() async throws -> Profile?` and `updateProfile(_ profile: Profile) async throws`.
+- Protocol with `fetchCurrentProfile() async throws -> Profile` and `updateProfile(_ profile: Profile) async throws`.
 - `ProfileRepository` conforms to it.
 - `SettingsViewModel` takes `any ProfileRepositoryProviding` for test injection.
 
 **Sign-out flow:**
 - `SettingsViewModel.signOut() async` calls the auth service.
-- On success, `RootView` observes auth state change and transitions to `SignInView` automatically.
+- On Supabase `.signedOut` auth-state emission, `AuthService.currentUser` becomes nil, and `RootView` observes auth state change and transitions to `SignInView` automatically.
 - On error, set `transientError`.
 
 **`SettingsData`:**
@@ -130,11 +130,13 @@ App launch (authenticated)
 @MainActor
 @Observable
 final class SettingsViewModel {
-    var state: ViewState<SettingsData>
+    var state: ViewState<SettingsData> = .idle
     var transientError: AppError?
     var isSigningOut: Bool
 
-    init(profileRepository: any ProfileRepositoryProviding, authService: AuthService)
+    init(profileRepository: ProfileRepositoryProviding? = nil,
+         authService: AuthService? = nil)
+    // Note: Defaults match TodayViewModel pattern — ProfileRepository() and AuthService.shared.
     func load() async
     func updateWeightUnit(_ unit: WeightUnit) async
     func signOut() async
@@ -153,7 +155,7 @@ appVersion: String
 
 ```swift
 protocol ProfileRepositoryProviding {
-    func fetchCurrentProfile() async throws -> Profile?
+    func fetchCurrentProfile() async throws -> Profile
     func updateProfile(_ profile: Profile) async throws
 }
 ```
@@ -186,7 +188,7 @@ Section "About":
   Delete Account [red text, chevron]
 ```
 
-- Sign Out shows a confirmation alert before calling `signOut()`.
+- Sign Out calls `signOut()` immediately and disables the row while the sign-out task is running.
 - Delete Account shows a sheet with "Account deletion is not yet available. Contact support." and a Dismiss button.
 - Privacy Policy shows a placeholder sheet or navigates to a placeholder view.
 - Minimum 48pt tap targets.
@@ -199,7 +201,7 @@ Section "About":
 
 ```swift
 // ProfileRepository
-func fetchCurrentProfile() async throws -> Profile?
+func fetchCurrentProfile() async throws -> Profile
 func updateProfile(_ profile: Profile) async throws
 ```
 
@@ -207,7 +209,7 @@ func updateProfile(_ profile: Profile) async throws
 
 ```swift
 protocol ProfileRepositoryProviding {
-    func fetchCurrentProfile() async throws -> Profile?
+    func fetchCurrentProfile() async throws -> Profile
     func updateProfile(_ profile: Profile) async throws
 }
 ```
@@ -226,9 +228,8 @@ settings.weight_unit.label        // "Weight unit" / "หน่วยน้ำ�
 settings.weight_unit.kg           // "kg"
 settings.weight_unit.lb           // "lb"
 settings.sign_out.button          // "Sign Out" / "ออกจากระบบ"
-settings.sign_out.confirm.title   // "Sign out?" / "ออกจากระบบ?"
-settings.sign_out.confirm.message // "You can sign back in with Apple at any time."
-settings.sign_out.confirm.action  // "Sign Out" / "ออกจากระบบ"
+settings.privacy_policy.dismiss   // "Dismiss" / "ปิด"
+settings.delete_account.dismiss   // "Dismiss" / "ปิด"
 settings.app_version.label        // "Version" / "เวอร์ชัน"
 settings.privacy_policy.label     // "Privacy Policy" / "นโยบายความเป็นส่วนตัว"
 settings.privacy_policy.placeholder // "Privacy Policy coming soon." / "กำลังจะมา"
@@ -238,6 +239,8 @@ settings.section.preferences      // "Preferences" / "การตั้งค�
 settings.section.account          // "Account" / "บัญชี"
 settings.section.about            // "About" / "เกี่ยวกับ"
 accessibility.settings.weight_unit // "Weight unit, currently %@"
+
+Note: Task 3 must verify common.ok and common.cancel already exist in Localizable.xcstrings before reusing; if missing, add under common.*.
 ```
 
 ---
@@ -247,7 +250,7 @@ accessibility.settings.weight_unit // "Weight unit, currently %@"
 ### Automated tests
 
 SettingsViewModel (mock `ProfileRepositoryProviding`):
-- Load → state `.success` with correct `weightUnit` from profile.
+- Load → state `.success` with correct `weightUnit` matching the fetched profile.
 - `updateWeightUnit(.lb)` → calls `updateProfile` with updated unit.
 - `updateWeightUnit` failure → `transientError` is set.
 - `signOut()` success → `isSigningOut` becomes false (auth state handled by RootView).

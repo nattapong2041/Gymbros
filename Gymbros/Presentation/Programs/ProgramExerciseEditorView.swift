@@ -71,8 +71,7 @@ struct ProgramExerciseEditorView: View {
                 }
 
                 Section {
-                    TextField("program.exercise.target_weight", text: $form.targetWeightText)
-                        .keyboardType(.decimalPad)
+                    TargetWeightField(form: $form)
                 }
 
                 Section {
@@ -103,6 +102,45 @@ struct ProgramExerciseEditorView: View {
     }
 }
 
+private struct TargetWeightField: View {
+    @Binding var form: ProgramExerciseForm
+
+    @Environment(AppPreferences.self) private var appPreferences
+    @State private var displayWeightText = ""
+    @State private var didSyncWeightText = false
+    @FocusState private var isFocused: Bool
+
+    var body: some View {
+        HStack {
+            Text("program.exercise.target_weight")
+            Text(verbatim: appPreferences.weightUnit.localizedAbbreviation)
+                .foregroundStyle(.secondary)
+            Spacer()
+            TextField("0", text: $displayWeightText)
+                .keyboardType(.decimalPad)
+                .multilineTextAlignment(.trailing)
+                .focused($isFocused)
+                .onChange(of: displayWeightText) { _, newValue in
+                    form.targetWeightText = appPreferences.weightUnit.kilogramText(fromDisplayText: newValue)
+                }
+        }
+        .onAppear(perform: syncDisplayWeight)
+        .onChange(of: appPreferences.weightUnit) { _, _ in
+            syncDisplayWeight()
+        }
+        .onChange(of: form.targetWeightText) { _, _ in
+            guard isFocused == false else { return }
+            syncDisplayWeight()
+        }
+    }
+
+    private func syncDisplayWeight() {
+        guard didSyncWeightText == false || isFocused == false else { return }
+        displayWeightText = appPreferences.weightUnit.displayText(fromKilogramText: form.targetWeightText)
+        didSyncWeightText = true
+    }
+}
+
 #Preview("Default") {
     @Previewable @State var form = ProgramExerciseForm(programExercise: ProgramSamples.benchProgramExercise)
     return ProgramExerciseEditorView(
@@ -110,6 +148,7 @@ struct ProgramExerciseEditorView: View {
         exerciseName: "Bench Press",
         onSave: {}
     )
+    .environment(AppPreferences())
 }
 
 #Preview("Invalid Input") {
@@ -122,5 +161,5 @@ struct ProgramExerciseEditorView: View {
         exerciseName: "Bench Press",
         onSave: {}
     )
+    .environment(AppPreferences())
 }
-

@@ -223,6 +223,7 @@ extension RestTimerState: Identifiable {
             onDiscard: {}
         )
     }
+    .environment(AppPreferences())
 }
 
 #Preview("With Timer") {
@@ -244,6 +245,7 @@ extension RestTimerState: Identifiable {
         onRestore: {},
         onDiscard: {}
     )
+    .environment(AppPreferences())
 }
 
 #Preview("Restore Prompt") {
@@ -265,6 +267,7 @@ extension RestTimerState: Identifiable {
         onRestore: {},
         onDiscard: {}
     )
+    .environment(AppPreferences())
 }
 
 #Preview("Empty") {
@@ -285,6 +288,7 @@ extension RestTimerState: Identifiable {
         onRestore: {},
         onDiscard: {}
     )
+    .environment(AppPreferences())
 }
 
 #Preview("Error") {
@@ -305,4 +309,5 @@ extension RestTimerState: Identifiable {
         onRestore: {},
         onDiscard: {}
     )
+    .environment(AppPreferences())
 }

@@ -2,6 +2,7 @@ import SwiftUI
 
 struct WorkoutExercisePageView: View {
     let section: WorkoutExerciseSection
+    @Environment(AppPreferences.self) private var appPreferences
     
     // Actions
     var onAddSet: (UUID) -> Void // setId
@@ -90,9 +91,9 @@ struct WorkoutExercisePageView: View {
             if let targetWeight = section.programExercise.targetWeight {
                 HStack {
                     Text("workout.exercise.target_weight")
-                    Text("\(targetWeight, specifier: "%.1f")")
+                    Text(verbatim: appPreferences.weightUnit.formattedKilograms(targetWeight))
                         .fontWeight(.bold)
-                    Text("kg")
+                    Text(verbatim: appPreferences.weightUnit.localizedAbbreviation)
                 }
                 .font(.system(.caption, design: .rounded))
                 .padding(.horizontal, 8)
@@ -153,6 +154,7 @@ struct WorkoutExercisePageView: View {
         onDeleteSet: { _ in },
         onFinishExercise: { _ in }
     )
+    .environment(AppPreferences())
 }
 
 #Preview("Finished") {
@@ -166,4 +168,5 @@ struct WorkoutExercisePageView: View {
         onDeleteSet: { _ in },
         onFinishExercise: { _ in }
     )
+    .environment(AppPreferences())
 }

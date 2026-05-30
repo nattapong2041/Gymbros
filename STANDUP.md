@@ -26,6 +26,24 @@ Phase 1 ("Real Life Works") is ~90% done — Sprints 1–5 complete. A new stabi
 
 ## Last session did
 
+- Fixed Sprint 5 Settings review follow-ups and app-wide weight-unit behavior:
+  - Follow-up logout fix: `AuthService` now listens to Supabase `authStateChanges`, updates `currentUser` from the emitted session, and calls local Supabase sign-out from the Settings button. `RootView` passes its owned auth instance into `SettingsViewModel`, so the signed-out auth event redirects to `SignInView`.
+  - Added shared `AppPreferences` and `WeightUnit` formatting/conversion helpers.
+  - RootView now refreshes profile preferences after auth/session changes and injects preferences through SwiftUI environment.
+  - Settings weight-unit changes persist through `ProfileRepository.updateProfile`, update shared app preferences immediately, roll back on failure, and do not show alerts for `.cancelled`.
+  - Sign Out calls `AuthService.signOut()`, resets local preferences, disables while signing out, and avoids `.cancelled` alerts.
+  - Workout target chips, active workout set rows, history set rows/editing, and program target-weight editing now display the selected kg/lb unit. User-entered lb values are converted back to kg before repository writes.
+  - Bumped `ActiveSessionSnapshot.currentVersion` 3→4 because active-session row text is now stored in the selected display unit.
+  - Fixed Settings weight-unit accessibility value and localized `settings.empty.title`.
+  - Verified build passes after the auth-listener logout change:
+    `xcodebuild -project Gymbros.xcodeproj -scheme Gymbros -destination 'platform=iOS Simulator,name=iPhone 17e' build`
+  - Verified focused tests pass:
+    `xcodebuild test -project Gymbros.xcodeproj -scheme Gymbros -destination 'platform=iOS Simulator,name=iPhone 17e' -only-testing:GymbrosTests/SettingsViewModelTests -only-testing:GymbrosTests/EnumsTests -only-testing:GymbrosTests/WorkoutSessionViewModelTests`
+  - Verified focused Settings tests pass after the auth-listener logout change:
+    `xcodebuild test -project Gymbros.xcodeproj -scheme Gymbros -destination 'platform=iOS Simulator,name=iPhone 17e' -only-testing:GymbrosTests/SettingsViewModelTests`
+  - Full-suite escalation was blocked by the approval system usage limit; rerun full suite when approvals are available.
+  - Local checks passed: `jq empty Gymbros/Resources/Localizable.xcstrings`, `git diff --check`.
+
 - Wrote Sprint S05p — Phase 1 Polish spec at `.claude/sprints/S05p-phase1-polish/spec.md`.
   - Covers all three trial-feedback items from GYMTRACK.md §9 Phase 1 backlog:
     rest timer background notifications, keyboard dismissal helper, last-session kg/reps reference in logger.
@@ -45,7 +63,7 @@ Phase 1 ("Real Life Works") is ~90% done — Sprints 1–5 complete. A new stabi
 - Implemented Sprint 5 — Settings:
   - Created `ProfileRepositoryProviding` protocol and updated `ProfileRepository` to conform to it.
   - Implemented `@Observable` `SettingsViewModel` with loading, weight unit updating, and Apple Sign Out integration.
-  - Implemented `SettingsView` using SwiftUI forms, custom picker for weight units (kg/lb), sign out confirmation alert, and placeholder sheets for Privacy Policy and Delete Account.
+  - Implemented `SettingsView` using SwiftUI forms, custom picker for weight units (kg/lb), sign out, and placeholder sheets for Privacy Policy and Delete Account.
   - Added full unit test coverage under `GymbrosTests/SettingsViewModelTests.swift` (covering success/failure loading, weight unit persistence, and signing out), all verified passing.
   - Wired `SettingsView` as the 4th tab (gear icon) in `RootView`'s tab navigation.
   - Populated all localized strings (`settings.*`) for both English and Thai in `Localizable.xcstrings`.
@@ -129,10 +147,11 @@ Start with S05p Task 0 (Spec Lock): read `.claude/sprints/S05p-phase1-polish/spe
 
 ## Open follow-ups
 
-- [ ] Sprint 5 review: filter `.cancelled` in `SettingsViewModel.updateWeightUnit(_:)` and `signOut()` so user-cancelled operations do not show alerts.
-- [ ] Sprint 5 review: fix Settings weight-unit accessibility so VoiceOver gets the current unit instead of a raw `%@` placeholder.
-- [ ] Sprint 5 review: localize or remove `settings.empty`, which is currently extract-only in `Localizable.xcstrings`.
-- [ ] Sprint 5 review: add the untracked Settings source/test files before committing; leave local `.antigravitycli/` and `.codex/config.toml` out unless intentionally needed.
+- [x] Sprint 5 review: filter `.cancelled` in `SettingsViewModel.updateWeightUnit(_:)` and `signOut()` so user-cancelled operations do not show alerts.
+- [x] Sprint 5 review: fix Settings weight-unit accessibility so VoiceOver gets the current unit instead of a raw `%@` placeholder.
+- [x] Sprint 5 review: localize or remove `settings.empty`, which is currently extract-only in `Localizable.xcstrings`.
+- [ ] Sprint 5 review: rerun the full xcodebuild test suite when approval usage is available.
+- [ ] Sprint 5 review: add the untracked Settings/Core source/test files before committing; leave local `.antigravitycli/` and `.codex/config.toml` out unless intentionally needed.
 - [ ] Light/dark visual sweep of `WorkoutSessionView`, `WorkoutExercisePageView`, `SetRowView`, `RestTimerRingView`, `ProgramExerciseEditorView` in Xcode before broad TestFlight.
 - [x] Decided Phase 1 trial-feedback polish → Sprint S05p (spec written at `.claude/sprints/S05p-phase1-polish/spec.md`).
 - [ ] Add `| 5p | Phase 1 Polish | ☐ | — | Pre-TestFlight stabilization |` to GYMTRACK.md §9 Sprint Tracking table when scheduling S05p.

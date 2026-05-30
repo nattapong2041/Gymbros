@@ -112,6 +112,8 @@ private struct EditSetSheet: View {
     @State private var weightText: String
     @State private var repsText: String
     @State private var rpe: Double?
+    @State private var didSyncWeightText = false
+    @Environment(AppPreferences.self) private var appPreferences
     @Environment(\.dismiss) private var dismiss
 
     init(set: WorkoutSet, viewModel: SessionDetailViewModel) {
@@ -128,6 +130,8 @@ private struct EditSetSheet: View {
                 Section {
                     HStack {
                         Text("workout.set.weight")
+                        Text(verbatim: appPreferences.weightUnit.localizedAbbreviation)
+                            .foregroundStyle(.secondary)
                         Spacer()
                         TextField("0", text: $weightText)
                             .keyboardType(.decimalPad)
@@ -161,6 +165,14 @@ private struct EditSetSheet: View {
             }
             .navigationTitle("session.set.edit.title")
             .navigationBarTitleDisplayMode(.inline)
+            .onAppear {
+                guard didSyncWeightText == false else { return }
+                weightText = appPreferences.weightUnit.formattedKilograms(set.weight, fractionLength: 0...2)
+                didSyncWeightText = true
+            }
+            .onChange(of: appPreferences.weightUnit) { _, newUnit in
+                weightText = newUnit.formattedKilograms(set.weight, fractionLength: 0...2)
+            }
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("common.cancel") { dismiss() }
@@ -177,9 +189,7 @@ private struct EditSetSheet: View {
     }
 
     private var parsedWeight: Double? {
-        let trimmed = weightText.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard let v = Double(trimmed), v >= 0 else { return nil }
-        return v
+        appPreferences.weightUnit.kilogramValue(fromDisplayText: weightText)
     }
 
     private var parsedReps: Int? {
@@ -193,16 +203,19 @@ private struct EditSetSheet: View {
     NavigationStack {
         SessionDetailView(viewModel: .loading, loadsOnAppear: false)
     }
+    .environment(AppPreferences())
 }
 
 #Preview("Error") {
     NavigationStack {
         SessionDetailView(viewModel: .error, loadsOnAppear: false)
     }
+    .environment(AppPreferences())
 }
 
 #Preview("Success") {
     NavigationStack {
         SessionDetailView(viewModel: .success, loadsOnAppear: false)
     }
+    .environment(AppPreferences())
 }

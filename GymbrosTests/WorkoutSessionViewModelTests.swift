@@ -21,6 +21,37 @@ struct WorkoutSessionViewModelTests {
         #expect(data.exerciseSections[0].sets.map(\.repsText) == ["8", "", ""])
     }
 
+    @Test func poundWeightUnitDisplaysDefaultsInPoundsAndUploadsKilograms() async throws {
+        let workoutRepository = FakeWorkoutRepository()
+        let viewModel = makeViewModel(workoutRepository: workoutRepository, weightUnit: .lb)
+
+        await viewModel.start(programDayId: ProgramSamples.upperDayId)
+        var row = try firstRow(viewModel)
+
+        #expect(row.weightText == "132.28")
+
+        await viewModel.updateDraft(setId: row.id, weightText: "135", repsText: "8", rpe: nil)
+        row = try firstRow(viewModel)
+        await viewModel.completeSet(setId: row.id)
+        await viewModel.finishExercise(programExerciseId: ProgramSamples.benchProgramExerciseId)
+        await viewModel.finishSession()
+
+        let uploaded = try #require(workoutRepository.uploadedSets.first)
+        #expect(uploaded.weight > 61.2)
+        #expect(uploaded.weight < 61.3)
+    }
+
+    @Test func changingWeightUnitConvertsExistingDraftText() async throws {
+        let viewModel = makeViewModel()
+
+        await viewModel.start(programDayId: ProgramSamples.upperDayId)
+        let row = try firstRow(viewModel)
+        await viewModel.updateDraft(setId: row.id, weightText: "60", repsText: "8", rpe: nil)
+        viewModel.updateWeightUnit(.lb)
+
+        #expect(try rowState(viewModel, id: row.id).weightText == "132.28")
+    }
+
     @Test func startFallsBackToLastLoggedWeightWhenTargetWeightIsNil() async throws {
         let workoutRepository = FakeWorkoutRepository()
         workoutRepository.lastLoggedSets[ProgramSamples.squatExerciseId] = WorkoutSet(
@@ -309,13 +340,15 @@ struct WorkoutSessionViewModelTests {
     private func makeViewModel(
         workoutRepository: FakeWorkoutRepository? = nil,
         programRepository: FakeWorkoutProgramRepository? = nil,
-        backupRepository: FakeBackupRepository? = nil
+        backupRepository: FakeBackupRepository? = nil,
+        weightUnit: WeightUnit = .kg
     ) -> WorkoutSessionViewModel {
         WorkoutSessionViewModel(
             workoutRepository: workoutRepository ?? FakeWorkoutRepository(),
             programRepository: programRepository ?? FakeWorkoutProgramRepository(),
             exerciseRepository: FakeWorkoutExerciseRepository(),
             backupRepository: backupRepository ?? FakeBackupRepository(),
+            weightUnit: weightUnit,
             now: { ProgramSamples.createdAt }
         )
     }

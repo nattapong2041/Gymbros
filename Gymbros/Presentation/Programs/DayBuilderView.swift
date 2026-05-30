@@ -152,6 +152,7 @@ struct DayBuilderView: View {
 struct ProgramExerciseRow: View {
     let programExercise: ProgramExercise
     let exercise: Exercise?
+    @Environment(AppPreferences.self) private var appPreferences
 
     var body: some View {
         HStack(spacing: 12) {
@@ -174,6 +175,12 @@ struct ProgramExerciseRow: View {
                 }
                 .font(.caption)
                 .foregroundStyle(.secondary)
+
+                if let targetWeight = programExercise.targetWeight {
+                    Text(verbatim: "\(appPreferences.weightUnit.formattedKilograms(targetWeight)) \(appPreferences.weightUnit.localizedAbbreviation)")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
 
                 if let notes = programExercise.notes, !notes.isEmpty {
                     HStack {
@@ -206,6 +213,7 @@ struct ProgramExerciseRow: View {
             return vm
         }())
     }
+    .environment(AppPreferences())
 }
 
 #Preview("Loading") {
@@ -237,4 +245,3 @@ struct ProgramExerciseRow: View {
         }())
     }
 }
-

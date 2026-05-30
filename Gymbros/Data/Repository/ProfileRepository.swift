@@ -1,8 +1,13 @@
 import Foundation
 import Supabase
 
+protocol ProfileRepositoryProviding {
+    func fetchCurrentProfile() async throws -> Profile
+    func updateProfile(_ profile: Profile) async throws
+}
+
 @MainActor
-final class ProfileRepository {
+final class ProfileRepository: ProfileRepositoryProviding {
     private let client = SupabaseClientManager.shared.client
 
     func fetchCurrentProfile() async throws -> Profile {

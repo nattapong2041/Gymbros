@@ -10,8 +10,15 @@ class AuthService {
 
     var currentUser: User?
     var isAuthenticated: Bool { currentUser != nil }
+    private var authStateTask: Task<Void, Never>?
 
     init() {
+        let client = self.client
+        authStateTask = Task { [weak self, client] in
+            for await (_, session) in client.auth.authStateChanges {
+                self?.applyAuthSession(session)
+            }
+        }
         Task { await loadCurrentSession() }
     }
 
@@ -55,8 +62,11 @@ class AuthService {
     }
 
     func signOut() async throws {
-        try await client.auth.signOut()
-        self.currentUser = nil
+        try await client.auth.signOut(scope: .local)
+    }
+
+    private func applyAuthSession(_ session: Session?) {
+        currentUser = session?.user
     }
 
     private func syncProfileEmail(user: User, appleEmail: String?) async {

@@ -46,4 +46,11 @@ struct EnumsTests {
         #expect(WeightUnit.kg.rawValue == "kg")
         #expect(WeightUnit.lb.rawValue == "lb")
     }
+
+    @Test func weightUnitConvertsBetweenKilogramsAndPounds() {
+        #expect(WeightUnit.kg.formattedKilograms(60) == "60")
+        #expect(WeightUnit.lb.formattedKilograms(60) == "132.3")
+        #expect(WeightUnit.lb.kilogramValue(fromDisplayText: "132.3")! > 59.9)
+        #expect(WeightUnit.lb.kilogramValue(fromDisplayText: "132.3")! < 60.1)
+    }
 }

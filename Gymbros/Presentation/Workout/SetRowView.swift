@@ -9,6 +9,7 @@ struct SetRowView: View {
     var onComplete: () -> Void
     var onDelete: () -> Void
 
+    @Environment(AppPreferences.self) private var appPreferences
     @State private var weightText: String
     @State private var repsText: String
     @State private var rpe: Double?
@@ -57,6 +58,10 @@ struct SetRowView: View {
                 .clipShape(RoundedRectangle(cornerRadius: 8))
                 .frame(minWidth: 64, minHeight: 48) // Mandated 48pt tap target
                 .disabled(isReadOnly)
+
+                Text(verbatim: appPreferences.weightUnit.localizedAbbreviation)
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
             }
             
             // Reps Input
@@ -176,6 +181,7 @@ struct SetRowView: View {
         )
     }
     .padding()
+    .environment(AppPreferences())
 }
 
 #Preview("ReadOnly") {
@@ -189,5 +195,5 @@ struct SetRowView: View {
         )
     }
     .padding()
+    .environment(AppPreferences())
 }
-

@@ -3,10 +3,12 @@ import SwiftUI
 struct RootView: View {
     @Environment(\.scenePhase) private var scenePhase
     @State private var auth: AuthService
+    @State private var appPreferences: AppPreferences
 
     @MainActor
-    init(auth: AuthService? = nil) {
+    init(auth: AuthService? = nil, appPreferences: AppPreferences? = nil) {
         self._auth = State(initialValue: auth ?? .shared)
+        self._appPreferences = State(initialValue: appPreferences ?? .shared)
     }
 
     @State private var selectedTab = 0
@@ -38,18 +40,42 @@ struct RootView: View {
                         Label("history.title", systemImage: "clock")
                     }
                     .tag(2)
+
+                    NavigationStack {
+                        SettingsView(viewModel: SettingsViewModel(authService: auth, appPreferences: appPreferences))
+                    }
+                    .tabItem {
+                        Label("settings.title", systemImage: "gear")
+                    }
+                    .tag(3)
                 }
             } else {
                 SignInView()
             }
         }
+        .environment(appPreferences)
         .task {
             await auth.loadCurrentSession()
+            await refreshPreferencesIfAuthenticated()
         }
         .onChange(of: scenePhase) { _, newPhase in
             guard newPhase == .active else { return }
-            Task { await auth.loadCurrentSession() }
+            Task {
+                await auth.loadCurrentSession()
+                await refreshPreferencesIfAuthenticated()
+            }
         }
+        .onChange(of: auth.isAuthenticated) { _, _ in
+            Task { await refreshPreferencesIfAuthenticated() }
+        }
+    }
+
+    private func refreshPreferencesIfAuthenticated() async {
+        guard auth.isAuthenticated else {
+            appPreferences.reset()
+            return
+        }
+        await appPreferences.refresh()
     }
 }
 
@@ -68,10 +94,10 @@ private final class MockAuthService: AuthService {
 }
 
 #Preview("Authenticated") {
-    RootView(auth: MockAuthService(isAuthenticated: true))
+    RootView(auth: MockAuthService(isAuthenticated: true), appPreferences: AppPreferences())
 }
 
 #Preview("Unauthenticated") {
-    RootView(auth: MockAuthService(isAuthenticated: false))
+    RootView(auth: MockAuthService(isAuthenticated: false), appPreferences: AppPreferences())
 }
 #endif

@@ -2,6 +2,7 @@ import SwiftUI
 
 struct SessionSetRow: View {
     let workoutSet: WorkoutSet
+    @Environment(AppPreferences.self) private var appPreferences
 
     var body: some View {
         HStack(spacing: 12) {
@@ -32,6 +33,7 @@ struct SessionSetRow: View {
         String(
             format: String(localized: "session.set.weight_reps"),
             formattedWeight,
+            appPreferences.weightUnit.localizedAbbreviation,
             workoutSet.reps
         )
     }
@@ -45,7 +47,7 @@ struct SessionSetRow: View {
     }
 
     private var formattedWeight: String {
-        workoutSet.weight.formatted(.number.precision(.fractionLength(0...1)))
+        appPreferences.weightUnit.formattedKilograms(workoutSet.weight)
     }
 
     private func formattedRPE(_ rpe: Double) -> String {

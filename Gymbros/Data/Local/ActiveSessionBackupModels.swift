@@ -1,7 +1,7 @@
 import Foundation
 
 struct ActiveSessionSnapshot: Codable, Equatable {
-    static let currentVersion = 3
+    static let currentVersion = 4
 
     var version: Int
     var session: WorkoutSession
@@ -72,4 +72,3 @@ struct RestTimerState: Codable, Equatable {
         max(0, Int(ceil(endsAt.timeIntervalSince(date))))
     }
 }
-
