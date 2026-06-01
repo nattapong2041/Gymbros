@@ -43,6 +43,31 @@ struct LastSessionLookupServiceTests {
         #expect(result?.label == .last)
     }
 
+    @Test func keepsPerSetWeightsWhenLastSessionUsedDifferentLoads() throws {
+        let session = makeSession()
+        let sets = [
+            makeSet(sessionId: session.id, programExerciseId: programExerciseId, setNumber: 1, weight: 59, reps: 10),
+            makeSet(sessionId: session.id, programExerciseId: programExerciseId, setNumber: 2, weight: 65, reps: 8),
+            makeSet(sessionId: session.id, programExerciseId: programExerciseId, setNumber: 3, weight: 65, reps: 5)
+        ]
+
+        let result = try #require(service.reference(
+            for: programExerciseId,
+            exerciseId: exerciseId,
+            in: [session],
+            sets: [session.id: sets],
+            unit: .kg
+        ))
+
+        #expect(result.sets == [
+            .init(weight: 59, reps: 10),
+            .init(weight: 65, reps: 8),
+            .init(weight: 65, reps: 5)
+        ])
+        #expect(result.weight == 59)
+        #expect(result.reps == [10, 8, 5])
+    }
+
     @Test func fallsBackToExerciseIdWhenProgramExerciseDoesNotMatch() {
         let session = makeSession()
         let set = makeSet(sessionId: session.id, programExerciseId: UUID(), setNumber: 1, reps: 5)

@@ -6,11 +6,23 @@ struct LastSessionReference: Equatable {
         case baseline
     }
 
+    struct SetSummary: Equatable {
+        var weight: Double?
+        var reps: Int
+    }
+
     var label: Label
-    var weight: Double?
-    var reps: [Int]
+    var sets: [SetSummary]
     var unit: WeightUnit
     var isFallback: Bool
+
+    var weight: Double? {
+        sets.first?.weight
+    }
+
+    var reps: [Int] {
+        sets.map(\.reps)
+    }
 }
 
 struct LastSessionLookupService {
@@ -66,11 +78,14 @@ struct LastSessionLookupService {
         unit: WeightUnit,
         isFallback: Bool
     ) -> LastSessionReference {
-        let firstWeight = sets[0].weight
         return LastSessionReference(
             label: .last,
-            weight: firstWeight == 0 ? nil : unit.displayValue(fromKilograms: firstWeight),
-            reps: sets.map(\.reps),
+            sets: sets.map { set in
+                LastSessionReference.SetSummary(
+                    weight: set.weight == 0 ? nil : unit.displayValue(fromKilograms: set.weight),
+                    reps: set.reps
+                )
+            },
             unit: unit,
             isFallback: isFallback
         )

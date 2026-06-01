@@ -3058,6 +3058,22 @@
         }
       }
     },
+    "workout.last_session.reference.details" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Last: %@"
+          }
+        },
+        "th" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ครั้งก่อน: %@"
+          }
+        }
+      }
+    },
     "workout.last_session.reference.bodyweight" : {
       "localizations" : {
         "en" : {

@@ -213,6 +213,10 @@ struct WorkoutSessionViewModelTests {
         let reference = try #require(viewModel.lastSessionReferences[ProgramSamples.benchProgramExerciseId])
         #expect(reference.weight == 60)
         #expect(reference.reps == [8, 7])
+        #expect(reference.sets == [
+            .init(weight: 60, reps: 8),
+            .init(weight: 60, reps: 7)
+        ])
         #expect(reference.isFallback == false)
     }
 

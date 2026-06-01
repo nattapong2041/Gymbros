@@ -566,9 +566,13 @@ final class WorkoutSessionViewModel {
         guard oldUnit != newUnit else { return }
         lastSessionReferences = lastSessionReferences.mapValues { reference in
             var updated = reference
-            if let weight = reference.weight {
-                let kilograms = oldUnit.kilograms(fromDisplayValue: weight)
-                updated.weight = newUnit.displayValue(fromKilograms: kilograms)
+            updated.sets = reference.sets.map { set in
+                var updatedSet = set
+                if let weight = set.weight {
+                    let kilograms = oldUnit.kilograms(fromDisplayValue: weight)
+                    updatedSet.weight = newUnit.displayValue(fromKilograms: kilograms)
+                }
+                return updatedSet
             }
             updated.unit = newUnit
             return updated

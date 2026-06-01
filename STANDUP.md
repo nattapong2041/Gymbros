@@ -4,13 +4,13 @@
 
 ---
 
-**Last updated:** 2026-06-01 | HEAD `8bb7477` | Branch `main`
+**Last updated:** 2026-06-01 | HEAD `970d8d5` | Branch `main`
 
 ---
 
 ## Where we are
 
-Phase 1 ("Real Life Works") is ~95% done — Sprints 1–5 complete and S05p implemented with follow-up fixes. S05p needs a real-device/manual smoke re-test for rest notification fire/tap-back, global keyboard dismissal, last-session row copy, responsive table column alignment on iPhone/iPad, timer Ready state, and History duration editing before TestFlight.
+Phase 1 ("Real Life Works") is ~95% done — Sprints 1–5 complete and S05p implemented with follow-up fixes. S05p needs a real-device/manual smoke re-test for rest notification fire/tap-back, global keyboard dismissal, mixed-load last-session row copy, responsive table column alignment on iPhone/iPad, timer Ready state, and History duration editing before TestFlight.
 
 | Sprint | Name | Status |
 |--------|------|--------|
@@ -25,6 +25,18 @@ Phase 1 ("Real Life Works") is ~95% done — Sprints 1–5 complete and S05p imp
 ---
 
 ## Last session did
+
+- Fixed mixed-load last-session workout references:
+  - `LastSessionReference` now preserves per-set weight/reps summaries instead of storing only the first weight and a reps list.
+  - `WorkoutExercisePageView` keeps identical-weight sessions compact, but renders mixed-load history set-by-set, e.g. `59 × 10 -> 65 × 8 -> 65 × 5`.
+  - Last-session rows can now wrap to two caption lines before truncating, so detailed history has room on smaller screens.
+  - Unit changes now convert every stored last-session set weight, not just the first set.
+  - Added Thai and English copy for the detailed last-session format.
+  - Added regression coverage for the exact `59kg x 10 -> 65kg x 8 -> 65kg x 5` case.
+  - Verified:
+    `jq empty Gymbros/Resources/Localizable.xcstrings`
+    `git diff --check`
+    `xcodebuild test -project Gymbros.xcodeproj -scheme Gymbros -destination 'platform=iOS Simulator,name=iPhone 17e' -only-testing:GymbrosTests/LastSessionLookupServiceTests -only-testing:GymbrosTests/WorkoutSessionViewModelTests`
 
 - Implemented History workout deletion:
   - Added `WorkoutRepository.deleteSession(id:)` for deleting `workout_sessions`; existing FK cascade removes associated `workout_sets`.
@@ -197,7 +209,8 @@ Manual smoke test next:
 3. Rest timer reaches zero and changes to Ready/Go messaging instead of counting upward.
 4. Workout logger table header alignment in active and finished states on iPhone and iPad widths.
 5. History duration edit save/refresh behavior.
-6. Light/dark visual sweep of workout logger table header, last-session row, rest timer, and program editor keyboard dismissal.
+6. Mixed-load last-session row copy, especially `59 × 10 -> 65 × 8 -> 65 × 5`.
+7. Light/dark visual sweep of workout logger table header, last-session row, rest timer, and program editor keyboard dismissal.
 
 ---
 

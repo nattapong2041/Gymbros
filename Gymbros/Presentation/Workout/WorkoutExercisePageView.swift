@@ -173,7 +173,7 @@ struct WorkoutExercisePageView: View {
                 .accessibilityHidden(true)
 
             Text(text)
-                .lineLimit(1)
+                .lineLimit(2)
                 .truncationMode(.tail)
                 .monospacedDigit()
         }
@@ -187,13 +187,16 @@ struct WorkoutExercisePageView: View {
             return String(localized: "workout.last_session.empty")
         }
 
-        let reps = reference.reps.map(String.init).joined(separator: ", ")
+        let reps = repsText(for: reference.sets)
         let base: String
         switch reference.label {
         case .last:
-            if let weight = reference.weight {
+            if let weight = singleWeightedValue(in: reference.sets) {
                 let weightText = weight.formatted(.number.precision(.fractionLength(0...1)))
                 base = String(format: String(localized: "workout.last_session.reference"), weightText, reps)
+            } else if reference.sets.contains(where: { $0.weight != nil }) {
+                let details = reference.sets.map(setDetailText).joined(separator: " -> ")
+                base = String(format: String(localized: "workout.last_session.reference.details"), details)
             } else {
                 base = String(format: String(localized: "workout.last_session.reference.bodyweight"), reps)
             }
@@ -206,6 +209,30 @@ struct WorkoutExercisePageView: View {
             base,
             String(localized: "workout.last_session.fallback_hint")
         ].joined(separator: " · ")
+    }
+
+    private func repsText(for sets: [LastSessionReference.SetSummary]) -> String {
+        sets.map(\.reps).map(String.init).joined(separator: ", ")
+    }
+
+    private func singleWeightedValue(in sets: [LastSessionReference.SetSummary]) -> Double? {
+        guard sets.isEmpty == false,
+              sets.allSatisfy({ $0.weight != nil }),
+              let firstWeight = sets[0].weight,
+              sets.allSatisfy({ $0.weight == firstWeight }) else {
+            return nil
+        }
+        return firstWeight
+    }
+
+    private func setDetailText(for set: LastSessionReference.SetSummary) -> String {
+        let reps = String(set.reps)
+        if let weight = set.weight {
+            let weightText = weight.formatted(.number.precision(.fractionLength(0...1)))
+            return "\(weightText) × \(reps)"
+        }
+        let bodyweight = String(localized: "equipment.short.bodyweight")
+        return "\(bodyweight) × \(reps)"
     }
     
     @ViewBuilder
@@ -250,7 +277,16 @@ private struct WorkoutSetTableWidthPreferenceKey: PreferenceKey {
 #Preview("Active") {
     WorkoutExercisePageView(
         section: WorkoutSessionData.mock.exerciseSections[0],
-        lastSessionReference: LastSessionReference(label: .last, weight: 60, reps: [8, 8, 7], unit: .kg, isFallback: false),
+        lastSessionReference: LastSessionReference(
+            label: .last,
+            sets: [
+                .init(weight: 60, reps: 8),
+                .init(weight: 60, reps: 8),
+                .init(weight: 62.5, reps: 7)
+            ],
+            unit: .kg,
+            isFallback: false
+        ),
         onAddSet: { _ in },
         onUpdateSet: { _, _, _, _ in },
         onCompleteSet: { _ in },
