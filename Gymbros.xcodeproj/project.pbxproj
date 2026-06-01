@@ -14,6 +14,7 @@
 		724225E42FAE201200DA0773 /* Realtime in Frameworks */ = {isa = PBXBuildFile; productRef = 724225E32FAE201200DA0773 /* Realtime */; };
 		724225E62FAE201200DA0773 /* Storage in Frameworks */ = {isa = PBXBuildFile; productRef = 724225E52FAE201200DA0773 /* Storage */; };
 		724225E82FAE201200DA0773 /* Supabase in Frameworks */ = {isa = PBXBuildFile; productRef = 724225E72FAE201200DA0773 /* Supabase */; };
+		72B000012FAF000100000001 /* GymbrosWidgets.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 72B000022FAF000100000001 /* GymbrosWidgets.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -31,17 +32,59 @@
 			remoteGlobalIDString = 727D4B602DD7BB6500900D6E;
 			remoteInfo = Gymbros;
 		};
+		72B0000D2FAF000100000001 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 727D4B592DD7BB6500900D6E /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 72B000072FAF000100000001;
+			remoteInfo = GymbrosWidgets;
+		};
 /* End PBXContainerItemProxy section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		72B000082FAF000100000001 /* Embed Foundation Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 13;
+			files = (
+				72B000012FAF000100000001 /* GymbrosWidgets.appex in Embed Foundation Extensions */,
+			);
+			name = "Embed Foundation Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
 		727D4B612DD7BB6500900D6E /* Gymbros.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Gymbros.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		727D4B6F2DD7BB6600900D6E /* GymbrosTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = GymbrosTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		727D4B792DD7BB6600900D6E /* GymbrosUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = GymbrosUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		72B000022FAF000100000001 /* GymbrosWidgets.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = GymbrosWidgets.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
+
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		72B0000E2FAF000100000001 /* Exceptions for "Gymbros" folder in "Gymbros" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = 727D4B602DD7BB6500900D6E /* Gymbros */;
+		};
+		72B0000F2FAF000100000001 /* Exceptions for "GymbrosWidgets" folder in "GymbrosWidgets" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = 72B000072FAF000100000001 /* GymbrosWidgets */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		727D4B632DD7BB6500900D6E /* Gymbros */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				72B0000E2FAF000100000001 /* Exceptions for "Gymbros" folder in "Gymbros" target */,
+			);
 			path = Gymbros;
 			sourceTree = "<group>";
 		};
@@ -53,6 +96,14 @@
 		727D4B7C2DD7BB6600900D6E /* GymbrosUITests */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			path = GymbrosUITests;
+			sourceTree = "<group>";
+		};
+		72B000032FAF000100000001 /* GymbrosWidgets */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				72B0000F2FAF000100000001 /* Exceptions for "GymbrosWidgets" folder in "GymbrosWidgets" target */,
+			);
+			path = GymbrosWidgets;
 			sourceTree = "<group>";
 		};
 /* End PBXFileSystemSynchronizedRootGroup section */
@@ -86,6 +137,13 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		72B000042FAF000100000001 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
@@ -93,6 +151,7 @@
 			isa = PBXGroup;
 			children = (
 				727D4B632DD7BB6500900D6E /* Gymbros */,
+				72B000032FAF000100000001 /* GymbrosWidgets */,
 				727D4B722DD7BB6600900D6E /* GymbrosTests */,
 				727D4B7C2DD7BB6600900D6E /* GymbrosUITests */,
 				727D4B622DD7BB6500900D6E /* Products */,
@@ -103,6 +162,7 @@
 			isa = PBXGroup;
 			children = (
 				727D4B612DD7BB6500900D6E /* Gymbros.app */,
+				72B000022FAF000100000001 /* GymbrosWidgets.appex */,
 				727D4B6F2DD7BB6600900D6E /* GymbrosTests.xctest */,
 				727D4B792DD7BB6600900D6E /* GymbrosUITests.xctest */,
 			);
@@ -119,10 +179,12 @@
 				727D4B5D2DD7BB6500900D6E /* Sources */,
 				727D4B5E2DD7BB6500900D6E /* Frameworks */,
 				727D4B5F2DD7BB6500900D6E /* Resources */,
+				72B000082FAF000100000001 /* Embed Foundation Extensions */,
 			);
 			buildRules = (
 			);
 			dependencies = (
+				72B0000C2FAF000100000001 /* PBXTargetDependency */,
 			);
 			fileSystemSynchronizedGroups = (
 				727D4B632DD7BB6500900D6E /* Gymbros */,
@@ -187,6 +249,28 @@
 			productReference = 727D4B792DD7BB6600900D6E /* GymbrosUITests.xctest */;
 			productType = "com.apple.product-type.bundle.ui-testing";
 		};
+		72B000072FAF000100000001 /* GymbrosWidgets */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 72B000092FAF000100000001 /* Build configuration list for PBXNativeTarget "GymbrosWidgets" */;
+			buildPhases = (
+				72B000052FAF000100000001 /* Sources */,
+				72B000042FAF000100000001 /* Frameworks */,
+				72B000062FAF000100000001 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				72B000032FAF000100000001 /* GymbrosWidgets */,
+			);
+			name = GymbrosWidgets;
+			packageProductDependencies = (
+			);
+			productName = GymbrosWidgets;
+			productReference = 72B000022FAF000100000001 /* GymbrosWidgets.appex */;
+			productType = "com.apple.product-type.app-extension";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -207,6 +291,9 @@
 					727D4B782DD7BB6600900D6E = {
 						CreatedOnToolsVersion = 16.3;
 						TestTargetID = 727D4B602DD7BB6500900D6E;
+					};
+					72B000072FAF000100000001 = {
+						CreatedOnToolsVersion = 16.3;
 					};
 				};
 			};
@@ -230,6 +317,7 @@
 			projectRoot = "";
 			targets = (
 				727D4B602DD7BB6500900D6E /* Gymbros */,
+				72B000072FAF000100000001 /* GymbrosWidgets */,
 				727D4B6E2DD7BB6600900D6E /* GymbrosTests */,
 				727D4B782DD7BB6600900D6E /* GymbrosUITests */,
 			);
@@ -252,6 +340,13 @@
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 		727D4B772DD7BB6600900D6E /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		72B000062FAF000100000001 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -282,6 +377,13 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		72B000052FAF000100000001 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
@@ -294,6 +396,11 @@
 			isa = PBXTargetDependency;
 			target = 727D4B602DD7BB6500900D6E /* Gymbros */;
 			targetProxy = 727D4B7A2DD7BB6600900D6E /* PBXContainerItemProxy */;
+		};
+		72B0000C2FAF000100000001 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 72B000072FAF000100000001 /* GymbrosWidgets */;
+			targetProxy = 72B0000D2FAF000100000001 /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
 
@@ -425,17 +532,8 @@
 				DEVELOPMENT_TEAM = LB754A599B;
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_PREVIEWS = YES;
-				GENERATE_INFOPLIST_FILE = YES;
-				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphoneos*]" = YES;
-				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphonesimulator*]" = YES;
-				"INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents[sdk=iphoneos*]" = YES;
-				"INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents[sdk=iphonesimulator*]" = YES;
-				"INFOPLIST_KEY_UILaunchScreen_Generation[sdk=iphoneos*]" = YES;
-				"INFOPLIST_KEY_UILaunchScreen_Generation[sdk=iphonesimulator*]" = YES;
-				"INFOPLIST_KEY_UIStatusBarStyle[sdk=iphoneos*]" = UIStatusBarStyleDefault;
-				"INFOPLIST_KEY_UIStatusBarStyle[sdk=iphonesimulator*]" = UIStatusBarStyleDefault;
-				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
-				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = Gymbros/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 18.4;
 				LD_RUNPATH_SEARCH_PATHS = "@executable_path/Frameworks";
 				"LD_RUNPATH_SEARCH_PATHS[sdk=macosx*]" = "@executable_path/../Frameworks";
@@ -464,17 +562,8 @@
 				DEVELOPMENT_TEAM = LB754A599B;
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_PREVIEWS = YES;
-				GENERATE_INFOPLIST_FILE = YES;
-				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphoneos*]" = YES;
-				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphonesimulator*]" = YES;
-				"INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents[sdk=iphoneos*]" = YES;
-				"INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents[sdk=iphonesimulator*]" = YES;
-				"INFOPLIST_KEY_UILaunchScreen_Generation[sdk=iphoneos*]" = YES;
-				"INFOPLIST_KEY_UILaunchScreen_Generation[sdk=iphonesimulator*]" = YES;
-				"INFOPLIST_KEY_UIStatusBarStyle[sdk=iphoneos*]" = UIStatusBarStyleDefault;
-				"INFOPLIST_KEY_UIStatusBarStyle[sdk=iphonesimulator*]" = UIStatusBarStyleDefault;
-				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
-				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = Gymbros/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 18.4;
 				LD_RUNPATH_SEARCH_PATHS = "@executable_path/Frameworks";
 				"LD_RUNPATH_SEARCH_PATHS[sdk=macosx*]" = "@executable_path/../Frameworks";
@@ -582,6 +671,50 @@
 			};
 			name = Release;
 		};
+		72B0000A2FAF000100000001 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				APPLICATION_EXTENSION_API_ONLY = YES;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = LB754A599B;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = GymbrosWidgets/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.4;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.nattapongsawa.gymbros.Gymbros.GymbrosWidgets;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		72B0000B2FAF000100000001 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				APPLICATION_EXTENSION_API_ONLY = YES;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = LB754A599B;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = GymbrosWidgets/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.4;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.nattapongsawa.gymbros.Gymbros.GymbrosWidgets;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -617,6 +750,15 @@
 			buildConfigurations = (
 				727D4B8A2DD7BB6600900D6E /* Debug */,
 				727D4B8B2DD7BB6600900D6E /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		72B000092FAF000100000001 /* Build configuration list for PBXNativeTarget "GymbrosWidgets" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				72B0000A2FAF000100000001 /* Debug */,
+				72B0000B2FAF000100000001 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;

@@ -3,6 +3,7 @@ import SwiftUI
 struct WorkoutSessionView: View {
     let state: ViewState<WorkoutSessionData>
     var activeTimer: RestTimerState?
+    var lastSessionReferences: [UUID: LastSessionReference] = [:]
     var isFinishing: Bool = false
     var pendingRestore: Bool = false
     
@@ -19,6 +20,7 @@ struct WorkoutSessionView: View {
     var onFinishExercise: (UUID) -> Void // programExerciseId
     var onStopTimer: () -> Void
     var onSkipTimer: () -> Void
+    var onTimerComplete: () -> Void
     var onRestore: () -> Void
     var onDiscard: () -> Void
     
@@ -61,7 +63,8 @@ struct WorkoutSessionView: View {
                     RestTimerRingView(
                         state: timerState,
                         onStop: onStopTimer,
-                        onSkip: onSkipTimer
+                        onSkip: onSkipTimer,
+                        onComplete: onTimerComplete
                     )
                     .padding(40)
                 }
@@ -144,6 +147,7 @@ struct WorkoutSessionView: View {
                     ForEach(data.exerciseSections.indices, id: \.self) { index in
                         WorkoutExercisePageView(
                             section: data.exerciseSections[index],
+                            lastSessionReference: lastSessionReferences[data.exerciseSections[index].programExercise.id],
                             onAddSet: onAddSet,
                             onUpdateSet: onUpdateSet,
                             onCompleteSet: onCompleteSet,
@@ -219,6 +223,7 @@ extension RestTimerState: Identifiable {
             onFinishExercise: { _ in },
             onStopTimer: {},
             onSkipTimer: {},
+            onTimerComplete: {},
             onRestore: {},
             onDiscard: {}
         )
@@ -230,8 +235,9 @@ extension RestTimerState: Identifiable {
     @Previewable @State var index = 0
     WorkoutSessionView(
         state: .success(WorkoutSessionData.mock),
-        activeTimer: RestTimerState.mock,
-        currentExerciseIndex: $index,
+            activeTimer: RestTimerState.mock,
+            lastSessionReferences: [:],
+            currentExerciseIndex: $index,
         onRetry: {},
         onFinish: {},
         onAddSet: { _ in },
@@ -242,6 +248,7 @@ extension RestTimerState: Identifiable {
         onFinishExercise: { _ in },
         onStopTimer: {},
         onSkipTimer: {},
+        onTimerComplete: {},
         onRestore: {},
         onDiscard: {}
     )
@@ -264,6 +271,7 @@ extension RestTimerState: Identifiable {
         onFinishExercise: { _ in },
         onStopTimer: {},
         onSkipTimer: {},
+        onTimerComplete: {},
         onRestore: {},
         onDiscard: {}
     )
@@ -285,6 +293,7 @@ extension RestTimerState: Identifiable {
         onFinishExercise: { _ in },
         onStopTimer: {},
         onSkipTimer: {},
+        onTimerComplete: {},
         onRestore: {},
         onDiscard: {}
     )
@@ -306,6 +315,7 @@ extension RestTimerState: Identifiable {
         onFinishExercise: { _ in },
         onStopTimer: {},
         onSkipTimer: {},
+        onTimerComplete: {},
         onRestore: {},
         onDiscard: {}
     )

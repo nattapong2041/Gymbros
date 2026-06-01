@@ -150,6 +150,72 @@ struct WorkoutSessionViewModelTests {
         #expect(try rowState(viewModel, id: row.id).isCompleted)
     }
 
+    @Test func completeSetSchedulesRestTimerSurfaces() async throws {
+        let scheduler = FakeRestTimerScheduler()
+        let liveActivity = FakeRestTimerLiveActivityController()
+        let viewModel = makeViewModel(
+            restTimerScheduler: scheduler,
+            liveActivityController: liveActivity
+        )
+
+        await viewModel.start(programDayId: ProgramSamples.upperDayId)
+        let row = try firstRow(viewModel)
+        await viewModel.updateDraft(setId: row.id, weightText: "80", repsText: "8", rpe: nil)
+        await viewModel.completeSet(setId: row.id)
+
+        #expect(scheduler.scheduled.count == 1)
+        #expect(scheduler.scheduled[0].programDayId == ProgramSamples.upperDayId)
+        #expect(scheduler.scheduled[0].programExerciseId == ProgramSamples.benchProgramExerciseId)
+        #expect(liveActivity.starts.count == 1)
+    }
+
+    @Test func restTimerRequestsNotificationAuthorization() async throws {
+        let scheduler = FakeRestTimerScheduler()
+        let viewModel = makeViewModel(restTimerScheduler: scheduler)
+
+        await viewModel.start(programDayId: ProgramSamples.upperDayId)
+        let row = try firstRow(viewModel)
+        await viewModel.updateDraft(setId: row.id, weightText: "80", repsText: "8", rpe: nil)
+        await viewModel.completeSet(setId: row.id)
+
+        #expect(scheduler.requestAuthorizationCount == 1)
+    }
+
+    @Test func markRestTimerCompleteUpdatesLiveActivity() async {
+        let liveActivity = FakeRestTimerLiveActivityController()
+        let viewModel = makeViewModel(liveActivityController: liveActivity)
+
+        await viewModel.markRestTimerComplete()
+
+        #expect(liveActivity.markCompleteCount == 1)
+    }
+
+    @Test func lastSessionReferencesPopulateAfterStart() async throws {
+        let workoutRepository = FakeWorkoutRepository()
+        let historySession = WorkoutSession(
+            id: UUID(uuidString: "AAAAAAAA-AAAA-AAAA-AAAA-AAAAAAAAAAAA")!,
+            userId: ProgramSamples.userId,
+            programDayId: ProgramSamples.upperDayId,
+            startedAt: ProgramSamples.createdAt.addingTimeInterval(-86_400),
+            endedAt: ProgramSamples.createdAt.addingTimeInterval(-82_800),
+            notes: nil,
+            createdAt: ProgramSamples.createdAt.addingTimeInterval(-86_400)
+        )
+        workoutRepository.history = [historySession]
+        workoutRepository.setsBySessionId[historySession.id] = [
+            WorkoutSet(id: UUID(), sessionId: historySession.id, exerciseId: ProgramSamples.benchExerciseId, programExerciseId: ProgramSamples.benchProgramExerciseId, setNumber: 1, weight: 60, reps: 8, rpe: nil, targetRestSeconds: nil, actualRestSeconds: nil, restStartedAt: nil, restEndedAt: nil, completedAt: ProgramSamples.createdAt.addingTimeInterval(-85_000), notes: nil),
+            WorkoutSet(id: UUID(), sessionId: historySession.id, exerciseId: ProgramSamples.benchExerciseId, programExerciseId: ProgramSamples.benchProgramExerciseId, setNumber: 2, weight: 60, reps: 7, rpe: nil, targetRestSeconds: nil, actualRestSeconds: nil, restStartedAt: nil, restEndedAt: nil, completedAt: ProgramSamples.createdAt.addingTimeInterval(-84_000), notes: nil)
+        ]
+        let viewModel = makeViewModel(workoutRepository: workoutRepository)
+
+        await viewModel.start(programDayId: ProgramSamples.upperDayId)
+
+        let reference = try #require(viewModel.lastSessionReferences[ProgramSamples.benchProgramExerciseId])
+        #expect(reference.weight == 60)
+        #expect(reference.reps == [8, 7])
+        #expect(reference.isFallback == false)
+    }
+
     @Test func completeSetCopiesActualWeightAndRepsToNextUnmodifiedRowWithoutRPE() async throws {
         let viewModel = makeViewModel()
 
@@ -341,6 +407,8 @@ struct WorkoutSessionViewModelTests {
         workoutRepository: FakeWorkoutRepository? = nil,
         programRepository: FakeWorkoutProgramRepository? = nil,
         backupRepository: FakeBackupRepository? = nil,
+        restTimerScheduler: FakeRestTimerScheduler? = nil,
+        liveActivityController: FakeRestTimerLiveActivityController? = nil,
         weightUnit: WeightUnit = .kg
     ) -> WorkoutSessionViewModel {
         WorkoutSessionViewModel(
@@ -348,6 +416,8 @@ struct WorkoutSessionViewModelTests {
             programRepository: programRepository ?? FakeWorkoutProgramRepository(),
             exerciseRepository: FakeWorkoutExerciseRepository(),
             backupRepository: backupRepository ?? FakeBackupRepository(),
+            restTimerScheduler: restTimerScheduler ?? FakeRestTimerScheduler(),
+            liveActivityController: liveActivityController ?? FakeRestTimerLiveActivityController(),
             weightUnit: weightUnit,
             now: { ProgramSamples.createdAt }
         )
@@ -386,6 +456,8 @@ private final class FakeWorkoutRepository: WorkoutRepositoryProviding {
     var deletedSetIds: [UUID] = []
     var completedSessions: [(sessionId: UUID, endedAt: Date)] = []
     var lastLoggedSets: [UUID: WorkoutSet] = [:]
+    var history: [WorkoutSession] = []
+    var setsBySessionId: [UUID: [WorkoutSet]] = [:]
     var nextUploadError: AppError?
     var completeSessionError: AppError?
     var lastLoggedSetError: AppError?
@@ -418,11 +490,18 @@ private final class FakeWorkoutRepository: WorkoutRepositoryProviding {
         deletedSetIds.append(id)
     }
 
+    func deleteSession(id: UUID) async throws {}
+
     func completeSession(_ sessionId: UUID, endedAt: Date) async throws {
         if let completeSessionError {
             throw completeSessionError
         }
         completedSessions.append((sessionId, endedAt))
+    }
+
+    func updateSessionEndedAt(sessionId: UUID, endedAt: Date) async throws -> WorkoutSession {
+        session.endedAt = endedAt
+        return session
     }
 
     func fetchLastLoggedSet(exerciseId: UUID, before: Date) async throws -> WorkoutSet? {
@@ -433,14 +512,68 @@ private final class FakeWorkoutRepository: WorkoutRepositoryProviding {
     }
 
     func fetchHistory(limit: Int) async throws -> [WorkoutSession] {
-        [session]
+        history
     }
 
     func fetchSets(sessionId: UUID) async throws -> [WorkoutSet] {
         if let fetchSetsError {
             throw fetchSetsError
         }
-        return sets
+        return setsBySessionId[sessionId] ?? sets
+    }
+}
+
+@MainActor
+private final class FakeRestTimerScheduler: RestTimerScheduling {
+    var requestAuthorizationCount = 0
+    var scheduled: [(seconds: TimeInterval, sessionId: UUID, programDayId: UUID?, programExerciseId: UUID?)] = []
+    var cancelledSessionIds: [UUID] = []
+    var cancelAllCount = 0
+
+    func requestAuthorizationIfNeeded() async {
+        requestAuthorizationCount += 1
+    }
+
+    func schedule(
+        after seconds: TimeInterval,
+        sessionId: UUID,
+        programDayId: UUID?,
+        programExerciseId: UUID?
+    ) async {
+        scheduled.append((seconds, sessionId, programDayId, programExerciseId))
+    }
+
+    func cancel(sessionId: UUID) {
+        cancelledSessionIds.append(sessionId)
+    }
+
+    func cancelAll() {
+        cancelAllCount += 1
+    }
+}
+
+@MainActor
+private final class FakeRestTimerLiveActivityController: RestTimerLiveActivityControlling {
+    var starts: [(state: RestTimerState, sessionId: UUID, programDayId: UUID?, programExerciseId: UUID?, exerciseName: String)] = []
+    var endCount = 0
+    var markCompleteCount = 0
+
+    func start(
+        state: RestTimerState,
+        sessionId: UUID,
+        programDayId: UUID?,
+        programExerciseId: UUID?,
+        exerciseName: String
+    ) async {
+        starts.append((state, sessionId, programDayId, programExerciseId, exerciseName))
+    }
+
+    func end() async {
+        endCount += 1
+    }
+
+    func markComplete() async {
+        markCompleteCount += 1
     }
 }
 

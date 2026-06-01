@@ -85,11 +85,56 @@ struct HistoryViewModelTests {
         #expect(error == .network(.offline))
     }
 
+    @Test func deleteSessionRemovesRowFromSuccessState() async throws {
+        let firstSession = makeSession()
+        let secondSession = makeSession()
+        let workoutRepo = FakeWorkoutRepository(historySessions: [firstSession, secondSession])
+        let programRepo = FakeHistoryProgramRepository()
+        let vm = HistoryViewModel(workoutRepository: workoutRepo, programRepository: programRepo)
+
+        await vm.load()
+        await vm.deleteSession(firstSession)
+
+        let data = try successValue(vm.state)
+        #expect(workoutRepo.deletedSessionIds == [firstSession.id])
+        #expect(data.sessions.map(\.id) == [secondSession.id])
+    }
+
+    @Test func deleteOnlySessionShowsEmptyState() async throws {
+        let session = makeSession()
+        let workoutRepo = FakeWorkoutRepository(historySessions: [session])
+        let programRepo = FakeHistoryProgramRepository()
+        let vm = HistoryViewModel(workoutRepository: workoutRepo, programRepository: programRepo)
+
+        await vm.load()
+        await vm.deleteSession(session)
+
+        #expect(workoutRepo.deletedSessionIds == [session.id])
+        guard case .empty = vm.state else {
+            throw AppError.unknown(debugID: "expected-empty-after-delete")
+        }
+    }
+
+    @Test func deleteSessionFailureKeepsRowsAndSetsTransientError() async throws {
+        let session = makeSession()
+        let workoutRepo = FakeWorkoutRepository(historySessions: [session])
+        workoutRepo.deleteSessionError = AppError.network(.offline)
+        let programRepo = FakeHistoryProgramRepository()
+        let vm = HistoryViewModel(workoutRepository: workoutRepo, programRepository: programRepo)
+
+        await vm.load()
+        await vm.deleteSession(session)
+
+        let data = try successValue(vm.state)
+        #expect(data.sessions.map(\.id) == [session.id])
+        #expect(vm.transientError == .network(.offline))
+    }
+
     // MARK: - SessionDetailViewModel
 
     @Test func sessionDetailLoadsSuccessWithEmptySets() async throws {
         let session = makeSession()
-        let workoutRepo = FakeWorkoutRepository(sets: [])
+        let workoutRepo = FakeWorkoutRepository(historySessions: [session], sets: [])
         let exerciseRepo = FakeHistoryExerciseRepository()
         let vm = SessionDetailViewModel(session: session, workoutRepository: workoutRepo, exerciseRepository: exerciseRepo)
 
@@ -116,7 +161,7 @@ struct HistoryViewModelTests {
 
     @Test func sessionDetailFetchSetsFailureSetsErrorState() async throws {
         let session = makeSession()
-        let workoutRepo = FakeWorkoutRepository(sets: [])
+        let workoutRepo = FakeWorkoutRepository(historySessions: [session], sets: [])
         workoutRepo.fetchSetsError = AppError.network(.offline)
         let exerciseRepo = FakeHistoryExerciseRepository()
         let vm = SessionDetailViewModel(session: session, workoutRepository: workoutRepo, exerciseRepository: exerciseRepo)
@@ -142,6 +187,20 @@ struct HistoryViewModelTests {
         let data = try successValue(vm.state)
         #expect(data.sets.count == 1)
         #expect(data.exerciseLookup.isEmpty)
+    }
+
+    @Test func sessionDetailUpdateDurationAdjustsEndedAt() async throws {
+        let session = makeSession()
+        let workoutRepo = FakeWorkoutRepository(sets: [])
+        let exerciseRepo = FakeHistoryExerciseRepository()
+        let vm = SessionDetailViewModel(session: session, workoutRepository: workoutRepo, exerciseRepository: exerciseRepo)
+
+        await vm.load()
+        await vm.updateDuration(minutes: 45)
+
+        let data = try successValue(vm.state)
+        #expect(data.session.endedAt == session.startedAt.addingTimeInterval(45 * 60))
+        #expect(vm.isEditingDuration == false)
     }
 
     // MARK: - Helpers
@@ -191,6 +250,8 @@ private final class FakeWorkoutRepository: WorkoutRepositoryProviding {
     var sets: [WorkoutSet]
     var fetchHistoryError: AppError?
     var fetchSetsError: AppError?
+    var deleteSessionError: AppError?
+    var deletedSessionIds: [UUID] = []
 
     init(historySessions: [WorkoutSession] = [], sets: [WorkoutSet] = []) {
         self.historySessions = historySessions
@@ -214,7 +275,24 @@ private final class FakeWorkoutRepository: WorkoutRepositoryProviding {
     func uploadSet(_ set: WorkoutSet) async throws -> WorkoutSet { set }
     func updateSet(_ set: WorkoutSet) async throws -> WorkoutSet { set }
     func deleteSet(id: UUID) async throws {}
+    func deleteSession(id: UUID) async throws {
+        if let deleteSessionError { throw deleteSessionError }
+        deletedSessionIds.append(id)
+    }
     func completeSession(_ sessionId: UUID, endedAt: Date) async throws {}
+    func updateSessionEndedAt(sessionId: UUID, endedAt: Date) async throws -> WorkoutSession {
+        var session = historySessions.first ?? WorkoutSession(
+            id: sessionId,
+            userId: ProgramSamples.userId,
+            programDayId: nil,
+            startedAt: endedAt.addingTimeInterval(-3600),
+            endedAt: endedAt,
+            notes: nil,
+            createdAt: endedAt.addingTimeInterval(-3600)
+        )
+        session.endedAt = endedAt
+        return session
+    }
     func fetchLastLoggedSet(exerciseId: UUID, before: Date) async throws -> WorkoutSet? { nil }
 }
 

@@ -2,20 +2,23 @@ import SwiftUI
 
 struct TodayView: View {
     @State var viewModel: TodayViewModel
+    @Binding var deepLinkedWorkoutRoute: WorkoutLaunchRoute?
     let date: Date
     let onShowPrograms: () -> Void
     private let loadsOnAppear: Bool
 
-    @State private var selectedProgramDayId: UUID?
+    @State private var selectedWorkoutRoute: WorkoutLaunchRoute?
 
     @MainActor
     init(
         viewModel: TodayViewModel? = nil,
+        deepLinkedWorkoutRoute: Binding<WorkoutLaunchRoute?> = .constant(nil),
         date: Date = .now,
         loadsOnAppear: Bool = true,
         onShowPrograms: @escaping () -> Void = {}
     ) {
         self._viewModel = State(initialValue: viewModel ?? TodayViewModel())
+        self._deepLinkedWorkoutRoute = deepLinkedWorkoutRoute
         self.date = date
         self.loadsOnAppear = loadsOnAppear
         self.onShowPrograms = onShowPrograms
@@ -24,12 +27,20 @@ struct TodayView: View {
     var body: some View {
         content
             .navigationTitle("today.title")
-            .navigationDestination(item: $selectedProgramDayId) { programDayId in
-                WorkoutSessionScreen(programDayId: programDayId)
+            .navigationDestination(item: $selectedWorkoutRoute) { route in
+                WorkoutSessionScreen(
+                    programDayId: route.programDayId,
+                    initialProgramExerciseId: route.programExerciseId
+                )
             }
             .task {
                 guard loadsOnAppear else { return }
                 await viewModel.load()
+            }
+            .onChange(of: deepLinkedWorkoutRoute) { _, route in
+                guard let route else { return }
+                selectedWorkoutRoute = route
+                deepLinkedWorkoutRoute = nil
             }
             .refreshable {
                 guard loadsOnAppear else { return }
@@ -145,7 +156,11 @@ struct TodayView: View {
             }
 
             Button {
-                selectedProgramDayId = nextDay.id
+                selectedWorkoutRoute = WorkoutLaunchRoute(
+                    programDayId: nextDay.id,
+                    programExerciseId: nil,
+                    sessionId: nil
+                )
             } label: {
                 Label("today.start_cta", systemImage: "play.fill")
             }

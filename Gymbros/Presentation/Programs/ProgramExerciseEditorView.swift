@@ -81,6 +81,8 @@ struct ProgramExerciseEditorView: View {
                     Text("programExercise.notes.section")
                 }
             }
+            .scrollDismissesKeyboard(.interactively)
+            .dismissKeyboardOnTap()
             .navigationTitle(exerciseName)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {

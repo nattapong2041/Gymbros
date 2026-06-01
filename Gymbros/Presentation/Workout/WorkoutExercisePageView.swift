@@ -2,7 +2,9 @@ import SwiftUI
 
 struct WorkoutExercisePageView: View {
     let section: WorkoutExerciseSection
+    var lastSessionReference: LastSessionReference?
     @Environment(AppPreferences.self) private var appPreferences
+    @State private var tableWidth: CGFloat = 0
     
     // Actions
     var onAddSet: (UUID) -> Void // setId
@@ -17,10 +19,15 @@ struct WorkoutExercisePageView: View {
                 exerciseHeader
                 
                 VStack(spacing: 0) {
+                    let columns = setTableColumns
+
+                    setTableHeader(columns: columns)
+
                     ForEach(section.sets) { rowState in
                         SetRowView(
                             state: rowState,
                             isReadOnly: section.isFinished,
+                            columns: columns,
                             onUpdate: { w, r, rpe in
                                 onUpdateSet(rowState.id, w, r, rpe)
                             },
@@ -52,12 +59,26 @@ struct WorkoutExercisePageView: View {
                         .padding(.top, 8)
                     }
                 }
+                .frame(maxWidth: .infinity)
                 .padding(.horizontal)
+                .background(
+                    GeometryReader { proxy in
+                        Color.clear.preference(
+                            key: WorkoutSetTableWidthPreferenceKey.self,
+                            value: proxy.size.width
+                        )
+                    }
+                )
+                .onPreferenceChange(WorkoutSetTableWidthPreferenceKey.self) { width in
+                    tableWidth = width
+                }
                 
                 footerAction
             }
             .padding(.bottom, 32)
         }
+        .scrollDismissesKeyboard(.interactively)
+        .dismissKeyboardOnTap()
         .background(Color(uiColor: .systemGroupedBackground))
     }
     
@@ -108,10 +129,83 @@ struct WorkoutExercisePageView: View {
                     .foregroundStyle(.secondary)
                     .padding(.top, 4)
             }
+
+            lastSessionReferenceRow
         }
         .padding()
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(Color(uiColor: .secondarySystemGroupedBackground))
+    }
+
+    private var setTableColumns: WorkoutSetTableLayout.Columns {
+        WorkoutSetTableLayout.columns(for: max(0, tableWidth - 32), isReadOnly: section.isFinished)
+    }
+
+    private func setTableHeader(columns: WorkoutSetTableLayout.Columns) -> some View {
+        HStack(spacing: WorkoutSetTableLayout.spacing) {
+            Text("workout.set.header.set")
+                .frame(width: columns.set, alignment: .center)
+
+            Text(verbatim: appPreferences.weightUnit.localizedAbbreviation)
+                .frame(width: columns.weight, alignment: .center)
+
+            Text("workout.set.header.reps")
+                .frame(width: columns.reps, alignment: .center)
+
+            Text("workout.set.header.rpe")
+                .frame(width: columns.rpe, alignment: .center)
+
+            Text("workout.set.header.done")
+                .frame(width: columns.actions, alignment: .trailing)
+        }
+        .font(.system(.caption2, design: .rounded).bold())
+        .foregroundStyle(.secondary)
+        .textCase(.uppercase)
+        .padding(.top, 8)
+        .padding(.bottom, 4)
+    }
+
+    @ViewBuilder
+    private var lastSessionReferenceRow: some View {
+        let text = lastSessionText
+        HStack(spacing: 6) {
+            Image(systemName: "clock.arrow.circlepath")
+                .accessibilityHidden(true)
+
+            Text(text)
+                .lineLimit(1)
+                .truncationMode(.tail)
+                .monospacedDigit()
+        }
+        .font(.system(.caption, design: .rounded))
+        .foregroundStyle(lastSessionReference == nil ? .tertiary : .secondary)
+        .accessibilityLabel(Text(String(format: String(localized: "accessibility.workout.last_session"), text)))
+    }
+
+    private var lastSessionText: String {
+        guard let reference = lastSessionReference else {
+            return String(localized: "workout.last_session.empty")
+        }
+
+        let reps = reference.reps.map(String.init).joined(separator: ", ")
+        let base: String
+        switch reference.label {
+        case .last:
+            if let weight = reference.weight {
+                let weightText = weight.formatted(.number.precision(.fractionLength(0...1)))
+                base = String(format: String(localized: "workout.last_session.reference"), weightText, reps)
+            } else {
+                base = String(format: String(localized: "workout.last_session.reference.bodyweight"), reps)
+            }
+        case .baseline:
+            base = String(format: String(localized: "workout.last_session.baseline"), reps)
+        }
+
+        guard reference.isFallback else { return base }
+        return [
+            base,
+            String(localized: "workout.last_session.fallback_hint")
+        ].joined(separator: " · ")
     }
     
     @ViewBuilder
@@ -145,9 +239,18 @@ struct WorkoutExercisePageView: View {
     }
 }
 
+private struct WorkoutSetTableWidthPreferenceKey: PreferenceKey {
+    static var defaultValue: CGFloat = 0
+
+    static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
+        value = nextValue()
+    }
+}
+
 #Preview("Active") {
     WorkoutExercisePageView(
         section: WorkoutSessionData.mock.exerciseSections[0],
+        lastSessionReference: LastSessionReference(label: .last, weight: 60, reps: [8, 8, 7], unit: .kg, isFallback: false),
         onAddSet: { _ in },
         onUpdateSet: { _, _, _, _ in },
         onCompleteSet: { _ in },
@@ -162,6 +265,7 @@ struct WorkoutExercisePageView: View {
     section.isFinished = true
     return WorkoutExercisePageView(
         section: section,
+        lastSessionReference: nil,
         onAddSet: { _ in },
         onUpdateSet: { _, _, _, _ in },
         onCompleteSet: { _ in },

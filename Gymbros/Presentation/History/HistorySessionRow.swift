@@ -38,6 +38,6 @@ struct HistorySessionRow: View {
 
     private var durationMinutes: Int {
         guard let duration = session.duration else { return 0 }
-        return max(1, Int(duration / 60))
+        return max(1, Int((duration / 60).rounded()))
     }
 }

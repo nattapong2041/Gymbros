@@ -4,13 +4,13 @@
 
 ---
 
-**Last updated:** 2026-05-30 | HEAD `0863eea` | Branch `main`
+**Last updated:** 2026-06-01 | HEAD `8bb7477` | Branch `main`
 
 ---
 
 ## Where we are
 
-Phase 1 ("Real Life Works") is ~90% done — Sprints 1–5 complete. A new stabilization sprint S05p (Phase 1 Polish) has been specced and sits between Settings and Smart Comeback.
+Phase 1 ("Real Life Works") is ~95% done — Sprints 1–5 complete and S05p implemented with follow-up fixes. S05p needs a real-device/manual smoke re-test for rest notification fire/tap-back, global keyboard dismissal, last-session row copy, responsive table column alignment on iPhone/iPad, timer Ready state, and History duration editing before TestFlight.
 
 | Sprint | Name | Status |
 |--------|------|--------|
@@ -19,12 +19,68 @@ Phase 1 ("Real Life Works") is ~90% done — Sprints 1–5 complete. A new stabi
 | S03 | Logger + Timer | complete |
 | S04 | Today + History + Navigation + Anti-Guilt UX | complete |
 | S05 | Settings | complete |
-| **S05p** | **Phase 1 Polish (spec written, implementation next)** | **ready to implement** |
+| **S05p** | **Phase 1 Polish** | **implemented, manual smoke next** |
 | S06 | Next Best Session v1 / Smart Comeback | planned |
 
 ---
 
 ## Last session did
+
+- Implemented History workout deletion:
+  - Added `WorkoutRepository.deleteSession(id:)` for deleting `workout_sessions`; existing FK cascade removes associated `workout_sets`.
+  - Added `HistoryViewModel.deleteSession(_:)` to remove deleted sessions from current state, move to empty state when the last row is deleted, and surface failures through `AppError`.
+  - Added trailing swipe delete on History rows with a destructive localized confirmation alert.
+  - Added Thai and English delete-confirmation copy.
+  - Verified:
+    `jq empty Gymbros/Resources/Localizable.xcstrings`
+    `git diff --check`
+    `xcodebuild test -project Gymbros.xcodeproj -scheme Gymbros -destination 'platform=iOS Simulator,name=iPhone 17e' -only-testing:GymbrosTests/HistoryViewModelTests`
+
+- Implemented S05p follow-up fixes from manual smoke feedback:
+  - Workout logger rows now measure available width and compute responsive columns for Set, kg/lb, Reps, RPE, and Done, so headers align with row values across iPhone and iPad widths.
+  - Rest timer completion now freezes the in-app timer at zero, shows Ready copy, and marks the Live Activity complete so Lock Screen/Dynamic Island show Ready/Go messaging instead of counting upward.
+  - Added app/widget Thai and English copy for timer Ready states.
+  - Verified:
+    `jq empty Gymbros/Resources/Localizable.xcstrings`
+    `jq empty GymbrosWidgets/Localizable.xcstrings`
+    `git diff --check`
+    `xcodebuild test -project Gymbros.xcodeproj -scheme Gymbros -destination 'platform=iOS Simulator,name=iPhone 17e' -only-testing:GymbrosTests/WorkoutSessionViewModelTests -only-testing:GymbrosTests/RestTimerNotificationSchedulerTests`
+
+- Implemented earlier S05p follow-up fixes from manual smoke feedback:
+  - Rest timer now requests local-notification authorization whenever a rest starts, covering the normal foreground-start/background-during-rest flow.
+  - Refined rest notification copy to "Ready for your next set" / "Rest is over. Time to lift." with Thai translations.
+  - `AppDelegate` now presents rest notifications when the app is foregrounded too, while keeping notification tap-back routed to the active workout exercise page.
+  - Added root-level `.dismissKeyboardOnTap()` so tapping outside text fields dismisses the keyboard app-wide.
+  - Removed repeated kg/lb labels from active workout set rows and removed the weight-unit suffix from the last-session reference row text.
+  - History duration display now rounds minutes so a saved 60-minute workout does not render as 59 minutes because of sub-second date precision.
+  - Verified:
+    `jq empty Gymbros/Resources/Localizable.xcstrings`
+    `git diff --check`
+    `xcodebuild test -project Gymbros.xcodeproj -scheme Gymbros -destination 'platform=iOS Simulator,name=iPhone 17e' -only-testing:GymbrosTests/RestTimerNotificationSchedulerTests -only-testing:GymbrosTests/WorkoutSessionViewModelTests -only-testing:GymbrosTests/HistoryViewModelTests`
+
+- Implemented Sprint S05p — Phase 1 Polish, with user-requested scope expansion:
+  - Added local-only ActivityKit Live Activity/Dynamic Island support via new `GymbrosWidgets` extension, app `Info.plist`, widget `Info.plist`, and `NSSupportsLiveActivities`.
+  - Added `RestTimerLiveActivityController`, `RestTimerNotificationScheduler`, `RestTimerDeepLink`, `DeepLinkCoordinator`, and `AppDelegate` notification handling.
+  - Rest timer start now schedules local notification + Live Activity; stop/skip/finish cancels timer surfaces.
+  - Tapping a rest notification or Live Activity deep-links to Today and opens the active workout exercise page when `programExerciseId` is available.
+  - Added `LastSessionReference` / `LastSessionLookupService`; `WorkoutSessionViewModel` loads history references on start/restore and exposes them to `WorkoutExercisePageView`.
+  - Added last-session row in the logger, with same-program preference, same-exercise fallback, no-history state, kg/lb formatting, and Thai/English copy.
+  - Added shared `.dismissKeyboardOnTap()` and interactive scroll keyboard dismissal to workout and program form surfaces.
+  - Added workout set table header (`Set`, kg/lb, `Reps`, `RPE`, `Done`) above active set rows.
+  - Added rest timer completion pulse in `RestTimerRingView`, skipped when iOS Reduce Motion is enabled.
+  - Added History session duration editing: user edits total minutes; app preserves `startedAt` and updates `endedAt`.
+  - Added `WorkoutRepository.updateSessionEndedAt(sessionId:endedAt:)`.
+  - Added focused tests: last-session lookup, rest notification scheduling, deep-link parsing, workout ViewModel timer/reference behavior, and History duration editing.
+  - Verified:
+    `plutil -lint Gymbros/Info.plist`
+    `plutil -lint GymbrosWidgets/Info.plist`
+    `jq empty Gymbros/Resources/Localizable.xcstrings`
+    `jq empty GymbrosWidgets/Localizable.xcstrings`
+    `git diff --check`
+    `xcodebuild -project Gymbros.xcodeproj -scheme Gymbros -destination 'platform=iOS Simulator,name=iPhone 17e' build`
+    Focused S05p `xcodebuild test ... -only-testing:...`
+    Full suite `xcodebuild test -project Gymbros.xcodeproj -scheme Gymbros -destination 'platform=iOS Simulator,name=iPhone 17e'`
+  - Note: `Gymbros.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved` is present after follow-up verification.
 
 - Fixed Sprint 5 Settings review follow-ups and app-wide weight-unit behavior:
   - Follow-up logout fix: `AuthService` now listens to Supabase `authStateChanges`, updates `currentUser` from the emitted session, and calls local Supabase sign-out from the Settings button. `RootView` passes its owned auth instance into `SettingsViewModel`, so the signed-out auth event redirects to `SignInView`.
@@ -133,15 +189,15 @@ Phase 1 ("Real Life Works") is ~90% done — Sprints 1–5 complete. A new stabi
 
 ## Next up
 
-**Sprint S05p — Phase 1 Polish** (spec complete, ready to implement)
+**Sprint S05p — Phase 1 Polish** is implemented and automated verification passes.
 
-Start with S05p Task 0 (Spec Lock): read `.claude/sprints/S05p-phase1-polish/spec.md` in full, confirm the three locked decisions, then proceed with implementation tasks:
-1. `RestTimerNotificationScheduler` + tests
-2. `LastSessionLookupService` + tests + `WorkoutSessionViewModel` changes
-3. `View+DismissKeyboard` helper + apply to workout/program forms
-4. UI wiring: reference row in `WorkoutExercisePageView`, pulse in `RestTimerRingView`
-5. Localization keys in `Localizable.xcstrings`
-6. Full test suite + manual smoke test
+Manual smoke test next:
+1. Dynamic Island/Lock Screen Live Activity on supported device/simulator.
+2. Tap Live Activity and local notification back to active exercise page.
+3. Rest timer reaches zero and changes to Ready/Go messaging instead of counting upward.
+4. Workout logger table header alignment in active and finished states on iPhone and iPad widths.
+5. History duration edit save/refresh behavior.
+6. Light/dark visual sweep of workout logger table header, last-session row, rest timer, and program editor keyboard dismissal.
 
 ---
 
@@ -150,19 +206,20 @@ Start with S05p Task 0 (Spec Lock): read `.claude/sprints/S05p-phase1-polish/spe
 - [x] Sprint 5 review: filter `.cancelled` in `SettingsViewModel.updateWeightUnit(_:)` and `signOut()` so user-cancelled operations do not show alerts.
 - [x] Sprint 5 review: fix Settings weight-unit accessibility so VoiceOver gets the current unit instead of a raw `%@` placeholder.
 - [x] Sprint 5 review: localize or remove `settings.empty`, which is currently extract-only in `Localizable.xcstrings`.
-- [ ] Sprint 5 review: rerun the full xcodebuild test suite when approval usage is available.
+- [x] Sprint 5 review: rerun the full xcodebuild test suite when approval usage is available.
 - [ ] Sprint 5 review: add the untracked Settings/Core source/test files before committing; leave local `.antigravitycli/` and `.codex/config.toml` out unless intentionally needed.
-- [ ] Light/dark visual sweep of `WorkoutSessionView`, `WorkoutExercisePageView`, `SetRowView`, `RestTimerRingView`, `ProgramExerciseEditorView` in Xcode before broad TestFlight.
+- [ ] Light/dark visual sweep of `WorkoutSessionView`, `WorkoutExercisePageView`, `SetRowView`, `RestTimerRingView`, `ProgramExerciseEditorView`, and `GymbrosWidgets` Live Activity in Xcode before broad TestFlight.
 - [x] Decided Phase 1 trial-feedback polish → Sprint S05p (spec written at `.claude/sprints/S05p-phase1-polish/spec.md`).
-- [ ] Add `| 5p | Phase 1 Polish | ☐ | — | Pre-TestFlight stabilization |` to GYMTRACK.md §9 Sprint Tracking table when scheduling S05p.
-- [ ] After S05p ships, update GYMTRACK.md §9 Phase 1 Trial Feedback Polish Backlog items from ☐ to ✓.
+- [ ] Add/update S05p in GYMTRACK.md §9 Sprint Tracking table.
+- [ ] After S05p manual smoke passes, update GYMTRACK.md §9 Phase 1 Trial Feedback Polish Backlog items from ☐ to ✓.
+- [x] Confirm `Gymbros.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved` is present after follow-up verification.
 
 ---
 
 ## How to resume
 
 1. Read this file.
-2. Read `.claude/sprints/S05p-phase1-polish/spec.md` for S05p scope.
-3. Create `.claude/sprints/S05p-phase1-polish/plan.md` and start at Task 0 (Spec Lock).
-4. Update the `## CURRENT STATUS` block in the sprint plan as you go.
-5. Update this file before ending the session.
+2. Read `.claude/sprints/S05p-phase1-polish/plan.md` for implemented scope and manual smoke list.
+3. Run the S05p manual smoke test on a Dynamic Island-capable device/simulator.
+4. Confirm `Package.resolved` remains present before commit.
+5. Update GYMTRACK.md and this file before ending the next session.

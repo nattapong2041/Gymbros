@@ -34,8 +34,18 @@ struct SessionDetailView: View {
             case .success(let data):
                 List {
                     Section {
-                        Text(durationText(for: data.session))
+                        Button {
+                            viewModel.isEditingDuration = true
+                        } label: {
+                            HStack {
+                                Text("session.duration.edit")
+                                Spacer()
+                                Text(durationText(for: data.session))
+                                    .foregroundStyle(.secondary)
+                            }
                             .font(.subheadline)
+                        }
+                        .buttonStyle(.plain)
                     }
 
                     ForEach(exerciseGroups(from: data), id: \.id) { group in
@@ -55,6 +65,13 @@ struct SessionDetailView: View {
                 }
                 .navigationTitle(data.session.startedAt.workoutDisplayString)
                 .navigationBarTitleDisplayMode(.inline)
+                .toolbar {
+                    ToolbarItem(placement: .topBarTrailing) {
+                        Button("session.duration.edit.short") {
+                            viewModel.isEditingDuration = true
+                        }
+                    }
+                }
             }
         }
         .sheet(item: Binding(
@@ -64,6 +81,16 @@ struct SessionDetailView: View {
             EditSetSheet(set: set, viewModel: viewModel)
                 .presentationDetents([.medium])
                 .presentationDragIndicator(.visible)
+        }
+        .sheet(isPresented: Binding(
+            get: { viewModel.isEditingDuration },
+            set: { viewModel.isEditingDuration = $0 }
+        )) {
+            if let session = viewModel.state.value?.session {
+                EditDurationSheet(session: session, viewModel: viewModel)
+                    .presentationDetents([.medium])
+                    .presentationDragIndicator(.visible)
+            }
         }
         .transientErrorAlert(error: Binding(
             get: { viewModel.transientError },
@@ -84,7 +111,7 @@ struct SessionDetailView: View {
 
     private func durationMinutes(for session: WorkoutSession) -> Int {
         guard let duration = session.duration else { return 0 }
-        return max(1, Int(duration / 60))
+        return max(1, Int((duration / 60).rounded()))
     }
 
     private func exerciseGroups(from data: SessionDetailData) -> [SessionExerciseSetGroup] {
@@ -102,6 +129,65 @@ struct SessionDetailView: View {
                 }
                 return lhsFirstSet.completedAt < rhsFirstSet.completedAt
             }
+    }
+}
+
+private struct EditDurationSheet: View {
+    let session: WorkoutSession
+    let viewModel: SessionDetailViewModel
+
+    @State private var minutesText: String
+    @Environment(\.dismiss) private var dismiss
+
+    init(session: WorkoutSession, viewModel: SessionDetailViewModel) {
+        self.session = session
+        self.viewModel = viewModel
+        _minutesText = State(initialValue: "\(Self.durationMinutes(for: session))")
+    }
+
+    var body: some View {
+        NavigationStack {
+            Form {
+                Section {
+                    HStack {
+                        Text("session.duration.minutes")
+                        Spacer()
+                        TextField("0", text: $minutesText)
+                            .keyboardType(.numberPad)
+                            .multilineTextAlignment(.trailing)
+                    }
+                } footer: {
+                    Text("session.duration.edit.help")
+                }
+            }
+            .scrollDismissesKeyboard(.interactively)
+            .dismissKeyboardOnTap()
+            .navigationTitle("session.duration.edit.title")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("common.cancel") { dismiss() }
+                }
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("common.save") {
+                        guard let minutes else { return }
+                        Task { await viewModel.updateDuration(minutes: minutes) }
+                    }
+                    .disabled(minutes == nil)
+                }
+            }
+        }
+    }
+
+    private var minutes: Int? {
+        let trimmed = minutesText.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard let value = Int(trimmed), value >= 1, value <= 24 * 60 else { return nil }
+        return value
+    }
+
+    private static func durationMinutes(for session: WorkoutSession) -> Int {
+        guard let duration = session.duration else { return 1 }
+        return max(1, Int((duration / 60).rounded()))
     }
 }
 

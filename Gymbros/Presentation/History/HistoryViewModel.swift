@@ -53,6 +53,23 @@ final class HistoryViewModel {
             }
         }
     }
+
+    func deleteSession(_ session: WorkoutSession) async {
+        logger.debug("Deleting session: \(session.id.uuidString)")
+        transientError = nil
+
+        do {
+            try await workoutRepository.deleteSession(id: session.id)
+
+            guard case .success(var data) = state else { return }
+            data.sessions.removeAll { $0.id == session.id }
+            state = data.sessions.isEmpty ? .empty : .success(data)
+        } catch {
+            let appError = ProgramViewModelSupport.appError(error, operation: "deleteWorkoutSession")
+            logger.error("Delete failed: \(String(describing: appError))")
+            transientError = appError.isVisibleToUser ? appError : nil
+        }
+    }
 }
 
 #if DEBUG

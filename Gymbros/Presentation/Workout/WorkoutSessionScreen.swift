@@ -2,6 +2,7 @@ import SwiftUI
 
 struct WorkoutSessionScreen: View {
     let programDayId: UUID
+    var initialProgramExerciseId: UUID?
 
     @Environment(\.dismiss) private var dismiss
     @Environment(AppPreferences.self) private var appPreferences
@@ -12,6 +13,7 @@ struct WorkoutSessionScreen: View {
         WorkoutSessionView(
             state: viewModel.state,
             activeTimer: viewModel.activeTimer,
+            lastSessionReferences: viewModel.lastSessionReferences,
             isFinishing: viewModel.isFinishing,
             pendingRestore: viewModel.pendingRestore != nil,
             currentExerciseIndex: currentExerciseIndex,
@@ -49,6 +51,9 @@ struct WorkoutSessionScreen: View {
             onSkipTimer: {
                 viewModel.stopRestTimer()
             },
+            onTimerComplete: {
+                Task { await viewModel.markRestTimerComplete() }
+            },
             onRestore: {
                 Task { await restoreWorkout() }
             },
@@ -82,11 +87,13 @@ struct WorkoutSessionScreen: View {
 
     private func startWorkout() async {
         await viewModel.start(programDayId: programDayId)
+        moveToInitialExerciseIfNeeded()
     }
 
     private func restoreWorkout() async {
         guard let snapshot = viewModel.pendingRestore else { return }
         await viewModel.restore(snapshot)
+        moveToInitialExerciseIfNeeded()
     }
 
     private func discardAndStartWorkout() async {
@@ -100,5 +107,14 @@ struct WorkoutSessionScreen: View {
         if viewModel.state.value?.session.endedAt != nil {
             dismiss()
         }
+    }
+
+    private func moveToInitialExerciseIfNeeded() {
+        guard let initialProgramExerciseId,
+              let sections = viewModel.state.value?.exerciseSections,
+              let index = sections.firstIndex(where: { $0.programExercise.id == initialProgramExerciseId }) else {
+            return
+        }
+        viewModel.goToExercise(index: index)
     }
 }

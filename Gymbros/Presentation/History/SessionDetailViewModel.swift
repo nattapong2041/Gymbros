@@ -17,6 +17,7 @@ final class SessionDetailViewModel {
     var state: ViewState<SessionDetailData> = .idle
     var transientError: AppError?
     var editingSet: WorkoutSet?
+    var isEditingDuration = false
 
     private let workoutRepository: WorkoutRepositoryProviding
     private let exerciseRepository: ExerciseRepositoryProviding
@@ -47,6 +48,24 @@ final class SessionDetailViewModel {
         } catch {
             let appError = ProgramViewModelSupport.appError(error, operation: "updateSessionSet")
             logger.error("updateSet failed: \(String(describing: appError))")
+            transientError = appError
+        }
+    }
+
+    func updateDuration(minutes: Int) async {
+        guard minutes >= 1, case var .success(data) = state else { return }
+        let endedAt = data.session.startedAt.addingTimeInterval(TimeInterval(minutes * 60))
+        do {
+            let updated = try await workoutRepository.updateSessionEndedAt(
+                sessionId: data.session.id,
+                endedAt: endedAt
+            )
+            data.session = updated
+            state = .success(data)
+            isEditingDuration = false
+        } catch {
+            let appError = ProgramViewModelSupport.appError(error, operation: "updateSessionDuration")
+            logger.error("updateDuration failed: \(String(describing: appError))")
             transientError = appError
         }
     }

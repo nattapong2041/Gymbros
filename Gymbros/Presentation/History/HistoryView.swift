@@ -2,6 +2,7 @@ import SwiftUI
 
 struct HistoryView: View {
     @State var viewModel: HistoryViewModel
+    @State private var sessionToDelete: WorkoutSession?
     private let loadsOnAppear: Bool
 
     @MainActor
@@ -40,6 +41,14 @@ struct HistoryView: View {
                                 dayName: dayName(for: session, in: data)
                             )
                         }
+                        .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+                            Button(role: .destructive) {
+                                sessionToDelete = session
+                            } label: {
+                                Label("common.delete", systemImage: "trash")
+                            }
+                            .tint(.red)
+                        }
                     }
                 }
                 .refreshable {
@@ -60,6 +69,26 @@ struct HistoryView: View {
             }
         }
         .navigationTitle("history.title")
+        .alert(
+            "history.delete.confirmation.title",
+            isPresented: Binding(
+                get: { sessionToDelete != nil },
+                set: { if !$0 { sessionToDelete = nil } }
+            ),
+            presenting: sessionToDelete
+        ) { session in
+            Button("common.delete", role: .destructive) {
+                Task { await viewModel.deleteSession(session) }
+            }
+            .tint(.red)
+            Button("common.cancel", role: .cancel) {}
+        } message: { _ in
+            Text("history.delete.confirmation.message")
+        }
+        .transientErrorAlert(error: Binding(
+            get: { viewModel.transientError },
+            set: { viewModel.transientError = $0 }
+        ))
         .task {
             guard loadsOnAppear else { return }
             await viewModel.load()

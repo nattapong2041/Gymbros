@@ -3,13 +3,13 @@ import SwiftUI
 struct SetRowView: View {
     let state: WorkoutSetRowState
     var isReadOnly: Bool = false
+    var columns: WorkoutSetTableLayout.Columns = WorkoutSetTableLayout.columns(for: 0, isReadOnly: false)
     
     // Actions handed down from the parent view or VM
     var onUpdate: (String, String, Double?) -> Void
     var onComplete: () -> Void
     var onDelete: () -> Void
 
-    @Environment(AppPreferences.self) private var appPreferences
     @State private var weightText: String
     @State private var repsText: String
     @State private var rpe: Double?
@@ -19,12 +19,14 @@ struct SetRowView: View {
     init(
         state: WorkoutSetRowState,
         isReadOnly: Bool = false,
+        columns: WorkoutSetTableLayout.Columns = WorkoutSetTableLayout.columns(for: 0, isReadOnly: false),
         onUpdate: @escaping (String, String, Double?) -> Void,
         onComplete: @escaping () -> Void,
         onDelete: @escaping () -> Void
     ) {
         self.state = state
         self.isReadOnly = isReadOnly
+        self.columns = columns
         self.onUpdate = onUpdate
         self.onComplete = onComplete
         self.onDelete = onDelete
@@ -34,13 +36,13 @@ struct SetRowView: View {
     }
     
     var body: some View {
-        HStack(spacing: 12) {
+        HStack(spacing: WorkoutSetTableLayout.spacing) {
             // Set Number
             Text("\(state.setNumber)")
                 .font(.system(.subheadline, design: .rounded))
                 .fontWeight(.bold)
                 .foregroundStyle(.secondary)
-                .frame(width: 24)
+                .frame(width: columns.set)
             
             // Weight Input
             VStack(alignment: .leading, spacing: 4) {
@@ -56,12 +58,8 @@ struct SetRowView: View {
                 .padding(.vertical, 12) // Increased padding for 48pt target
                 .background(Color(.secondarySystemBackground))
                 .clipShape(RoundedRectangle(cornerRadius: 8))
-                .frame(minWidth: 64, minHeight: 48) // Mandated 48pt tap target
+                .frame(width: columns.weight, height: 48) // Mandated 48pt tap target
                 .disabled(isReadOnly)
-
-                Text(verbatim: appPreferences.weightUnit.localizedAbbreviation)
-                    .font(.caption2)
-                    .foregroundStyle(.secondary)
             }
             
             // Reps Input
@@ -78,7 +76,7 @@ struct SetRowView: View {
                 .padding(.vertical, 12) // Increased padding for 48pt target
                 .background(Color(.secondarySystemBackground))
                 .clipShape(RoundedRectangle(cornerRadius: 8))
-                .frame(minWidth: 64, minHeight: 48) // Mandated 48pt tap target
+                .frame(width: columns.reps, height: 48) // Mandated 48pt tap target
                 .disabled(isReadOnly)
             }
             
@@ -100,23 +98,21 @@ struct SetRowView: View {
                 Text(rpe.map { String(format: "%.1f", $0) } ?? String(localized: "workout.set.rpe"))
                     .font(.system(.caption, design: .rounded).bold())
                     .foregroundStyle(rpe != nil ? .primary : .secondary)
-                    .frame(minWidth: 48, minHeight: 48) // Mandated 48pt tap target
+                    .frame(width: columns.rpe, height: 48) // Mandated 48pt tap target
                     .background(Color(.secondarySystemBackground))
                     .clipShape(RoundedRectangle(cornerRadius: 8))
             }
             .disabled(isReadOnly)
             .contentShape(Rectangle()) // Ensure entire area is tappable
-            
-            Spacer(minLength: 0)
-            
+
             // Completion
-            HStack(spacing: 8) {
-                if !isReadOnly {
+            HStack(spacing: WorkoutSetTableLayout.actionSpacing) {
+                if !isReadOnly, columns.showsInlineDelete {
                     Button(role: .destructive, action: onDelete) {
                         Label("workout.set.delete", systemImage: "trash")
                             .labelStyle(.iconOnly)
                             .font(.system(size: 20))
-                            .frame(width: 48, height: 48) // Mandated 48pt tap target
+                            .frame(width: WorkoutSetTableLayout.minimumTapTarget, height: 48) // Mandated 48pt tap target
                     }
                 }
 
@@ -125,11 +121,12 @@ struct SetRowView: View {
                         .labelStyle(.iconOnly)
                         .font(.system(size: 28))
                         .foregroundStyle(state.isCompleted ? .green : .secondary)
-                        .frame(width: 48, height: 48) // HIG 48pt tap target
+                        .frame(width: WorkoutSetTableLayout.minimumTapTarget, height: 48) // HIG 48pt tap target
                         .contentShape(Rectangle())
                 }
                 .disabled(isReadOnly)
             }
+            .frame(width: columns.actions, alignment: .trailing)
         }
         .padding(.vertical, 4)
         .swipeActions(edge: .trailing, allowsFullSwipe: true) {
@@ -161,6 +158,7 @@ struct SetRowView: View {
             guard rpe != newValue else { return }
             rpe = newValue
         }
+        .dismissKeyboardOnTap()
     }
     
 }

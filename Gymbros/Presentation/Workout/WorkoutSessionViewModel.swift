@@ -12,11 +12,15 @@ final class WorkoutSessionViewModel {
     var activeTimer: RestTimerState?
     var isFinishing = false
     var pendingRestore: ActiveSessionSnapshot?
+    var lastSessionReferences: [UUID: LastSessionReference] = [:]
 
     private let workoutRepository: WorkoutRepositoryProviding
     private let programRepository: ProgramRepositoryProviding
     private let exerciseRepository: ExerciseRepositoryProviding
     private let backupRepository: ActiveSessionBackupRepositoryProviding
+    private let restTimerScheduler: RestTimerScheduling
+    private let liveActivityController: RestTimerLiveActivityControlling
+    private let lastSessionLookupService: LastSessionLookupService
     private let now: () -> Date
     private var weightUnit: WeightUnit
 
@@ -25,6 +29,9 @@ final class WorkoutSessionViewModel {
         programRepository: ProgramRepositoryProviding? = nil,
         exerciseRepository: ExerciseRepositoryProviding? = nil,
         backupRepository: ActiveSessionBackupRepositoryProviding? = nil,
+        restTimerScheduler: RestTimerScheduling? = nil,
+        liveActivityController: RestTimerLiveActivityControlling? = nil,
+        lastSessionLookupService: LastSessionLookupService = LastSessionLookupService(),
         weightUnit: WeightUnit = .kg,
         now: @escaping () -> Date = Date.init
     ) {
@@ -32,6 +39,9 @@ final class WorkoutSessionViewModel {
         self.programRepository = programRepository ?? ProgramRepository()
         self.exerciseRepository = exerciseRepository ?? ExerciseRepository()
         self.backupRepository = backupRepository ?? ActiveSessionBackupRepository()
+        self.restTimerScheduler = restTimerScheduler ?? RestTimerNotificationScheduler()
+        self.liveActivityController = liveActivityController ?? RestTimerLiveActivityController()
+        self.lastSessionLookupService = lastSessionLookupService
         self.weightUnit = weightUnit
         self.now = now
     }
@@ -80,6 +90,7 @@ final class WorkoutSessionViewModel {
                 finishedExerciseIds: [],
                 defaultWeights: defaultWeights
             )
+            await buildLastSessionReferences()
             saveBackup()
         } catch {
             let appError = appError(error, operation: "startWorkoutSession")
@@ -113,6 +124,7 @@ final class WorkoutSessionViewModel {
             finishedExerciseIds: finishedExerciseIds,
             defaultWeights: defaultWeights
         )
+        await buildLastSessionReferences()
         moveToFirstUnfinishedExercise()
         saveBackup()
     }
@@ -139,6 +151,7 @@ final class WorkoutSessionViewModel {
         let oldUnit = weightUnit
         guard oldUnit != unit else { return }
         weightUnit = unit
+        convertLastSessionReferences(from: oldUnit, to: unit)
 
         guard case var .success(data) = state else { return }
         for sectionIndex in data.exerciseSections.indices {
@@ -166,7 +179,7 @@ final class WorkoutSessionViewModel {
 
         markSetCompletedAndCarryForward(setId: setId, sourceRow: row)
         if let targetRestSeconds = row.targetRestSeconds, targetRestSeconds > 0 {
-            startRestTimer(seconds: targetRestSeconds, sourceSetId: setId)
+            await startRestTimer(seconds: targetRestSeconds, sourceSetId: setId)
         }
     }
 
@@ -246,20 +259,46 @@ final class WorkoutSessionViewModel {
         saveBackup()
     }
 
-    func startRestTimer(seconds: Int, sourceSetId: UUID) {
+    func startRestTimer(seconds: Int, sourceSetId: UUID) async {
         let startedAt = now()
-        activeTimer = RestTimerState(
+        let timer = RestTimerState(
             sourceSetId: sourceSetId,
             targetSeconds: seconds,
             startedAt: startedAt,
             endsAt: startedAt.addingTimeInterval(TimeInterval(seconds))
         )
+        activeTimer = timer
         saveBackup()
+
+        let context = restTimerContext(sourceSetId: sourceSetId)
+        await restTimerScheduler.requestAuthorizationIfNeeded()
+        await restTimerScheduler.schedule(
+            after: TimeInterval(seconds),
+            sessionId: context.sessionId,
+            programDayId: context.programDayId,
+            programExerciseId: context.programExerciseId
+        )
+        await liveActivityController.start(
+            state: timer,
+            sessionId: context.sessionId,
+            programDayId: context.programDayId,
+            programExerciseId: context.programExerciseId,
+            exerciseName: context.exerciseName
+        )
     }
 
     func stopRestTimer() {
+        if let activeTimer {
+            let context = restTimerContext(sourceSetId: activeTimer.sourceSetId)
+            restTimerScheduler.cancel(sessionId: context.sessionId)
+        }
         activeTimer = nil
         saveBackup()
+        Task { await liveActivityController.end() }
+    }
+
+    func markRestTimerComplete() async {
+        await liveActivityController.markComplete()
     }
 
     func finishSession() async {
@@ -304,6 +343,8 @@ final class WorkoutSessionViewModel {
             workoutLogger.debug("finishSession: completeSession succeeded")
             backupRepository.clearBackup()
             activeTimer = nil
+            restTimerScheduler.cancelAll()
+            await liveActivityController.end()
             updateSessionEndedAt(now())
         } catch {
             let mapped = appError(error, operation: "finishWorkoutSession")
@@ -356,6 +397,36 @@ final class WorkoutSessionViewModel {
             }
         }
         return defaultWeights
+    }
+
+    private func buildLastSessionReferences() async {
+        guard case let .success(data) = state else { return }
+
+        do {
+            let history = try await workoutRepository.fetchHistory(limit: 10)
+            var setsBySessionId: [UUID: [WorkoutSet]] = [:]
+            for session in history {
+                setsBySessionId[session.id] = try await workoutRepository.fetchSets(sessionId: session.id)
+            }
+
+            var references: [UUID: LastSessionReference] = [:]
+            for section in data.exerciseSections {
+                if let reference = lastSessionLookupService.reference(
+                    for: section.programExercise.id,
+                    exerciseId: section.programExercise.exerciseId,
+                    in: history,
+                    sets: setsBySessionId,
+                    unit: weightUnit
+                ) {
+                    references[section.programExercise.id] = reference
+                }
+            }
+            lastSessionReferences = references
+        } catch {
+            let mapped = appError(error, operation: "buildLastSessionReferences")
+            workoutLogger.debug("Failed to build last-session references: \(String(describing: mapped))")
+            lastSessionReferences = [:]
+        }
     }
 
     private func upload(_ set: WorkoutSet) async throws {
@@ -461,6 +532,46 @@ final class WorkoutSessionViewModel {
         if case .failure(let error) = backupRepository.saveBackup(snapshot) {
             workoutLogger.error("Failed to save active session backup: \(String(describing: error))")
             transientError = error.visibleOrNil
+        }
+    }
+
+    private func restTimerContext(sourceSetId: UUID) -> (
+        sessionId: UUID,
+        programDayId: UUID?,
+        programExerciseId: UUID?,
+        exerciseName: String
+    ) {
+        guard case let .success(data) = state else {
+            return (UUID(), nil, nil, String(localized: "workout.timer.rest"))
+        }
+
+        for section in data.exerciseSections where section.sets.contains(where: { $0.id == sourceSetId }) {
+            return (
+                data.session.id,
+                data.session.programDayId,
+                section.programExercise.id,
+                section.exercise?.name ?? String(localized: "workout.exercise.unknownExercise")
+            )
+        }
+
+        return (
+            data.session.id,
+            data.session.programDayId,
+            nil,
+            String(localized: "workout.timer.rest")
+        )
+    }
+
+    private func convertLastSessionReferences(from oldUnit: WeightUnit, to newUnit: WeightUnit) {
+        guard oldUnit != newUnit else { return }
+        lastSessionReferences = lastSessionReferences.mapValues { reference in
+            var updated = reference
+            if let weight = reference.weight {
+                let kilograms = oldUnit.kilograms(fromDisplayValue: weight)
+                updated.weight = newUnit.displayValue(fromKilograms: kilograms)
+            }
+            updated.unit = newUnit
+            return updated
         }
     }
 

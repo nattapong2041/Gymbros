@@ -4,6 +4,7 @@ struct RootView: View {
     @Environment(\.scenePhase) private var scenePhase
     @State private var auth: AuthService
     @State private var appPreferences: AppPreferences
+    @State private var deepLinkCoordinator = DeepLinkCoordinator.shared
 
     @MainActor
     init(auth: AuthService? = nil, appPreferences: AppPreferences? = nil) {
@@ -18,7 +19,13 @@ struct RootView: View {
             if auth.isAuthenticated {
                 TabView(selection: $selectedTab) {
                     NavigationStack {
-                        TodayView(onShowPrograms: { selectedTab = 1 })
+                        TodayView(
+                            deepLinkedWorkoutRoute: Binding(
+                                get: { deepLinkCoordinator.pendingWorkoutRoute },
+                                set: { deepLinkCoordinator.pendingWorkoutRoute = $0 }
+                            ),
+                            onShowPrograms: { selectedTab = 1 }
+                        )
                     }
                     .tabItem {
                         Label("today.title", systemImage: "house")
@@ -54,6 +61,7 @@ struct RootView: View {
             }
         }
         .environment(appPreferences)
+        .dismissKeyboardOnTap()
         .task {
             await auth.loadCurrentSession()
             await refreshPreferencesIfAuthenticated()
@@ -67,6 +75,13 @@ struct RootView: View {
         }
         .onChange(of: auth.isAuthenticated) { _, _ in
             Task { await refreshPreferencesIfAuthenticated() }
+        }
+        .onChange(of: deepLinkCoordinator.pendingWorkoutRoute) { _, route in
+            guard route != nil else { return }
+            selectedTab = 0
+        }
+        .onOpenURL { url in
+            deepLinkCoordinator.handle(url)
         }
     }
 

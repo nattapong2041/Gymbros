@@ -7,7 +7,9 @@ protocol WorkoutRepositoryProviding {
     func uploadSet(_ set: WorkoutSet) async throws -> WorkoutSet
     func updateSet(_ set: WorkoutSet) async throws -> WorkoutSet
     func deleteSet(id: UUID) async throws
+    func deleteSession(id: UUID) async throws
     func completeSession(_ sessionId: UUID, endedAt: Date) async throws
+    func updateSessionEndedAt(sessionId: UUID, endedAt: Date) async throws -> WorkoutSession
     func fetchLastLoggedSet(exerciseId: UUID, before: Date) async throws -> WorkoutSet?
     func fetchHistory(limit: Int) async throws -> [WorkoutSession]
     func fetchSets(sessionId: UUID) async throws -> [WorkoutSet]
@@ -97,6 +99,18 @@ final class WorkoutRepository: WorkoutRepositoryProviding {
         }
     }
 
+    func deleteSession(id: UUID) async throws {
+        do {
+            try await client
+                .from("workout_sessions")
+                .delete()
+                .eq("id", value: id)
+                .execute()
+        } catch {
+            throw ErrorMapper.map(error, context: .init(operation: "deleteWorkoutSession", table: "workout_sessions"))
+        }
+    }
+
     func completeSession(_ sessionId: UUID, endedAt: Date) async throws {
         do {
             try await client
@@ -109,6 +123,22 @@ final class WorkoutRepository: WorkoutRepositoryProviding {
                 .execute()
         } catch {
             throw ErrorMapper.map(error, context: .init(operation: "completeWorkoutSession", table: "workout_sessions"))
+        }
+    }
+
+    func updateSessionEndedAt(sessionId: UUID, endedAt: Date) async throws -> WorkoutSession {
+        do {
+            let updated: WorkoutSession = try await client
+                .from("workout_sessions")
+                .update(WorkoutSessionCompletionPayload(endedAt: endedAt))
+                .eq("id", value: sessionId)
+                .select()
+                .single()
+                .execute()
+                .value
+            return updated
+        } catch {
+            throw ErrorMapper.map(error, context: .init(operation: "updateWorkoutSessionEndedAt", table: "workout_sessions"))
         }
     }
 
