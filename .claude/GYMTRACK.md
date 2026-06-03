@@ -1139,24 +1139,29 @@ Sprint 3 scope: only carry actual weight/reps forward within an exercise (set N 
 ### Smart Session Advisor
 
 ```text
-0–2 days:
-  continue normally
-
-3–6 days:
-  reschedule missed days, pick up where left off
+0–6 days:
+  continue normally / reschedule missed days, pick up where left off
 
 7–13 days:
-  comeback: -10% weight, -1 set, target easy/controlled
+  normal/reschedule — strength is intact this soon; NO weight cut
+  (short-layoff detraining research: max strength holds ~2 weeks)
 
 14–20 days:
-  comeback: -20% weight, -1 set
+  comeback: -10% weight, -1 set, target easy/controlled
 
 21–41 days:
-  comeback: -30% weight, ramp 10%/session
+  comeback: -20% weight, -1 set, ramp 10%/session
 
 42+ days:
-  near-restart: -50% weight, slower ramp
+  near-restart: -40% weight, slower ramp
 ```
+
+Comeback is a PERSISTENT, per-exercise, session-by-session ramp — not a flat
+reduced week. The day-gap sizes only the FIRST session's drop; comeback mode
+then stays active across sessions until each exercise climbs back to its
+pre-gap baseline (or a bounded exit at 4 post-gap sessions). See
+`.claude/sprints/S06-next-best-session/spec.md` §2.1 #3/#8/#9 and §2.2 for the
+state machine and detraining research basis.
 
 Copy rule: never say “you failed” or “you missed too much.” Use “welcome back” and “today’s adjusted session.”
 
