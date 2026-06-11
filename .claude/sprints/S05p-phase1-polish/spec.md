@@ -15,6 +15,8 @@
 
 **Dependencies:** Sprints S01–S05 complete. Reuses `WorkoutRepository.fetchHistory` / `fetchSets`, `RestTimerRingView`, the existing `WorkoutSessionViewModel`, and the `AppError` / `ViewState` pipeline.
 
+**Follow-up scope added 2026-06-03:** Upgrade the local ActivityKit surface from rest-only to whole-workout. The Live Activity starts when a workout starts or restores, stays visible until finish/discard, shows elapsed workout time, and switches between active set, rest countdown, and ready-for-next-set states. Dynamic Island shows the rest countdown while resting and a clear ready/work icon when rest completes. Sound remains a local-notification responsibility because Live Activities cannot play sounds. Leaving the workout screen through app navigation now keeps the workout active and shows a persistent in-app bottom resume widget across the tab shell.
+
 ---
 
 ## 1. Requirements
@@ -31,6 +33,33 @@
     Cancel and reschedule when the timer is stopped or restarted.
     Fire default notification sound + localized title/body.
     Cancel all pending rest notifications when the session finishes.
+
+☐ Workout Live Activity — whole session
+    Start a local ActivityKit Live Activity when a workout starts or restores.
+    Keep it active until the workout finishes or the user discards the restore.
+    Always show elapsed workout time based on WorkoutSession.startedAt.
+    Active phase shows current exercise, next incomplete set number, and draft
+    reps if entered, otherwise the target rep range.
+    Resting phase shows countdown time and next work context.
+    Ready phase shows a clear ready/work icon plus next exercise/set/reps.
+    Dynamic Island compact/expanded surfaces show countdown while resting and
+    ready/work affordance when rest completes.
+    Lock Screen Live Activity shows three stable content lines:
+    workout status, workout name, and weight/set/reps.
+    Live Activity/deep link opens Today -> active workout exercise page.
+
+☐ Persistent in-app active-workout widget
+    Leaving the workout screen through app navigation saves the active-session
+    backup and returns without ending Live Activity/Dynamic Island.
+    Authenticated tab screens show a persistent floating bottom widget while an
+    active backup exists and the workout screen is not currently visible.
+    Widget uses a compact two-line pill: status/time, then current/next
+    exercise name.
+    Left control and center content route back to Today -> active workout
+    exercise page.
+    Right red trash control asks for confirmation, then hides the widget, ends
+    Live Activity/Dynamic Island, cancels rest notifications, and preserves the
+    local active-session backup for resume.
 
 ☐ Rest timer — notification permission
     Request [.alert, .sound] contextually: the first time a rest timer fires
@@ -62,7 +91,9 @@
 ### Out of Scope
 
 ```text
-✗ watchOS / Live Activity rest-timer surfaces (Sprint 13)
+✗ watchOS workout surfaces (Sprint 13)
+✗ APNs ActivityKit push updates; this sprint is local-only ActivityKit
+✗ Custom notification sounds; use iOS default notification sound
 ✗ Notification preferences toggle in Settings (Sprint 7+ smart notifications)
 ✗ Cross-session progression suggestions (Sprint 6 Smart Comeback)
 ✗ Editing past sets from inside the logger (History edit sheet, Sprint 4/5)

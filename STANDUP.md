@@ -4,13 +4,13 @@
 
 ---
 
-**Last updated:** 2026-06-01 | HEAD `970d8d5` | Branch `main`
+**Last updated:** 2026-06-11 | HEAD `51140ea` | Branch `main`
 
 ---
 
 ## Where we are
 
-Phase 1 ("Real Life Works") is ~95% done — Sprints 1–5 complete and S05p implemented with follow-up fixes. S05p needs a real-device/manual smoke re-test for rest notification fire/tap-back, global keyboard dismissal, mixed-load last-session row copy, responsive table column alignment on iPhone/iPad, timer Ready state, and History duration editing before TestFlight.
+Phase 1 ("Real Life Works") is ready for S05p commit/release prep — Sprints 1–5 complete and S05p implemented with follow-up fixes. Manual smoke passed for rest notification fire/tap-back, whole-workout Live Activity/Dynamic Island states, persistent in-app workout resume widget, global keyboard dismissal, mixed-load last-session row copy, responsive table column alignment on iPhone/iPad, timer Ready state, and History duration editing. Final post-smoke string/plist/diff checks, full tests, and build passed on 2026-06-11.
 
 | Sprint | Name | Status |
 |--------|------|--------|
@@ -19,12 +19,67 @@ Phase 1 ("Real Life Works") is ~95% done — Sprints 1–5 complete and S05p imp
 | S03 | Logger + Timer | complete |
 | S04 | Today + History + Navigation + Anti-Guilt UX | complete |
 | S05 | Settings | complete |
-| **S05p** | **Phase 1 Polish** | **implemented, manual smoke next** |
+| **S05p** | **Phase 1 Polish** | **implemented, manual smoke passed** |
 | S06 | Next Best Session v1 / Smart Comeback | planned |
 
 ---
 
 ## Last session did
+
+- Marked S05p manual smoke as passed after user verification:
+  - Rest notification fires after backgrounding during rest, and notification tap-back opens the active exercise page.
+  - Whole-workout Live Activity appears on workout start/restore, shows elapsed time, switches to rest countdown, and shows Ready/Go state after rest completes.
+  - Persistent in-app bottom workout widget remains visible across tabs, resumes the active exercise page, floats above the tab/navigation bar without blocking controls, and supports cancel/confirm stop behavior while preserving the resumable backup.
+  - Last-session mixed-load rows, responsive workout table columns, global keyboard dismissal, timer Ready state, and History duration editing passed manual smoke.
+  - Verified final post-smoke checks:
+    `jq empty Gymbros/Resources/Localizable.xcstrings`
+    `jq empty GymbrosWidgets/Localizable.xcstrings`
+    `plutil -lint Gymbros/Info.plist`
+    `plutil -lint GymbrosWidgets/Info.plist`
+    `git diff --check`
+    `xcodebuild test -project Gymbros.xcodeproj -scheme Gymbros -destination 'platform=iOS Simulator,name=iPhone 17e'`
+    `xcodebuild -project Gymbros.xcodeproj -scheme Gymbros -destination 'platform=iOS Simulator,name=iPhone 17e' build`
+  - Next up: commit S05p, then start Sprint 6 planning.
+
+- Implemented S05p follow-up replacing workout exit confirmation with a persistent in-app resume widget:
+  - Lock Screen Live Activity now presents three stable content lines: workout status, workout name, and weight/set/reps.
+  - Activity state now carries `workoutName` and per-row `weightText`, so the widget can render the workout name separately from the prescription.
+  - Back from `WorkoutSessionScreen` now saves the active-session backup and dismisses without ending Live Activity/Dynamic Island or cancelling rest notifications.
+  - Root tab screens now show a persistent bottom active-workout widget while a resumable backup exists and the workout screen is not visible.
+  - The bottom widget now matches the Hevy-style reference as a compact two-line floating pill above the tab/navigation bar.
+  - The pill now uses SwiftUI Liquid Glass on iOS 26 with a system-material fallback, semantic colors, SF Symbols, and standard fonts; visible copy is status/time plus exercise name.
+  - The pill is now a bottom overlay with no explicit shadow and a visual upward offset, so it floats above the tab bar without adding a transparent hit-test area over tab labels/buttons.
+  - Left/center tap routes through the existing Today workout deep link to resume the active workout exercise page.
+  - Right red trash shows a localized confirmation; confirm hides the widget, cancels rest notifications, ends Live Activity/Dynamic Island, and keeps the active backup resumable.
+  - Added Thai and English copy for the bottom widget stop flow and focused test coverage for compact status + suppression behavior.
+  - Verified:
+    `jq empty Gymbros/Resources/Localizable.xcstrings`
+    `jq empty GymbrosWidgets/Localizable.xcstrings`
+    `git diff --check`
+    `xcodebuild test -project Gymbros.xcodeproj -scheme Gymbros -destination 'platform=iOS Simulator,name=iPhone 17e' -only-testing:GymbrosTests/WorkoutSessionViewModelTests -only-testing:GymbrosTests/ActiveSessionBackupTests`
+    `xcodebuild -project Gymbros.xcodeproj -scheme Gymbros -destination 'platform=iOS Simulator,name=iPhone 17e' build`
+    Latest Liquid Glass / above-tab-bar placement check:
+    `jq empty Gymbros/Resources/Localizable.xcstrings`
+    `git diff --check`
+    `xcodebuild -project Gymbros.xcodeproj -scheme Gymbros -destination 'platform=iOS Simulator,name=iPhone 17e' build`
+
+- Implemented S05p whole-workout Live Activity follow-up:
+  - Expanded the ActivityKit payload from rest-only timer fields to full workout state: active/resting/ready phase, `workoutStartedAt`, current work, next work, and rest countdown dates.
+  - Live Activity now starts on workout start/restore, updates on draft reps, set completion, rest start, rest completion, stop/skip rest, page changes, exercise finish, and ends on workout finish/discard.
+  - Lock Screen/Dynamic Island show elapsed workout time, current or next exercise, set/reps, rest countdown while resting, and a ready/work icon + copy when rest completes.
+  - Dynamic Island tap-back still uses the existing workout deep link, now using the mutable current/next `programExerciseId` from Activity state.
+  - Rest-complete notification sound remains the default iOS notification sound; tests assert `.sound` authorization and non-nil notification sound.
+  - Added Thai and English app/widget copy for Live Activity workout/reps/elapsed/work summary labels.
+  - Updated S05p `spec.md` and `plan.md` with the new follow-up scope and verification.
+  - Verified:
+    `plutil -lint Gymbros/Info.plist`
+    `plutil -lint GymbrosWidgets/Info.plist`
+    `jq empty Gymbros/Resources/Localizable.xcstrings`
+    `jq empty GymbrosWidgets/Localizable.xcstrings`
+    `git diff --check`
+    `xcodebuild test -project Gymbros.xcodeproj -scheme Gymbros -destination 'platform=iOS Simulator,name=iPhone 17e' -only-testing:GymbrosTests/RestTimerNotificationSchedulerTests -only-testing:GymbrosTests/WorkoutSessionViewModelTests`
+    `xcodebuild test -project Gymbros.xcodeproj -scheme Gymbros -destination 'platform=iOS Simulator,name=iPhone 17e'`
+    `xcodebuild -project Gymbros.xcodeproj -scheme Gymbros -destination 'platform=iOS Simulator,name=iPhone 17e' build`
 
 - Fixed mixed-load last-session workout references:
   - `LastSessionReference` now preserves per-set weight/reps summaries instead of storing only the first weight and a reps list.
@@ -205,12 +260,15 @@ Phase 1 ("Real Life Works") is ~95% done — Sprints 1–5 complete and S05p imp
 
 Manual smoke test next:
 1. Dynamic Island/Lock Screen Live Activity on supported device/simulator.
-2. Tap Live Activity and local notification back to active exercise page.
-3. Rest timer reaches zero and changes to Ready/Go messaging instead of counting upward.
-4. Workout logger table header alignment in active and finished states on iPhone and iPad widths.
-5. History duration edit save/refresh behavior.
-6. Mixed-load last-session row copy, especially `59 × 10 -> 65 × 8 -> 65 × 5`.
-7. Light/dark visual sweep of workout logger table header, last-session row, rest timer, and program editor keyboard dismissal.
+2. Whole-workout Live Activity appears on workout start/restore and shows the three Lock Screen lines: status, workout name, and weight/set/reps.
+3. Dynamic Island shows rest countdown while resting and ready/work icon/copy when rest finishes.
+4. Back from workout returns to the app shell, keeps Live Activity/Dynamic Island running, and shows the persistent bottom resume widget across Today/Programs/History/Settings.
+5. Tap Live Activity and local notification back to active exercise page.
+6. Rest timer reaches zero and changes to Ready/Go messaging instead of counting upward.
+7. Workout logger table header alignment in active and finished states on iPhone and iPad widths.
+8. History duration edit save/refresh behavior.
+9. Mixed-load last-session row copy, especially `59 × 10 -> 65 × 8 -> 65 × 5`.
+10. Light/dark visual sweep of workout logger table header, last-session row, rest timer, and program editor keyboard dismissal.
 
 ---
 

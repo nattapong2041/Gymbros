@@ -76,6 +76,23 @@ struct WorkoutSessionScreen: View {
         .onChange(of: appPreferences.weightUnit) { _, newUnit in
             viewModel.updateWeightUnit(newUnit)
         }
+        .navigationBarBackButtonHidden(true)
+        .toolbar {
+            ToolbarItem(placement: .topBarLeading) {
+                Button {
+                    viewModel.prepareForScreenExit()
+                    dismiss()
+                } label: {
+                    Label("workout.leave.button", systemImage: "chevron.left")
+                }
+            }
+        }
+        .onAppear {
+            postWorkoutScreenVisibility(true)
+        }
+        .onDisappear {
+            postWorkoutScreenVisibility(false)
+        }
     }
 
     private var currentExerciseIndex: Binding<Int> {
@@ -116,5 +133,13 @@ struct WorkoutSessionScreen: View {
             return
         }
         viewModel.goToExercise(index: index)
+    }
+
+    private func postWorkoutScreenVisibility(_ isVisible: Bool) {
+        NotificationCenter.default.post(
+            name: .workoutSessionScreenVisibilityDidChange,
+            object: nil,
+            userInfo: [WorkoutSessionVisibilityNotification.isVisibleKey: isVisible]
+        )
     }
 }

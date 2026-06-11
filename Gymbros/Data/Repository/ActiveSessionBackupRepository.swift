@@ -20,10 +20,15 @@ final class ActiveSessionBackupRepository: ActiveSessionBackupRepositoryProvidin
     }
 
     func saveBackup(_ snapshot: ActiveSessionSnapshot) -> Result<Void, AppError> {
-        localStore.save(snapshot)
+        let result = localStore.save(snapshot)
+        if case .success = result {
+            NotificationCenter.default.post(name: .activeSessionBackupDidChange, object: nil)
+        }
+        return result
     }
 
     func clearBackup() {
         localStore.clear()
+        NotificationCenter.default.post(name: .activeSessionBackupDidChange, object: nil)
     }
 }

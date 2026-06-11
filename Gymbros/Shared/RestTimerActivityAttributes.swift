@@ -2,19 +2,43 @@ import ActivityKit
 import Foundation
 
 struct RestTimerActivityAttributes: ActivityAttributes {
+    enum Phase: String, Codable, Hashable {
+        case active
+        case resting
+        case ready
+    }
+
+    struct WorkState: Codable, Hashable {
+        var programExerciseId: UUID?
+        var exerciseName: String
+        var weightText: String?
+        var setNumber: Int
+        var totalSets: Int
+        var repsText: String
+    }
+
     struct ContentState: Codable, Hashable {
-        var startedAt: Date
-        var endsAt: Date
-        var remainingSeconds: Int
-        var isComplete: Bool
+        var phase: Phase
+        var workoutName: String
+        var workoutStartedAt: Date
+        var currentWork: WorkState?
+        var nextWork: WorkState?
+        var restStartedAt: Date?
+        var restEndsAt: Date?
+
+        var displayWork: WorkState? {
+            nextWork ?? currentWork
+        }
+
+        var deepLinkProgramExerciseId: UUID? {
+            displayWork?.programExerciseId
+        }
     }
 
     var sessionId: UUID
     var programDayId: UUID?
-    var programExerciseId: UUID?
-    var exerciseName: String
 
-    var deepLinkURL: URL? {
+    func deepLinkURL(programExerciseId: UUID?) -> URL? {
         guard let programDayId else { return nil }
         var components = URLComponents()
         components.scheme = "gymbros"

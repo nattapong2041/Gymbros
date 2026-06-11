@@ -19,6 +19,7 @@ struct RestTimerNotificationSchedulerTests {
 
         #expect(center.requests.count == 1)
         #expect(center.requests[0].identifier == RestTimerNotificationScheduler.identifier(sessionId: sessionId))
+        #expect(center.requests[0].content.sound != nil)
     }
 
     @Test func scheduleReplacesExistingRequestForSameSession() async {
@@ -43,11 +44,13 @@ struct RestTimerNotificationSchedulerTests {
     }
 
     @Test func requestAuthorizationSetsAskedFlag() async {
-        let (scheduler, _, defaults) = makeScheduler()
+        let (scheduler, center, defaults) = makeScheduler()
 
         await scheduler.requestAuthorizationIfNeeded()
 
         #expect(defaults.bool(forKey: "rest_timer_notification_asked"))
+        #expect(center.authorizationOptions.contains(.alert))
+        #expect(center.authorizationOptions.contains(.sound))
     }
 
     @Test func requestAuthorizationDoesNotAskTwice() async {
@@ -72,9 +75,11 @@ private final class FakeNotificationCenter: NotificationCenterProviding {
     var requests: [UNNotificationRequest] = []
     var removedIdentifiers: [String] = []
     var authorizationRequestCount = 0
+    var authorizationOptions: UNAuthorizationOptions = []
 
     func requestAuthorization(options: UNAuthorizationOptions) async throws -> Bool {
         authorizationRequestCount += 1
+        authorizationOptions = options
         return true
     }
 

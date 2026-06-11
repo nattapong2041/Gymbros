@@ -90,6 +90,7 @@ final class WorkoutSessionViewModel {
                 finishedExerciseIds: [],
                 defaultWeights: defaultWeights
             )
+            await startWorkoutLiveActivity()
             await buildLastSessionReferences()
             saveBackup()
         } catch {
@@ -126,6 +127,7 @@ final class WorkoutSessionViewModel {
         )
         await buildLastSessionReferences()
         moveToFirstUnfinishedExercise()
+        await startWorkoutLiveActivity()
         saveBackup()
     }
 
@@ -134,6 +136,7 @@ final class WorkoutSessionViewModel {
             pendingRestore = nil
         }
         backupRepository.clearBackup()
+        await liveActivityController.end()
     }
 
     func updateDraft(setId: UUID, weightText: String, repsText: String, rpe: Double?) async {
@@ -145,6 +148,7 @@ final class WorkoutSessionViewModel {
             transientError = .notFound
             return
         }
+        await updateWorkoutLiveActivity()
     }
 
     func updateWeightUnit(_ unit: WeightUnit) {
@@ -180,6 +184,8 @@ final class WorkoutSessionViewModel {
         markSetCompletedAndCarryForward(setId: setId, sourceRow: row)
         if let targetRestSeconds = row.targetRestSeconds, targetRestSeconds > 0 {
             await startRestTimer(seconds: targetRestSeconds, sourceSetId: setId)
+        } else {
+            await updateWorkoutLiveActivity()
         }
     }
 
@@ -210,6 +216,7 @@ final class WorkoutSessionViewModel {
         data.exerciseSections[sectionIndex].sets.append(newRow)
         data.exerciseSections[sectionIndex].sets = renumbered(data.exerciseSections[sectionIndex].sets)
         state = .success(data)
+        await updateWorkoutLiveActivity()
         saveBackup()
     }
 
@@ -220,6 +227,7 @@ final class WorkoutSessionViewModel {
         }
         data.currentExerciseIndex = min(max(index, 0), data.exerciseSections.count - 1)
         state = .success(data)
+        Task { await updateWorkoutLiveActivity() }
         saveBackup()
     }
 
@@ -236,6 +244,7 @@ final class WorkoutSessionViewModel {
         data.exerciseSections[sectionIndex].finishedAt = now()
         data.currentExerciseIndex = nextUnfinishedExerciseIndex(after: sectionIndex, in: data) ?? sectionIndex
         state = .success(data)
+        await updateWorkoutLiveActivity()
         saveBackup()
     }
 
@@ -256,6 +265,7 @@ final class WorkoutSessionViewModel {
         data.exerciseSections[sectionIndex].sets.removeAll { $0.id == setId }
         data.exerciseSections[sectionIndex].sets = renumbered(data.exerciseSections[sectionIndex].sets)
         state = .success(data)
+        await updateWorkoutLiveActivity()
         saveBackup()
     }
 
@@ -278,13 +288,7 @@ final class WorkoutSessionViewModel {
             programDayId: context.programDayId,
             programExerciseId: context.programExerciseId
         )
-        await liveActivityController.start(
-            state: timer,
-            sessionId: context.sessionId,
-            programDayId: context.programDayId,
-            programExerciseId: context.programExerciseId,
-            exerciseName: context.exerciseName
-        )
+        await updateWorkoutLiveActivity()
     }
 
     func stopRestTimer() {
@@ -294,11 +298,15 @@ final class WorkoutSessionViewModel {
         }
         activeTimer = nil
         saveBackup()
-        Task { await liveActivityController.end() }
+        Task { await updateWorkoutLiveActivity() }
     }
 
     func markRestTimerComplete() async {
-        await liveActivityController.markComplete()
+        await updateWorkoutLiveActivity(phase: .ready)
+    }
+
+    func prepareForScreenExit() {
+        saveBackup()
     }
 
     func finishSession() async {
@@ -352,6 +360,154 @@ final class WorkoutSessionViewModel {
             transientError = mapped.visibleOrNil
             saveBackup()
         }
+    }
+
+    private func startWorkoutLiveActivity() async {
+        guard case let .success(data) = state,
+              let activityState = workoutActivityState(in: data) else {
+            return
+        }
+        await liveActivityController.start(
+            sessionId: data.session.id,
+            programDayId: data.session.programDayId,
+            state: activityState
+        )
+    }
+
+    private func updateWorkoutLiveActivity(
+        phase: RestTimerActivityAttributes.Phase? = nil
+    ) async {
+        guard case let .success(data) = state,
+              let activityState = workoutActivityState(in: data, phase: phase) else {
+            return
+        }
+        await liveActivityController.update(activityState)
+    }
+
+    private func workoutActivityState(
+        in data: WorkoutSessionData,
+        phase overridePhase: RestTimerActivityAttributes.Phase? = nil
+    ) -> RestTimerActivityAttributes.ContentState? {
+        let phase = overridePhase ?? workoutActivityPhase()
+        let currentWork = activeTimer.flatMap { workState(forSetId: $0.sourceSetId, in: data) }
+            ?? currentWorkState(in: data)
+        let nextWork = activeTimer.flatMap { nextWorkState(afterSetId: $0.sourceSetId, in: data) }
+
+        guard currentWork != nil || nextWork != nil else { return nil }
+
+        return RestTimerActivityAttributes.ContentState(
+            phase: phase,
+            workoutName: data.day.name,
+            workoutStartedAt: data.session.startedAt,
+            currentWork: currentWork,
+            nextWork: nextWork,
+            restStartedAt: activeTimer?.startedAt,
+            restEndsAt: phase == .active ? nil : activeTimer?.endsAt
+        )
+    }
+
+    private func workoutActivityPhase() -> RestTimerActivityAttributes.Phase {
+        guard let activeTimer else { return .active }
+        return activeTimer.remainingSeconds(at: now()) <= 0 ? .ready : .resting
+    }
+
+    private func currentWorkState(in data: WorkoutSessionData) -> RestTimerActivityAttributes.WorkState? {
+        guard data.exerciseSections.isEmpty == false else { return nil }
+        let clampedIndex = min(max(data.currentExerciseIndex, 0), data.exerciseSections.count - 1)
+        let currentSection = data.exerciseSections[clampedIndex]
+        if let work = nextIncompleteWorkState(in: currentSection) {
+            return work
+        }
+        return data.exerciseSections
+            .filter { $0.isFinished == false }
+            .compactMap { nextIncompleteWorkState(in: $0) }
+            .first
+    }
+
+    private func workState(
+        forSetId setId: UUID,
+        in data: WorkoutSessionData
+    ) -> RestTimerActivityAttributes.WorkState? {
+        for section in data.exerciseSections {
+            guard let row = section.sets.first(where: { $0.id == setId }) else { continue }
+            return workState(from: row, in: section)
+        }
+        return nil
+    }
+
+    private func nextWorkState(
+        afterSetId setId: UUID,
+        in data: WorkoutSessionData
+    ) -> RestTimerActivityAttributes.WorkState? {
+        guard let sectionIndex = data.exerciseSections.firstIndex(where: { section in
+            section.sets.contains { $0.id == setId }
+        }), let rowIndex = data.exerciseSections[sectionIndex].sets.firstIndex(where: { $0.id == setId }) else {
+            return currentWorkState(in: data)
+        }
+
+        let section = data.exerciseSections[sectionIndex]
+        let followingRows = section.sets[section.sets.index(after: rowIndex)..<section.sets.endIndex]
+        if let nextRow = followingRows.first(where: { $0.isCompleted == false }) {
+            return workState(from: nextRow, in: section)
+        }
+
+        let followingSections = data.exerciseSections[data.exerciseSections.index(after: sectionIndex)..<data.exerciseSections.endIndex]
+        if let next = followingSections
+            .filter({ $0.isFinished == false })
+            .compactMap({ nextIncompleteWorkState(in: $0) })
+            .first {
+            return next
+        }
+
+        return data.exerciseSections[..<sectionIndex]
+            .filter { $0.isFinished == false }
+            .compactMap { nextIncompleteWorkState(in: $0) }
+            .first
+    }
+
+    private func nextIncompleteWorkState(
+        in section: WorkoutExerciseSection
+    ) -> RestTimerActivityAttributes.WorkState? {
+        guard section.isFinished == false,
+              let row = section.sets.first(where: { $0.isCompleted == false }) else {
+            return nil
+        }
+        return workState(from: row, in: section)
+    }
+
+    private func workState(
+        from row: WorkoutSetRowState,
+        in section: WorkoutExerciseSection
+    ) -> RestTimerActivityAttributes.WorkState {
+        RestTimerActivityAttributes.WorkState(
+            programExerciseId: section.programExercise.id,
+            exerciseName: section.exercise?.name ?? String(localized: "workout.exercise.unknownExercise"),
+            weightText: weightText(for: row),
+            setNumber: row.setNumber,
+            totalSets: max(section.sets.count, section.programExercise.targetSets),
+            repsText: repsText(for: row, in: section)
+        )
+    }
+
+    private func weightText(for row: WorkoutSetRowState) -> String? {
+        let draftWeight = row.weightText.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard draftWeight.isEmpty == false else { return nil }
+        return "\(draftWeight) \(weightUnit.localizedAbbreviation)"
+    }
+
+    private func repsText(
+        for row: WorkoutSetRowState,
+        in section: WorkoutExerciseSection
+    ) -> String {
+        let draftReps = row.repsText.trimmingCharacters(in: .whitespacesAndNewlines)
+        if draftReps.isEmpty == false {
+            return String(format: String(localized: "workout.live_activity.reps"), draftReps)
+        }
+        return String(
+            format: String(localized: "programExercise.repsFormat"),
+            section.programExercise.targetRepsMin,
+            section.programExercise.targetRepsMax
+        )
     }
 
     private func makeInitialRows(
@@ -515,6 +671,7 @@ final class WorkoutSessionViewModel {
 
     private func saveBackup() {
         guard case let .success(data) = state else { return }
+        guard data.session.endedAt == nil else { return }
         let snapshot = ActiveSessionSnapshot(
             session: data.session,
             day: data.day,

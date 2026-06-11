@@ -4,13 +4,11 @@ import Foundation
 @MainActor
 protocol RestTimerLiveActivityControlling: AnyObject {
     func start(
-        state: RestTimerState,
         sessionId: UUID,
         programDayId: UUID?,
-        programExerciseId: UUID?,
-        exerciseName: String
+        state: RestTimerActivityAttributes.ContentState
     ) async
-    func markComplete() async
+    func update(_ state: RestTimerActivityAttributes.ContentState) async
     func end() async
 }
 
@@ -19,11 +17,9 @@ final class RestTimerLiveActivityController: RestTimerLiveActivityControlling {
     private var activity: Activity<RestTimerActivityAttributes>?
 
     func start(
-        state: RestTimerState,
         sessionId: UUID,
         programDayId: UUID?,
-        programExerciseId: UUID?,
-        exerciseName: String
+        state: RestTimerActivityAttributes.ContentState
     ) async {
         guard ActivityAuthorizationInfo().areActivitiesEnabled else { return }
 
@@ -31,13 +27,11 @@ final class RestTimerLiveActivityController: RestTimerLiveActivityControlling {
 
         let attributes = RestTimerActivityAttributes(
             sessionId: sessionId,
-            programDayId: programDayId,
-            programExerciseId: programExerciseId,
-            exerciseName: exerciseName
+            programDayId: programDayId
         )
         let content = ActivityContent(
             state: Self.contentState(from: state),
-            staleDate: state.endsAt
+            staleDate: state.restEndsAt
         )
 
         do {
@@ -49,34 +43,40 @@ final class RestTimerLiveActivityController: RestTimerLiveActivityControlling {
         }
     }
 
-    func end() async {
+    func update(_ state: RestTimerActivityAttributes.ContentState) async {
         guard let activity else { return }
+        let content = ActivityContent(
+            state: Self.contentState(from: state),
+            staleDate: state.restEndsAt
+        )
+        await activity.update(content)
+    }
+
+    func end() async {
+        let activities = Activity<RestTimerActivityAttributes>.activities
+        guard activities.isEmpty == false || activity != nil else { return }
+
+        if activities.isEmpty, let activity {
+            await end(activity)
+        } else {
+            for activity in activities {
+                await end(activity)
+            }
+        }
+        self.activity = nil
+    }
+
+    private func end(_ activity: Activity<RestTimerActivityAttributes>) async {
         let content = ActivityContent(
             state: activity.content.state,
             staleDate: Date()
         )
         await activity.end(content, dismissalPolicy: .immediate)
-        self.activity = nil
     }
 
-    func markComplete() async {
-        guard let activity else { return }
-        var state = activity.content.state
-        state.isComplete = true
-        state.remainingSeconds = 0
-        let content = ActivityContent(
-            state: state,
-            staleDate: nil
-        )
-        await activity.update(content)
-    }
-
-    private static func contentState(from state: RestTimerState) -> RestTimerActivityAttributes.ContentState {
-        RestTimerActivityAttributes.ContentState(
-            startedAt: state.startedAt,
-            endsAt: state.endsAt,
-            remainingSeconds: state.remainingSeconds,
-            isComplete: state.isComplete
-        )
+    private static func contentState(
+        from state: RestTimerActivityAttributes.ContentState
+    ) -> RestTimerActivityAttributes.ContentState {
+        state
     }
 }

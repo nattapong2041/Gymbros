@@ -178,6 +178,248 @@
         }
       }
     },
+    "active_workout.accessibility_label" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@, %2$@, %3$@, %4$@. Tap to resume workout."
+          }
+        },
+        "th" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@, %2$@, %3$@, %4$@ แตะเพื่อกลับไปทำเวิร์กเอาต์ต่อ"
+          }
+        }
+      }
+    },
+    "active_workout.prescription" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ - %2$@"
+          }
+        },
+        "th" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ - %2$@"
+          }
+        }
+      }
+    },
+    "active_workout.prescription_weighted" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ - %2$@ - %3$@"
+          }
+        },
+        "th" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ - %2$@ - %3$@"
+          }
+        }
+      }
+    },
+    "active_workout.resume.accessibility_label" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Resume workout"
+          }
+        },
+        "th" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "กลับไปทำเวิร์กเอาต์ต่อ"
+          }
+        }
+      }
+    },
+    "active_workout.set_format" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Set %1$d/%2$d"
+          }
+        },
+        "th" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "เซ็ต %1$d/%2$d"
+          }
+        }
+      }
+    },
+    "active_workout.status.ready" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ready"
+          }
+        },
+        "th" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "พร้อมแล้ว"
+          }
+        }
+      }
+    },
+    "active_workout.status.rest" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rest"
+          }
+        },
+        "th" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "พัก"
+          }
+        }
+      }
+    },
+    "active_workout.status.resting_with_time" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rest %@"
+          }
+        },
+        "th" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "พัก %@"
+          }
+        }
+      }
+    },
+    "active_workout.status.workout" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Working out"
+          }
+        },
+        "th" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "กำลังเล่นเวิร์กเอาต์"
+          }
+        }
+      }
+    },
+    "active_workout.status.workout_elapsed" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Workout %@"
+          }
+        },
+        "th" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "เวิร์กเอาต์ %@"
+          }
+        }
+      }
+    },
+    "active_workout.stop.accessibility_label" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Stop workout surfaces"
+          }
+        },
+        "th" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "หยุดการแสดงเวิร์กเอาต์"
+          }
+        }
+      }
+    },
+    "active_workout.stop.cancel" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cancel"
+          }
+        },
+        "th" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ยกเลิก"
+          }
+        }
+      }
+    },
+    "active_workout.stop.confirm" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Stop (can resume)"
+          }
+        },
+        "th" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "หยุด (กลับมาทำต่อได้)"
+          }
+        }
+      }
+    },
+    "active_workout.stop.confirmation.message" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Your workout will stay saved so you can resume later. The Live Activity and Dynamic Island will stop."
+          }
+        },
+        "th" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "เวิร์กเอาต์จะยังถูกบันทึกไว้เพื่อให้กลับมาทำต่อได้ และจะหยุด Live Activity กับ Dynamic Island"
+          }
+        }
+      }
+    },
+    "active_workout.stop.confirmation.title" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Stop showing this workout?"
+          }
+        },
+        "th" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "หยุดแสดงเวิร์กเอาต์นี้ไหม?"
+          }
+        }
+      }
+    },
     "auth.signIn.tagline" : {
       "localizations" : {
         "en" : {
@@ -1140,22 +1382,6 @@
         }
       }
     },
-    "history.empty" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "No workouts yet. Your first one is waiting."
-          }
-        },
-        "th" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "ยังไม่มีเวิร์กเอาท์ เวิร์กเอาท์แรกของคุณรออยู่"
-          }
-        }
-      }
-    },
     "history.delete.confirmation.message" : {
       "localizations" : {
         "en" : {
@@ -1184,6 +1410,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "ลบเวิร์กเอาท์นี้ไหม"
+          }
+        }
+      }
+    },
+    "history.empty" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No workouts yet. Your first one is waiting."
+          }
+        },
+        "th" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ยังไม่มีเวิร์กเอาท์ เวิร์กเอาท์แรกของคุณรออยู่"
           }
         }
       }
@@ -3058,6 +3300,22 @@
         }
       }
     },
+    "workout.last_session.reference.bodyweight" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Last: %@ reps"
+          }
+        },
+        "th" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ครั้งก่อน: %@ ครั้ง"
+          }
+        }
+      }
+    },
     "workout.last_session.reference.details" : {
       "localizations" : {
         "en" : {
@@ -3074,18 +3332,34 @@
         }
       }
     },
-    "workout.last_session.reference.bodyweight" : {
+    "workout.leave.button" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Last: %@ reps"
+            "value" : "Back"
           }
         },
         "th" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "ครั้งก่อน: %@ ครั้ง"
+            "value" : "กลับ"
+          }
+        }
+      }
+    },
+    "workout.live_activity.reps" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ reps"
+          }
+        },
+        "th" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ ครั้ง"
           }
         }
       }
@@ -3568,23 +3842,6 @@
         }
       }
     },
-    "workout.timer.remaining" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%d s"
-          }
-        },
-        "th" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%d วิ"
-          }
-        }
-      }
-    },
     "workout.timer.ready" : {
       "localizations" : {
         "en" : {
@@ -3613,6 +3870,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "ถึงเวลาเซ็ตต่อไป"
+          }
+        }
+      }
+    },
+    "workout.timer.remaining" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%d s"
+          }
+        },
+        "th" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%d วิ"
           }
         }
       }

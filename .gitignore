@@ -47,3 +47,6 @@ supabase/.env.*
 
 # Claude Code worktrees
 .claude/worktrees/
+
+# Local AI tool state
+.antigravitycli/

@@ -16,5 +16,6 @@ enum AppConstants {
 
     enum Storage {
         static let activeSessionKey = "active_session_backup"
+        static let suppressedActiveSessionWidgetKey = "suppressed_active_session_widget"
     }
 }

@@ -17,6 +17,22 @@
         }
       }
     },
+    "live_activity.elapsed" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Workout"
+          }
+        },
+        "th" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "เวลาเล่น"
+          }
+        }
+      }
+    },
     "live_activity.ready" : {
       "localizations" : {
         "en" : {
@@ -29,6 +45,70 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "พร้อมแล้ว"
+          }
+        }
+      }
+    },
+    "live_activity.rest_short" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rest"
+          }
+        },
+        "th" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "พัก"
+          }
+        }
+      }
+    },
+    "live_activity.prescription_summary" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Set %d/%d · %@"
+          }
+        },
+        "th" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "เซ็ต %d/%d · %@"
+          }
+        }
+      }
+    },
+    "live_activity.prescription_summary.weighted" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ · Set %d/%d · %@"
+          }
+        },
+        "th" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ · เซ็ต %d/%d · %@"
+          }
+        }
+      }
+    },
+    "live_activity.workout" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Workout"
+          }
+        },
+        "th" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ออกกำลัง"
           }
         }
       }

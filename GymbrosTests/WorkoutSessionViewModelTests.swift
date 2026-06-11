@@ -167,6 +167,62 @@ struct WorkoutSessionViewModelTests {
         #expect(scheduler.scheduled[0].programDayId == ProgramSamples.upperDayId)
         #expect(scheduler.scheduled[0].programExerciseId == ProgramSamples.benchProgramExerciseId)
         #expect(liveActivity.starts.count == 1)
+        #expect(liveActivity.updates.last?.phase == .resting)
+        #expect(liveActivity.updates.last?.restEndsAt != nil)
+        #expect(liveActivity.updates.last?.nextWork?.programExerciseId == ProgramSamples.benchProgramExerciseId)
+    }
+
+    @Test func workoutStartStartsLiveActivityWithActiveCurrentSet() async throws {
+        let liveActivity = FakeRestTimerLiveActivityController()
+        let workoutRepository = FakeWorkoutRepository()
+        let viewModel = makeViewModel(
+            workoutRepository: workoutRepository,
+            liveActivityController: liveActivity
+        )
+
+        await viewModel.start(programDayId: ProgramSamples.upperDayId)
+
+        let started = try #require(liveActivity.starts.first)
+        #expect(started.sessionId == workoutRepository.session.id)
+        #expect(started.programDayId == ProgramSamples.upperDayId)
+        #expect(started.state.phase == .active)
+        #expect(started.state.workoutName == "Upper A")
+        #expect(started.state.workoutStartedAt == ProgramSamples.createdAt)
+        #expect(started.state.currentWork?.programExerciseId == ProgramSamples.benchProgramExerciseId)
+        #expect(started.state.currentWork?.setNumber == 1)
+    }
+
+    @Test func draftRepsUpdateRefreshesLiveActivity() async throws {
+        let liveActivity = FakeRestTimerLiveActivityController()
+        let viewModel = makeViewModel(liveActivityController: liveActivity)
+
+        await viewModel.start(programDayId: ProgramSamples.upperDayId)
+        let row = try firstRow(viewModel)
+        await viewModel.updateDraft(setId: row.id, weightText: "80", repsText: "9", rpe: nil)
+
+        #expect(liveActivity.updates.last?.phase == .active)
+        #expect(liveActivity.updates.last?.currentWork?.repsText == "9 reps")
+        #expect(liveActivity.updates.last?.currentWork?.weightText == "80 kg")
+    }
+
+    @Test func prepareForScreenExitKeepsExternalSurfacesRunningAndSavesBackup() async throws {
+        let scheduler = FakeRestTimerScheduler()
+        let liveActivity = FakeRestTimerLiveActivityController()
+        let backupRepository = FakeBackupRepository()
+        let viewModel = makeViewModel(
+            backupRepository: backupRepository,
+            restTimerScheduler: scheduler,
+            liveActivityController: liveActivity
+        )
+
+        await viewModel.start(programDayId: ProgramSamples.upperDayId)
+        let savedCountAfterStart = backupRepository.savedSnapshots.count
+        viewModel.prepareForScreenExit()
+
+        #expect(backupRepository.savedSnapshots.count == savedCountAfterStart + 1)
+        #expect(scheduler.cancelAllCount == 0)
+        #expect(liveActivity.endCount == 0)
+        #expect(backupRepository.clearCount == 0)
     }
 
     @Test func restTimerRequestsNotificationAuthorization() async throws {
@@ -185,9 +241,10 @@ struct WorkoutSessionViewModelTests {
         let liveActivity = FakeRestTimerLiveActivityController()
         let viewModel = makeViewModel(liveActivityController: liveActivity)
 
+        await viewModel.start(programDayId: ProgramSamples.upperDayId)
         await viewModel.markRestTimerComplete()
 
-        #expect(liveActivity.markCompleteCount == 1)
+        #expect(liveActivity.updates.last?.phase == .ready)
     }
 
     @Test func lastSessionReferencesPopulateAfterStart() async throws {
@@ -558,26 +615,24 @@ private final class FakeRestTimerScheduler: RestTimerScheduling {
 
 @MainActor
 private final class FakeRestTimerLiveActivityController: RestTimerLiveActivityControlling {
-    var starts: [(state: RestTimerState, sessionId: UUID, programDayId: UUID?, programExerciseId: UUID?, exerciseName: String)] = []
+    var starts: [(sessionId: UUID, programDayId: UUID?, state: RestTimerActivityAttributes.ContentState)] = []
+    var updates: [RestTimerActivityAttributes.ContentState] = []
     var endCount = 0
-    var markCompleteCount = 0
 
     func start(
-        state: RestTimerState,
         sessionId: UUID,
         programDayId: UUID?,
-        programExerciseId: UUID?,
-        exerciseName: String
+        state: RestTimerActivityAttributes.ContentState
     ) async {
-        starts.append((state, sessionId, programDayId, programExerciseId, exerciseName))
+        starts.append((sessionId, programDayId, state))
+    }
+
+    func update(_ state: RestTimerActivityAttributes.ContentState) async {
+        updates.append(state)
     }
 
     func end() async {
         endCount += 1
-    }
-
-    func markComplete() async {
-        markCompleteCount += 1
     }
 }
 
