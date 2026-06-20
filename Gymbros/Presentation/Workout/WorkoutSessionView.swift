@@ -6,6 +6,8 @@ struct WorkoutSessionView: View {
     var lastSessionReferences: [UUID: LastSessionReference] = [:]
     var isFinishing: Bool = false
     var pendingRestore: Bool = false
+    var isComebackMode: Bool = false
+    var overloadHints: [UUID: Double] = [:]
     
     // Selection for TabView
     @Binding var currentExerciseIndex: Int
@@ -148,6 +150,8 @@ struct WorkoutSessionView: View {
                         WorkoutExercisePageView(
                             section: data.exerciseSections[index],
                             lastSessionReference: lastSessionReferences[data.exerciseSections[index].programExercise.id],
+                            isComebackMode: isComebackMode,
+                            overloadHint: overloadHints[data.exerciseSections[index].programExercise.id],
                             onAddSet: onAddSet,
                             onUpdateSet: onUpdateSet,
                             onCompleteSet: onCompleteSet,

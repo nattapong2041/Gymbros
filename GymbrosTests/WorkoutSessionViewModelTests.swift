@@ -12,7 +12,10 @@ struct WorkoutSessionViewModelTests {
         await viewModel.start(programDayId: ProgramSamples.upperDayId)
 
         let data = try successValue(viewModel.state)
-        #expect(workoutRepository.createdSessions.map(\.programDayId) == [ProgramSamples.upperDayId])
+        // start() no longer inserts remotely — session is built locally only
+        #expect(workoutRepository.insertedSessions.isEmpty)
+        #expect(data.session.programDayId == ProgramSamples.upperDayId)
+        #expect(data.session.endedAt == nil)
         #expect(data.exerciseSections.count == 1)
         #expect(data.currentExerciseIndex == 0)
         #expect(data.exerciseSections[0].defaultWeight == 60)
@@ -56,7 +59,7 @@ struct WorkoutSessionViewModelTests {
         let workoutRepository = FakeWorkoutRepository()
         workoutRepository.lastLoggedSets[ProgramSamples.squatExerciseId] = WorkoutSet(
             id: UUID(),
-            sessionId: workoutRepository.session.id,
+            sessionId: UUID(),
             exerciseId: ProgramSamples.squatExerciseId,
             programExerciseId: ProgramSamples.squatProgramExerciseId,
             setNumber: 1,
@@ -174,16 +177,14 @@ struct WorkoutSessionViewModelTests {
 
     @Test func workoutStartStartsLiveActivityWithActiveCurrentSet() async throws {
         let liveActivity = FakeRestTimerLiveActivityController()
-        let workoutRepository = FakeWorkoutRepository()
-        let viewModel = makeViewModel(
-            workoutRepository: workoutRepository,
-            liveActivityController: liveActivity
-        )
+        let viewModel = makeViewModel(liveActivityController: liveActivity)
 
         await viewModel.start(programDayId: ProgramSamples.upperDayId)
 
+        let data = try successValue(viewModel.state)
         let started = try #require(liveActivity.starts.first)
-        #expect(started.sessionId == workoutRepository.session.id)
+        // Session id is a client-generated UUID from the ViewModel, not a preset fake id
+        #expect(started.sessionId == data.session.id)
         #expect(started.programDayId == ProgramSamples.upperDayId)
         #expect(started.state.phase == .active)
         #expect(started.state.workoutName == "Upper A")
@@ -346,7 +347,8 @@ struct WorkoutSessionViewModelTests {
         await viewModel.finishSession()
 
         #expect(workoutRepository.updatedSets.map(\.id) == [row.id])
-        #expect(workoutRepository.completedSessions.map(\.sessionId) == [workoutRepository.session.id])
+        #expect(workoutRepository.insertedSessions.count == 1)
+        #expect(workoutRepository.insertedSessions.first?.endedAt != nil)
         #expect(backupRepository.clearCount == 1)
     }
 
@@ -380,9 +382,36 @@ struct WorkoutSessionViewModelTests {
         await viewModel.updateDraft(setId: row.id, weightText: "80", repsText: "8", rpe: nil)
         await viewModel.completeSet(setId: row.id)
         await viewModel.finishExercise(programExerciseId: ProgramSamples.benchProgramExerciseId)
-        workoutRepository.completeSessionError = .network(.offline)
+        workoutRepository.insertSessionError = .network(.offline)
         await viewModel.finishSession()
 
+        #expect(backupRepository.clearCount == 0)
+        #expect(backupRepository.savedSnapshots.isEmpty == false)
+        #expect(viewModel.transientError == .network(.offline))
+    }
+
+    @Test func finishSetUploadFailureRollsBackSessionAndKeepsBackup() async throws {
+        // After insertSession succeeds, a set-upload error must trigger deleteSession
+        // (rollback) and retain the local backup so the user can retry.
+        let workoutRepository = FakeWorkoutRepository()
+        let backupRepository = FakeBackupRepository()
+        let viewModel = makeViewModel(workoutRepository: workoutRepository, backupRepository: backupRepository)
+
+        await viewModel.start(programDayId: ProgramSamples.upperDayId)
+        let row = try firstRow(viewModel)
+        await viewModel.updateDraft(setId: row.id, weightText: "80", repsText: "8", rpe: nil)
+        await viewModel.completeSet(setId: row.id)
+        await viewModel.finishExercise(programExerciseId: ProgramSamples.benchProgramExerciseId)
+
+        // Session inserts OK but the set upload fails
+        workoutRepository.nextUploadError = .network(.offline)
+        await viewModel.finishSession()
+
+        // Session was inserted then rolled back
+        #expect(workoutRepository.insertedSessions.count == 1)
+        let data = try successValue(viewModel.state)
+        #expect(workoutRepository.deletedSessionIds == [data.session.id])
+        // Backup kept and error surfaced
         #expect(backupRepository.clearCount == 0)
         #expect(backupRepository.savedSnapshots.isEmpty == false)
         #expect(viewModel.transientError == .network(.offline))
@@ -409,7 +438,7 @@ struct WorkoutSessionViewModelTests {
         await viewModel.finishSession()
 
         #expect(viewModel.transientError == nil)
-        #expect(workoutRepository.completedSessions.map(\.sessionId) == [workoutRepository.session.id])
+        #expect(workoutRepository.insertedSessions.count == 1)
     }
 
     @Test func finishSessionUploadsAllCompletedSets() async throws {
@@ -431,7 +460,7 @@ struct WorkoutSessionViewModelTests {
         await viewModel.finishSession()
 
         #expect(workoutRepository.uploadedSets.count == sets.count)
-        #expect(workoutRepository.completedSessions.count == 1)
+        #expect(workoutRepository.insertedSessions.count == 1)
         #expect(backupRepository.clearCount == 1)
     }
 
@@ -448,7 +477,8 @@ struct WorkoutSessionViewModelTests {
         await viewModel.finishSession()
 
         #expect(backupRepository.clearCount == 1)
-        #expect(workoutRepository.completedSessions.map(\.sessionId) == [workoutRepository.session.id])
+        #expect(workoutRepository.insertedSessions.count == 1)
+        #expect(workoutRepository.insertedSessions.first?.endedAt != nil)
     }
 
     @Test func timerRemainingUsesDates() {
@@ -470,6 +500,8 @@ struct WorkoutSessionViewModelTests {
         backupRepository: FakeBackupRepository? = nil,
         restTimerScheduler: FakeRestTimerScheduler? = nil,
         liveActivityController: FakeRestTimerLiveActivityController? = nil,
+        analytics: AnalyticsTracking? = nil,
+        baselineRegainedHaptic: (() -> Void)? = nil,
         weightUnit: WeightUnit = .kg
     ) -> WorkoutSessionViewModel {
         WorkoutSessionViewModel(
@@ -479,9 +511,128 @@ struct WorkoutSessionViewModelTests {
             backupRepository: backupRepository ?? FakeBackupRepository(),
             restTimerScheduler: restTimerScheduler ?? FakeRestTimerScheduler(),
             liveActivityController: liveActivityController ?? FakeRestTimerLiveActivityController(),
+            analytics: analytics ?? NoopAnalytics(),
+            baselineRegainedHaptic: baselineRegainedHaptic ?? {},
             weightUnit: weightUnit,
-            now: { ProgramSamples.createdAt }
+            now: { ProgramSamples.createdAt },
+            currentUserId: { ProgramSamples.userId }
         )
+    }
+
+    private func comebackRecommendation(
+        baselineWeight: Double = 60,
+        baselineReps: [Int] = [8, 8, 8]
+    ) -> TodayRecommendation {
+        let stage = SmartSessionAdvisor().stage(forDaysSinceLast: 15)
+        let adjustment = ExerciseAdjustment(
+            originalTargetWeight: baselineWeight,
+            adjustedTargetWeight: baselineWeight * stage.weightMultiplier,
+            originalSets: 3,
+            adjustedSets: 2,
+            baselineWeight: baselineWeight,
+            baselineReps: baselineReps
+        )
+        return TodayRecommendation(
+            mode: .comeback(stage: stage, adjustments: [ProgramSamples.benchProgramExerciseId: adjustment]),
+            programDay: nil,
+            reasonKey: stage.reasonKey,
+            gapDays: 15
+        )
+    }
+
+    // MARK: - Comeback mode
+
+    @Test func comebackRecommendationAppliesAdjustedDefaults() async throws {
+        let viewModel = makeViewModel()
+        viewModel.recommendation = comebackRecommendation()
+
+        await viewModel.start(programDayId: ProgramSamples.upperDayId)
+
+        let section = try #require(successValue(viewModel.state).exerciseSections.first)
+        #expect(viewModel.isComebackMode)
+        #expect(section.sets.count == 2)
+        #expect(section.sets.map(\.weightText) == ["54", ""])
+    }
+
+    @Test func comebackStartTracksEventAndBuildsBaselineReference() async throws {
+        let spy = SpyWorkoutAnalytics()
+        let viewModel = makeViewModel(analytics: spy)
+        viewModel.recommendation = comebackRecommendation()
+
+        await viewModel.start(programDayId: ProgramSamples.upperDayId)
+
+        #expect(spy.events == [.comebackSessionStarted])
+        let reference = try #require(viewModel.lastSessionReferences[ProgramSamples.benchProgramExerciseId])
+        #expect(reference.label == .baseline)
+        #expect(reference.sets.map(\.reps) == [8, 8, 8])
+        #expect(reference.sets.first?.weight == 60)
+    }
+
+    @Test func applyFeedbackBackFillsRPEForCompletedSets() async throws {
+        let workoutRepository = FakeWorkoutRepository()
+        let viewModel = makeViewModel(workoutRepository: workoutRepository)
+        viewModel.recommendation = comebackRecommendation()
+
+        await viewModel.start(programDayId: ProgramSamples.upperDayId)
+        let row = try firstRow(viewModel)
+        await viewModel.completeSet(setId: row.id)
+        viewModel.applyFeedback(.justRight, to: ProgramSamples.benchProgramExerciseId)
+
+        // RPE is stored locally; no remote call until finishSession uploads sets.
+        #expect(workoutRepository.rpeUpdates.isEmpty)
+        #expect(try rowState(viewModel, id: row.id).rpe == 7.5)
+    }
+
+    @Test func applyFeedbackWithNoCompletedSetsSkipsUpdate() async throws {
+        let workoutRepository = FakeWorkoutRepository()
+        let viewModel = makeViewModel(workoutRepository: workoutRepository)
+        viewModel.recommendation = comebackRecommendation()
+
+        await viewModel.start(programDayId: ProgramSamples.upperDayId)
+        viewModel.applyFeedback(.hard, to: ProgramSamples.benchProgramExerciseId)
+
+        #expect(workoutRepository.rpeUpdates.isEmpty)
+    }
+
+    @Test func baselineRegainedFiresOncePerSession() async throws {
+        let spy = SpyWorkoutAnalytics()
+        let haptics = HapticCounter()
+        let viewModel = makeViewModel(analytics: spy, baselineRegainedHaptic: { haptics.count += 1 })
+        viewModel.recommendation = comebackRecommendation()
+
+        await viewModel.start(programDayId: ProgramSamples.upperDayId)
+        let rows = try successValue(viewModel.state).exerciseSections[0].sets
+
+        // Reduced default (54 kg) stays below the 60 kg baseline.
+        await viewModel.completeSet(setId: rows[0].id)
+        #expect(haptics.count == 0)
+        #expect(viewModel.baselineRegainedThisSession == false)
+
+        await viewModel.updateDraft(setId: rows[1].id, weightText: "60", repsText: "8", rpe: nil)
+        await viewModel.completeSet(setId: rows[1].id)
+        #expect(haptics.count == 1)
+        #expect(viewModel.baselineRegainedThisSession)
+        #expect(spy.events.contains(.comebackExitBaselineReached))
+
+        await viewModel.addSet(after: rows[1].id)
+        let added = try #require(successValue(viewModel.state).exerciseSections[0].sets.last)
+        await viewModel.updateDraft(setId: added.id, weightText: "62.5", repsText: "8", rpe: nil)
+        await viewModel.completeSet(setId: added.id)
+        #expect(haptics.count == 1)
+    }
+
+    @Test func finishSessionEmitsComebackFinishedEvent() async throws {
+        let spy = SpyWorkoutAnalytics()
+        let viewModel = makeViewModel(analytics: spy)
+        viewModel.recommendation = comebackRecommendation()
+
+        await viewModel.start(programDayId: ProgramSamples.upperDayId)
+        let row = try firstRow(viewModel)
+        await viewModel.completeSet(setId: row.id)
+        await viewModel.finishExercise(programExerciseId: ProgramSamples.benchProgramExerciseId)
+        await viewModel.finishSession()
+
+        #expect(spy.events.contains(.comebackSessionFinished))
     }
 
     private func successValue<T>(_ state: ViewState<T>) throws -> T {
@@ -500,36 +651,41 @@ struct WorkoutSessionViewModelTests {
     }
 }
 
+private final class SpyWorkoutAnalytics: AnalyticsTracking {
+    var events: [AnalyticsEvent] = []
+
+    func track(_ event: AnalyticsEvent) {
+        events.append(event)
+    }
+}
+
+private final class HapticCounter {
+    var count = 0
+}
+
 @MainActor
 private final class FakeWorkoutRepository: WorkoutRepositoryProviding {
-    var session = WorkoutSession(
-        id: UUID(uuidString: "99999999-1000-0000-0000-000000000001")!,
-        userId: ProgramSamples.userId,
-        programDayId: ProgramSamples.upperDayId,
-        startedAt: ProgramSamples.createdAt,
-        endedAt: nil,
-        notes: nil,
-        createdAt: ProgramSamples.createdAt
-    )
-    var createdSessions: [(programDayId: UUID, startedAt: Date)] = []
+    var insertedSessions: [WorkoutSession] = []
     var uploadedSets: [WorkoutSet] = []
     var updatedSets: [WorkoutSet] = []
     var deletedSetIds: [UUID] = []
-    var completedSessions: [(sessionId: UUID, endedAt: Date)] = []
+    var deletedSessionIds: [UUID] = []
     var lastLoggedSets: [UUID: WorkoutSet] = [:]
     var history: [WorkoutSession] = []
     var setsBySessionId: [UUID: [WorkoutSet]] = [:]
+    var rpeUpdates: [(ids: [UUID], rpe: Double)] = []
+    var updateSetsError: AppError?
     var nextUploadError: AppError?
-    var completeSessionError: AppError?
+    var insertSessionError: AppError?
     var lastLoggedSetError: AppError?
     var fetchSetsError: AppError?
     var sets: [WorkoutSet] = []
 
-    func createSession(programDayId: UUID, startedAt: Date) async throws -> WorkoutSession {
-        createdSessions.append((programDayId, startedAt))
-        session.programDayId = programDayId
-        session.startedAt = startedAt
-        return session
+    func insertSession(_ session: WorkoutSession) async throws {
+        if let insertSessionError {
+            throw insertSessionError
+        }
+        insertedSessions.append(session)
     }
 
     func uploadSet(_ set: WorkoutSet) async throws -> WorkoutSet {
@@ -547,22 +703,33 @@ private final class FakeWorkoutRepository: WorkoutRepositoryProviding {
         return set
     }
 
+    func updateSets(ids: [UUID], rpe: Double) async throws {
+        if let updateSetsError {
+            throw updateSetsError
+        }
+        rpeUpdates.append((ids, rpe))
+    }
+
     func deleteSet(id: UUID) async throws {
         deletedSetIds.append(id)
     }
 
-    func deleteSession(id: UUID) async throws {}
-
-    func completeSession(_ sessionId: UUID, endedAt: Date) async throws {
-        if let completeSessionError {
-            throw completeSessionError
-        }
-        completedSessions.append((sessionId, endedAt))
+    func deleteSession(id: UUID) async throws {
+        deletedSessionIds.append(id)
     }
 
+    func completeSession(_ sessionId: UUID, endedAt: Date) async throws {}
+
     func updateSessionEndedAt(sessionId: UUID, endedAt: Date) async throws -> WorkoutSession {
-        session.endedAt = endedAt
-        return session
+        WorkoutSession(
+            id: sessionId,
+            userId: ProgramSamples.userId,
+            programDayId: ProgramSamples.upperDayId,
+            startedAt: endedAt.addingTimeInterval(-3600),
+            endedAt: endedAt,
+            notes: nil,
+            createdAt: endedAt.addingTimeInterval(-3600)
+        )
     }
 
     func fetchLastLoggedSet(exerciseId: UUID, before: Date) async throws -> WorkoutSet? {

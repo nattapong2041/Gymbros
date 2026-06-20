@@ -18,6 +18,15 @@ struct WorkoutRepositoryPayloadTests {
         #expect(dictionary["created_at"] == nil)
     }
 
+    @Test func updateSetsRPEPayload() throws {
+        let payload = WorkoutSetRPEPayload(rpe: 7.5)
+
+        let dictionary = try encodeDictionary(payload)
+
+        #expect(dictionary["rpe"] as? Double == 7.5)
+        #expect(dictionary.count == 1)
+    }
+
     private func encodeDictionary<T: Encodable>(_ value: T) throws -> [String: Any] {
         let data = try JSONEncoder().encode(value)
         return try #require(JSONSerialization.jsonObject(with: data) as? [String: Any])

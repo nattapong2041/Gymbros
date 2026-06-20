@@ -3,6 +3,8 @@ import SwiftUI
 struct WorkoutExercisePageView: View {
     let section: WorkoutExerciseSection
     var lastSessionReference: LastSessionReference?
+    var isComebackMode: Bool = false
+    var overloadHint: Double?
     @Environment(AppPreferences.self) private var appPreferences
     @State private var tableWidth: CGFloat = 0
     
@@ -20,6 +22,12 @@ struct WorkoutExercisePageView: View {
                 
                 VStack(spacing: 0) {
                     let columns = setTableColumns
+
+                    if showsEasingBackBadge {
+                        EasingBackBadge()
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .padding(.top, 8)
+                    }
 
                     setTableHeader(columns: columns)
 
@@ -130,11 +138,24 @@ struct WorkoutExercisePageView: View {
                     .padding(.top, 4)
             }
 
+            if isComebackMode == false, let overloadHint {
+                Text(String(
+                    format: String(localized: "workout.overload.hint"),
+                    "\(appPreferences.weightUnit.formattedKilograms(overloadHint)) \(appPreferences.weightUnit.localizedAbbreviation)"
+                ))
+                .font(.system(.caption, design: .rounded))
+                .foregroundStyle(.secondary)
+            }
+
             lastSessionReferenceRow
         }
         .padding()
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(Color(uiColor: .secondarySystemGroupedBackground))
+    }
+
+    private var showsEasingBackBadge: Bool {
+        isComebackMode && lastSessionReference?.label == .baseline
     }
 
     private var setTableColumns: WorkoutSetTableLayout.Columns {
@@ -201,7 +222,7 @@ struct WorkoutExercisePageView: View {
                 base = String(format: String(localized: "workout.last_session.reference.bodyweight"), reps)
             }
         case .baseline:
-            base = String(format: String(localized: "workout.last_session.baseline"), reps)
+            base = String(format: String(localized: "workout.last_session.baseline.format"), referenceDetailsBody(reference))
         }
 
         guard reference.isFallback else { return base }
@@ -209,6 +230,18 @@ struct WorkoutExercisePageView: View {
             base,
             String(localized: "workout.last_session.fallback_hint")
         ].joined(separator: " · ")
+    }
+
+    private func referenceDetailsBody(_ reference: LastSessionReference) -> String {
+        let reps = repsText(for: reference.sets)
+        if let weight = singleWeightedValue(in: reference.sets) {
+            let weightText = weight.formatted(.number.precision(.fractionLength(0...1)))
+            return "\(weightText) × \(reps)"
+        }
+        if reference.sets.contains(where: { $0.weight != nil }) {
+            return reference.sets.map(setDetailText).joined(separator: " -> ")
+        }
+        return reps
     }
 
     private func repsText(for sets: [LastSessionReference.SetSummary]) -> String {

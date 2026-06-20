@@ -4,13 +4,13 @@
 
 ---
 
-**Last updated:** 2026-06-11 | HEAD `51140ea` | Branch `main`
+**Last updated:** 2026-06-14 | HEAD `606d9d7` (pre-S06 commit — local-first session change pending commit) | Branch `main`
 
 ---
 
 ## Where we are
 
-Phase 1 ("Real Life Works") is ready for S05p commit/release prep — Sprints 1–5 complete and S05p implemented with follow-up fixes. Manual smoke passed for rest notification fire/tap-back, whole-workout Live Activity/Dynamic Island states, persistent in-app workout resume widget, global keyboard dismissal, mixed-load last-session row copy, responsive table column alignment on iPhone/iPad, timer Ready state, and History duration editing. Final post-smoke string/plist/diff checks, full tests, and build passed on 2026-06-11.
+Sprints 1–6 and S05p fully implemented. S06 pending manual smoke + commit. Local-first workout sessions change fully implemented and tested (all tests pass, build succeeds) — pending commit alongside or separately from S06.
 
 | Sprint | Name | Status |
 |--------|------|--------|
@@ -20,11 +20,49 @@ Phase 1 ("Real Life Works") is ready for S05p commit/release prep — Sprints 1�
 | S04 | Today + History + Navigation + Anti-Guilt UX | complete |
 | S05 | Settings | complete |
 | **S05p** | **Phase 1 Polish** | **implemented, manual smoke passed** |
-| S06 | Next Best Session v1 / Smart Comeback | planned |
+| **S06** | **Next Best Session v1 / Smart Comeback** | **implemented — all tests pass; pending manual smoke + commit** |
+| **local-first** | **Session upload only on Finish** | **implemented — all tests pass; pending commit** |
 
 ---
 
 ## Last session did
+
+- Implemented local-first workout sessions (orphaned-row fix):
+  - `WorkoutSessionViewModel.start()` no longer calls any repository — session is now built locally as a `WorkoutSession(id: UUID(), ...)` with client-generated id. Added `currentUserId: @MainActor () -> UUID?` injection (defaults to `AuthService.shared.currentUser?.id`).
+  - `WorkoutRepositoryProviding` protocol: removed `createSession(programDayId:startedAt:)`, added `func insertSession(_ session: WorkoutSession) async throws`.
+  - `WorkoutSessionInsertPayload` extended with `id: UUID` and `endedAt: Date?` (keeps omitting `created_at` so the DB owns it).
+  - `finishSession()` now inserts the completed session (endedAt set) first, then uploads sets one-by-one. On session-insert failure: saves backup, surfaces error, returns (nothing in DB). On any set-upload failure: best-effort rollback `try? deleteSession(id:)`, saves backup, surfaces original error (rollback failure does not mask it). Backup cleared only after all uploads succeed.
+  - Back-button and discard paths unchanged — they were already local-only; no DB write ever reaches them now.
+  - All three `FakeWorkoutRepository` fakes (WorkoutSessionViewModelTests, TodayViewModelTests, HistoryViewModelTests) updated to `insertSession` protocol.
+  - Tests updated: `startSuccessCreatesSessionAndInitialRows` asserts no remote insert at start; `workoutStartStartsLiveActivityWithActiveCurrentSet` uses `data.session.id` not fake's preset id; `uploadConflictUpdatesExistingSetAndAllowsFinish`, `finishSessionSkipsInvalidSets`, `finishSessionUploadsAllCompletedSets`, `finishClearsBackupWhenCompletionSucceeds` all check `insertedSessions` not `completedSessions`; `finishDoesNotClearBackupWhenCompletionFails` uses `insertSessionError`; new test `finishSetUploadFailureRollsBackSessionAndKeepsBackup` asserts session rollback on set-upload failure.
+  - Verified:
+    `xcodebuild build ...` → `** BUILD SUCCEEDED **`
+    `xcodebuild test ... -only-testing:GymbrosTests/WorkoutSessionViewModelTests -only-testing:GymbrosTests/TodayViewModelTests -only-testing:GymbrosTests/HistoryViewModelTests` → `** TEST SUCCEEDED **`
+    `xcodebuild test ...` (full suite) → `** TEST SUCCEEDED **`
+  - HEAD still `606d9d7` — commit pending.
+
+- Implemented Sprint S06 — Next Best Session v1 / Smart Comeback (full end-to-end):
+  - Added `SmartSessionAdvisor` (5 day bands: 0–13 normal, 14–20/21–41/42+ comeback with weight multipliers 0.9/0.8/0.6 and −1 set delta).
+  - Added `ComebackRampService` (exit / holdAddRep / increase+15% / increase+10% / decrease−5% RPE-gated decisions).
+  - Added `HowDidThatFeel` enum (easy=6.0 / justRight=7.5 / hard=9.0 RPE).
+  - Added `ProgressiveOverloadEngine` (60-day window, ≥2 sessions, +2.5 kg on RPE ≤7.0, hold 7.5–8.0, nil otherwise).
+  - Added `AnalyticsTracking` protocol + `NoopAnalytics` / `DebugConsoleAnalytics` seam with 4 comeback events.
+  - Added `NextBestSessionEngine` — persistent state machine: open-ended gap detection (≥14 days), per-exercise baseline/current tracking, weight-based exit (current ≥ baseline && RPE ≤7.5), bounded exit (4 post-gap sessions), ramp derivation, overload hints in normal mode.
+  - Added `TodayRecommendation` struct (`mode: .normal | .comeback`, `rampPreview`, `overloadHints`, `gapDays`, `reasonKey`).
+  - Extended `WorkoutRepository` with `updateSets(ids:rpe:)` — single PATCH for RPE backfill.
+  - Extended `TodayViewModel` with `NextBestSessionEngine` + analytics injection; fetches sets only when gap candidate detected (D6 budget).
+  - Extended `WorkoutSessionViewModel` with comeback support: adjusted set counts, D3 weight chain, baseline reference rows, `applyFeedback`, `checkBaselineRegained` (haptic + analytics, fires once), `finishSession` comeback event.
+  - Added `ComebackCardView` (bilingual TH+EN, reason line, ramp hint, Start CTA ≥48pt).
+  - Added `EasingBackBadge` (capsule, arrow.uturn.backward, tertiarySystemFill).
+  - Added `HowDidThatFeelPicker` (sheet, medium detent, 3 feel buttons + Skip).
+  - Wired Today comeback card, WorkoutSessionScreen feedback picker, WorkoutExercisePageView easing-back badge + overload hint, baseline row format (D5 key).
+  - Added 21 localization keys (en + th): today.comeback.*, comeback.reason.*, workout.comeback.*, workout.overload.hint, accessibility.*.
+  - Tests: SmartSessionAdvisorTests, ComebackRampServiceTests, ProgressiveOverloadEngineTests, NextBestSessionEngineTests (incl. persistence, old-gap guard, bounded exit), WorkoutRepositoryPayloadTests, TodayViewModelTests (3 new), WorkoutSessionViewModelTests (6 new comeback tests).
+  - Verified:
+    `git diff --check` — clean
+    Focused suite `xcodebuild test ... -only-testing:GymbrosTests/SmartSessionAdvisorTests ...` — all pass
+    Full suite `xcodebuild test -project Gymbros.xcodeproj -scheme Gymbros -destination 'platform=iOS Simulator,name=iPhone 17e'` — `** TEST SUCCEEDED **`
+    Build — `** BUILD SUCCEEDED **`
 
 - Marked S05p manual smoke as passed after user verification:
   - Rest notification fires after backgrounding during rest, and notification tap-back opens the active exercise page.
@@ -256,19 +294,20 @@ Phase 1 ("Real Life Works") is ready for S05p commit/release prep — Sprints 1�
 
 ## Next up
 
-**Sprint S05p — Phase 1 Polish** is implemented and automated verification passes.
+**Local-first session change** — all tests pass, build passes. Commit this change (can bundle with S06 commit or separately).
 
-Manual smoke test next:
-1. Dynamic Island/Lock Screen Live Activity on supported device/simulator.
-2. Whole-workout Live Activity appears on workout start/restore and shows the three Lock Screen lines: status, workout name, and weight/set/reps.
-3. Dynamic Island shows rest countdown while resting and ready/work icon/copy when rest finishes.
-4. Back from workout returns to the app shell, keeps Live Activity/Dynamic Island running, and shows the persistent bottom resume widget across Today/Programs/History/Settings.
-5. Tap Live Activity and local notification back to active exercise page.
-6. Rest timer reaches zero and changes to Ready/Go messaging instead of counting upward.
-7. Workout logger table header alignment in active and finished states on iPhone and iPad widths.
-8. History duration edit save/refresh behavior.
-9. Mixed-load last-session row copy, especially `59 × 10 -> 65 × 8 -> 65 × 5`.
-10. Light/dark visual sweep of workout logger table header, last-session row, rest timer, and program editor keyboard dismissal.
+**Sprint S06 — Next Best Session v1 / Smart Comeback** is implemented. All automated checks pass. Commit + manual smoke test next.
+
+Manual smoke test (requires editing a `workout_sessions.ended_at` in Supabase to be ≥14 days ago for the active user):
+1. Today screen shows `ComebackCardView` with bilingual greeting and reason line (e.g. "ขาดไป 15 วัน / 15 days since last session").
+2. Starting a workout from the comeback card uses adjusted weights (×0.9 for 14–20 day gap) and −1 set.
+3. Within workout, the "Easing Back" badge appears above the set list on exercises where baseline data is available.
+4. Finishing the last set of an exercise shows the `HowDidThatFeelPicker` sheet (Easy / Just Right / Hard / Skip).
+5. Submitting feedback backfills RPE on completed sets; skip/dismiss proceeds without RPE change.
+6. After reaching baseline weight × reps, a double haptic fires and does not repeat in the same session.
+7. Overload hint ("Try X kg next time") appears on exercises in normal mode when ≥2 sessions in last 60 days with RPE ≤7.0.
+
+Then commit S06 when manual smoke passes.
 
 ---
 

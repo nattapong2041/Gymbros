@@ -3,9 +3,10 @@ import Supabase
 
 @MainActor
 protocol WorkoutRepositoryProviding {
-    func createSession(programDayId: UUID, startedAt: Date) async throws -> WorkoutSession
+    func insertSession(_ session: WorkoutSession) async throws
     func uploadSet(_ set: WorkoutSet) async throws -> WorkoutSet
     func updateSet(_ set: WorkoutSet) async throws -> WorkoutSet
+    func updateSets(ids: [UUID], rpe: Double) async throws
     func deleteSet(id: UUID) async throws
     func deleteSession(id: UUID) async throws
     func completeSession(_ sessionId: UUID, endedAt: Date) async throws
@@ -19,40 +20,20 @@ protocol WorkoutRepositoryProviding {
 final class WorkoutRepository: WorkoutRepositoryProviding {
     private let client = SupabaseClientManager.shared.client
 
-    func createSession(programDayId: UUID, startedAt: Date) async throws -> WorkoutSession {
-        guard let userId = AuthService.shared.currentUser?.id else {
-            throw AppError.auth(.sessionMissing)
-        }
+    func insertSession(_ session: WorkoutSession) async throws {
         do {
-            let inserted: WorkoutSession = try await client
+            try await client
                 .from("workout_sessions")
                 .insert(WorkoutSessionInsertPayload(
-                    userId: userId,
-                    programDayId: programDayId,
-                    startedAt: startedAt
-                ))
-                .select()
-                .single()
+                    id: session.id,
+                    userId: session.userId,
+                    programDayId: session.programDayId,
+                    startedAt: session.startedAt,
+                    endedAt: session.endedAt
+                ), returning: .minimal)
                 .execute()
-                .value
-            return inserted
         } catch {
-            throw ErrorMapper.map(error, context: .init(operation: "createWorkoutSession", table: "workout_sessions"))
-        }
-    }
-
-    func createSession(_ session: WorkoutSession) async throws -> WorkoutSession {
-        do {
-            let inserted: WorkoutSession = try await client
-                .from("workout_sessions")
-                .insert(session)
-                .select()
-                .single()
-                .execute()
-                .value
-            return inserted
-        } catch {
-            throw ErrorMapper.map(error, context: .init(operation: "createWorkoutSession", table: "workout_sessions"))
+            throw ErrorMapper.map(error, context: .init(operation: "insertWorkoutSession", table: "workout_sessions"))
         }
     }
 
@@ -84,6 +65,19 @@ final class WorkoutRepository: WorkoutRepositoryProviding {
             return updated
         } catch {
             throw ErrorMapper.map(error, context: .init(operation: "updateWorkoutSet", table: "workout_sets"))
+        }
+    }
+
+    func updateSets(ids: [UUID], rpe: Double) async throws {
+        guard ids.isEmpty == false else { return }
+        do {
+            try await client
+                .from("workout_sets")
+                .update(WorkoutSetRPEPayload(rpe: rpe), returning: .minimal)
+                .in("id", values: ids)
+                .execute()
+        } catch {
+            throw ErrorMapper.map(error, context: .init(operation: "updateWorkoutSetsRPE", table: "workout_sets"))
         }
     }
 
@@ -197,14 +191,18 @@ final class WorkoutRepository: WorkoutRepositoryProviding {
 }
 
 struct WorkoutSessionInsertPayload: Encodable {
+    let id: UUID
     let userId: UUID
-    let programDayId: UUID
+    let programDayId: UUID?
     let startedAt: Date
+    let endedAt: Date?
 
     enum CodingKeys: String, CodingKey {
+        case id
         case userId = "user_id"
         case programDayId = "program_day_id"
         case startedAt = "started_at"
+        case endedAt = "ended_at"
     }
 }
 
@@ -218,6 +216,10 @@ struct WorkoutSessionCompletionPayload: Encodable {
     enum CodingKeys: String, CodingKey {
         case endedAt = "ended_at"
     }
+}
+
+struct WorkoutSetRPEPayload: Encodable {
+    let rpe: Double
 }
 
 struct WorkoutSetUpdatePayload: Encodable {

@@ -1051,9 +1051,10 @@ Running/cardio:
 | 1 | Foundation + Data | ✅ | 7 | Complete |
 | 2 | Custom Program Builder | ✅ | 10 | Complete |
 | 3 | Logger + Timer | ✅ | — | Complete |
-| 4 | Today + History + Anti-Guilt | ⏳ | — | Next |
-| 5 | Settings | ☐ | — | Phase 1 wrap-up |
-| 6 | Next Best Session v1 / Smart Comeback | ☐ | — | Differentiator |
+| 4 | Today + History + Anti-Guilt | ✅ | — | Complete |
+| 5 | Settings | ✅ | — | Complete |
+| 5p | Phase 1 Polish (trial feedback) | ✅ | — | Complete |
+| 6 | Next Best Session v1 / Smart Comeback | ✅ | — | Complete — pending manual smoke test |
 | 7 | Onboarding + Templates + i18n | ☐ | — | App Store polish foundation |
 | 8 | App Store Ship | ☐ | — | 1.0 release |
 | 9 | Substitute + Defer | ☐ | — | Crowded gym adaptation |

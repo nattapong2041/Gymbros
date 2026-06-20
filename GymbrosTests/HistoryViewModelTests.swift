@@ -268,12 +268,12 @@ private final class FakeWorkoutRepository: WorkoutRepositoryProviding {
         return sets
     }
 
-    func createSession(programDayId: UUID, startedAt: Date) async throws -> WorkoutSession {
-        fatalError("not used in history tests")
-    }
+    func insertSession(_ session: WorkoutSession) async throws {}
+
 
     func uploadSet(_ set: WorkoutSet) async throws -> WorkoutSet { set }
     func updateSet(_ set: WorkoutSet) async throws -> WorkoutSet { set }
+    func updateSets(ids: [UUID], rpe: Double) async throws {}
     func deleteSet(id: UUID) async throws {}
     func deleteSession(id: UUID) async throws {
         if let deleteSessionError { throw deleteSessionError }

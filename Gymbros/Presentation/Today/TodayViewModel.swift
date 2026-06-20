@@ -8,6 +8,8 @@ struct TodayData {
     var streakWeeks: Int
     var lastSessionDate: Date?
     var isWelcomeBack: Bool
+    var recommendation: TodayRecommendation = .normalDefault
+    var rampPreview: [UUID: RampDecision] = [:]
 }
 
 @MainActor
@@ -19,13 +21,27 @@ final class TodayViewModel {
     private let programRepository: ProgramRepositoryProviding
     private let workoutRepository: WorkoutRepositoryProviding
     private let streakService = StreakService()
+    private let engine: NextBestSessionEngine
+    private let analytics: AnalyticsTracking
+
+    /// Per-session set fetches are budgeted: only when a gap candidate exists, and
+    /// only for post-gap sessions plus this many recent pre-gap sessions (baseline window).
+    private static let baselineSessionWindow = 10
 
     init(
         programRepository: ProgramRepositoryProviding? = nil,
-        workoutRepository: WorkoutRepositoryProviding? = nil
+        workoutRepository: WorkoutRepositoryProviding? = nil,
+        engine: NextBestSessionEngine = NextBestSessionEngine(),
+        analytics: AnalyticsTracking? = nil
     ) {
         self.programRepository = programRepository ?? ProgramRepository()
         self.workoutRepository = workoutRepository ?? WorkoutRepository()
+        self.engine = engine
+        self.analytics = analytics ?? AnalyticsProvider.makeDefault()
+    }
+
+    func trackComebackCardShown() {
+        analytics.track(.comebackCardShown)
     }
 
     func load() async {
@@ -46,22 +62,27 @@ final class TodayViewModel {
             let completed = allSessions.filter(\.isComplete).sorted { $0.startedAt > $1.startedAt }
             let streakWeeks = streakService.streak(from: completed)
             let lastSessionDate = completed.first?.startedAt
-            let nextDay = deriveNextDay(from: activeProgram, recentHistory: completed)
+
+            let now = Date.now
+            let sets = await fetchBudgetedSets(for: completed, now: now)
+            let recommendation = engine.recommend(program: activeProgram, history: completed, sets: sets, now: now)
 
             let isWelcomeBack: Bool
             if let lastDate = lastSessionDate {
-                isWelcomeBack = Date.now.timeIntervalSince(lastDate) >= 7 * 24 * 3600
+                isWelcomeBack = now.timeIntervalSince(lastDate) >= 7 * 24 * 3600
             } else {
                 isWelcomeBack = activeProgram != nil
             }
 
             state = .success(TodayData(
                 activeProgram: activeProgram,
-                nextDay: nextDay,
+                nextDay: recommendation.programDay,
                 recentSessions: completed,
                 streakWeeks: streakWeeks,
                 lastSessionDate: lastSessionDate,
-                isWelcomeBack: isWelcomeBack
+                isWelcomeBack: isWelcomeBack,
+                recommendation: recommendation,
+                rampPreview: recommendation.rampPreview
             ))
         } catch {
             let appError = ErrorMapper.map(error, context: .init(operation: "loadToday"))
@@ -71,20 +92,19 @@ final class TodayViewModel {
         }
     }
 
-    private func deriveNextDay(from program: Program?, recentHistory: [WorkoutSession]) -> ProgramDay? {
-        guard let program, !program.days.isEmpty else { return nil }
+    private func fetchBudgetedSets(for completed: [WorkoutSession], now: Date) async -> [UUID: [WorkoutSet]] {
+        guard NextBestSessionEngine.hasGapCandidate(history: completed, now: now) else { return [:] }
 
-        let sortedDays = program.days.sorted { $0.dayOrder < $1.dayOrder }
-        guard let lastSession = recentHistory.first else {
-            return sortedDays.first
+        var sets: [UUID: [WorkoutSet]] = [:]
+        for session in completed.prefix(Self.baselineSessionWindow + NextBestSessionEngine.boundedExitSessionCount) {
+            do {
+                sets[session.id] = try await workoutRepository.fetchSets(sessionId: session.id)
+            } catch {
+                // A failed set fetch degrades the recommendation, not the screen.
+                break
+            }
         }
-
-        guard let lastDayId = lastSession.programDayId,
-              let lastIndex = sortedDays.firstIndex(where: { $0.id == lastDayId }) else {
-            return sortedDays.first
-        }
-
-        return sortedDays[(lastIndex + 1) % sortedDays.count]
+        return sets
     }
 }
 

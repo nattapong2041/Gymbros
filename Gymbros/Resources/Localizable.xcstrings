@@ -48,6 +48,22 @@
         }
       }
     },
+    "accessibility.today.comeback_card" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Comeback card. %@"
+          }
+        },
+        "th" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "การ์ดกลับมาเทรน %@"
+          }
+        }
+      }
+    },
     "accessibility.today.start" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -110,6 +126,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "ต่อเนื่อง %lld สัปดาห์"
+          }
+        }
+      }
+    },
+    "accessibility.workout.easing_back" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Easing back"
+          }
+        },
+        "th" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ผ่อนกลับมา"
           }
         }
       }
@@ -432,6 +464,57 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "มาแค่นี้พอ เราจะดูแลส่วนที่เหลือ"
+          }
+        }
+      }
+    },
+    "comeback.reason.14_20" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "−10%% · one fewer set · %d days off"
+          }
+        },
+        "th" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "−10%% · ลดเซ็ตลง 1 · พัก %d วัน"
+          }
+        }
+      }
+    },
+    "comeback.reason.21_41" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "−20%% · one fewer set · ramp 10%%/session"
+          }
+        },
+        "th" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "−20%% · ลดเซ็ตลง 1 · เพิ่มทีละ 10%%/เซสชั่น"
+          }
+        }
+      }
+    },
+    "comeback.reason.42_plus" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "−40%% · slow restart"
+          }
+        },
+        "th" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "−40%% · เริ่มกลับมาแบบช้า ๆ"
           }
         }
       }
@@ -2858,6 +2941,118 @@
         }
       }
     },
+    "today.comeback.ramp.decrease" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Next time: −%d%%"
+          }
+        },
+        "th" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ครั้งหน้า: −%d%%"
+          }
+        }
+      }
+    },
+    "today.comeback.ramp.hold" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Next time: same weight, +1 rep"
+          }
+        },
+        "th" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ครั้งหน้า: น้ำหนักเดิม เพิ่ม 1 ครั้ง"
+          }
+        }
+      }
+    },
+    "today.comeback.ramp.increase" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Next time: +%d%%"
+          }
+        },
+        "th" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ครั้งหน้า: +%d%%"
+          }
+        }
+      }
+    },
+    "today.comeback.start" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Start"
+          }
+        },
+        "th" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "เริ่ม"
+          }
+        }
+      }
+    },
+    "today.comeback.subtitle" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Today's adjusted session"
+          }
+        },
+        "th" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "เซสชั่นที่ปรับมาให้แล้ววันนี้"
+          }
+        }
+      }
+    },
+    "today.comeback.welcome_back.en" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Welcome back"
+          }
+        },
+        "th" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Welcome back"
+          }
+        }
+      }
+    },
+    "today.comeback.welcome_back.th" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ยินดีต้อนรับกลับ"
+          }
+        },
+        "th" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ยินดีต้อนรับกลับ"
+          }
+        }
+      }
+    },
     "today.empty.no_program" : {
       "localizations" : {
         "en" : {
@@ -3068,6 +3263,119 @@
         }
       }
     },
+    "workout.comeback.baseline_regained" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Baseline regained"
+          }
+        },
+        "th" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "กลับมาที่จุดเดิม"
+          }
+        }
+      }
+    },
+    "workout.comeback.easing_back" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Easing back"
+          }
+        },
+        "th" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ผ่อนกลับมา"
+          }
+        }
+      }
+    },
+    "workout.comeback.feel.easy" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Easy"
+          }
+        },
+        "th" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "สบาย"
+          }
+        }
+      }
+    },
+    "workout.comeback.feel.hard" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hard"
+          }
+        },
+        "th" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "หนัก"
+          }
+        }
+      }
+    },
+    "workout.comeback.feel.just_right" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Just right"
+          }
+        },
+        "th" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "พอดี"
+          }
+        }
+      }
+    },
+    "workout.comeback.feel.skip" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Skip"
+          }
+        },
+        "th" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ข้าม"
+          }
+        }
+      }
+    },
+    "workout.comeback.feel.title" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "How did that feel?"
+          }
+        },
+        "th" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "รู้สึกยังไงบ้าง?"
+          }
+        }
+      }
+    },
     "workout.empty.description" : {
       "comment" : "A description of the workout screen when there are no exercises.",
       "isCommentAutoGenerated" : true
@@ -3237,6 +3545,7 @@
       }
     },
     "workout.last_session.baseline" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -3248,6 +3557,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "ฐานเดิม: %@ ครั้ง"
+          }
+        }
+      }
+    },
+    "workout.last_session.baseline.format" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Baseline: %@"
+          }
+        },
+        "th" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ฐานเดิม: %@"
           }
         }
       }
@@ -3377,6 +3702,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "กำลังโหลด..."
+          }
+        }
+      }
+    },
+    "workout.overload.hint" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Try %@ next set"
+          }
+        },
+        "th" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ลอง %@ เซ็ตถัดไป"
           }
         }
       }

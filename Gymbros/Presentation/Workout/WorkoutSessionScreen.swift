@@ -3,11 +3,13 @@ import SwiftUI
 struct WorkoutSessionScreen: View {
     let programDayId: UUID
     var initialProgramExerciseId: UUID?
+    var recommendation: TodayRecommendation = .normalDefault
 
     @Environment(\.dismiss) private var dismiss
     @Environment(AppPreferences.self) private var appPreferences
     @State private var viewModel = WorkoutSessionViewModel()
     @State private var hasStarted = false
+    @State private var feedbackExerciseId: UUID?
 
     var body: some View {
         WorkoutSessionView(
@@ -16,6 +18,8 @@ struct WorkoutSessionScreen: View {
             lastSessionReferences: viewModel.lastSessionReferences,
             isFinishing: viewModel.isFinishing,
             pendingRestore: viewModel.pendingRestore != nil,
+            isComebackMode: viewModel.isComebackMode,
+            overloadHints: viewModel.recommendation.overloadHints,
             currentExerciseIndex: currentExerciseIndex,
             onRetry: {
                 Task { await startWorkout() }
@@ -43,7 +47,11 @@ struct WorkoutSessionScreen: View {
                 Task { await viewModel.deleteSet(setId: setId) }
             },
             onFinishExercise: { programExerciseId in
-                Task { await viewModel.finishExercise(programExerciseId: programExerciseId) }
+                if viewModel.isComebackMode, viewModel.hasCompletedSets(for: programExerciseId) {
+                    feedbackExerciseId = programExerciseId
+                } else {
+                    Task { await viewModel.finishExercise(programExerciseId: programExerciseId) }
+                }
             },
             onStopTimer: {
                 viewModel.stopRestTimer()
@@ -65,9 +73,28 @@ struct WorkoutSessionScreen: View {
             get: { viewModel.transientError },
             set: { viewModel.transientError = $0 }
         ))
+        .sheet(isPresented: Binding(
+            get: { feedbackExerciseId != nil },
+            set: { isPresented in
+                if isPresented == false { feedbackExerciseId = nil }
+            }
+        )) {
+            HowDidThatFeelPicker { feel in
+                guard let programExerciseId = feedbackExerciseId else { return }
+                feedbackExerciseId = nil
+                Task {
+                    if let feel {
+                        viewModel.applyFeedback(feel, to: programExerciseId)
+                    }
+                    await viewModel.finishExercise(programExerciseId: programExerciseId)
+                }
+            }
+            .interactiveDismissDisabled()
+        }
         .task {
             guard hasStarted == false else { return }
             hasStarted = true
+            viewModel.recommendation = recommendation
             viewModel.updateWeightUnit(appPreferences.weightUnit)
             await viewModel.checkForRestore()
             guard viewModel.pendingRestore == nil else { return }

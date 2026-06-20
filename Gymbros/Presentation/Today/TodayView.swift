@@ -8,6 +8,7 @@ struct TodayView: View {
     private let loadsOnAppear: Bool
 
     @State private var selectedWorkoutRoute: WorkoutLaunchRoute?
+    @State private var didLogComebackCardShown = false
 
     @MainActor
     init(
@@ -30,7 +31,8 @@ struct TodayView: View {
             .navigationDestination(item: $selectedWorkoutRoute) { route in
                 WorkoutSessionScreen(
                     programDayId: route.programDayId,
-                    initialProgramExerciseId: route.programExerciseId
+                    initialProgramExerciseId: route.programExerciseId,
+                    recommendation: viewModel.state.value?.recommendation ?? .normalDefault
                 )
             }
             .task {
@@ -80,7 +82,11 @@ struct TodayView: View {
                     }
 
                     if let nextDay = data.nextDay {
-                        nextWorkoutCard(data: data, nextDay: nextDay)
+                        if data.recommendation.mode.isComeback {
+                            comebackCard(data: data, nextDay: nextDay)
+                        } else {
+                            nextWorkoutCard(data: data, nextDay: nextDay)
+                        }
                     }
                 }
                 .padding()
@@ -124,6 +130,21 @@ struct TodayView: View {
         }
         .padding()
         .background(.quaternary, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+    }
+
+    private func comebackCard(data: TodayData, nextDay: ProgramDay) -> some View {
+        ComebackCardView(recommendation: data.recommendation) {
+            selectedWorkoutRoute = WorkoutLaunchRoute(
+                programDayId: nextDay.id,
+                programExerciseId: nil,
+                sessionId: nil
+            )
+        }
+        .onAppear {
+            guard didLogComebackCardShown == false else { return }
+            didLogComebackCardShown = true
+            viewModel.trackComebackCardShown()
+        }
     }
 
     private func nextWorkoutCard(data: TodayData, nextDay: ProgramDay) -> some View {

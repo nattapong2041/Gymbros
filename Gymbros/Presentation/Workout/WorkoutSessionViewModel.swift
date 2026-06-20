@@ -1,6 +1,7 @@
 import Foundation
 import Observation
 import OSLog
+import UIKit
 
 private let workoutLogger = Logger(subsystem: "com.nattapongsawa.gymbros", category: "WorkoutSessionViewModel")
 
@@ -13,6 +14,10 @@ final class WorkoutSessionViewModel {
     var isFinishing = false
     var pendingRestore: ActiveSessionSnapshot?
     var lastSessionReferences: [UUID: LastSessionReference] = [:]
+    var recommendation: TodayRecommendation = .normalDefault
+    private(set) var baselineRegainedThisSession = false
+
+    var isComebackMode: Bool { recommendation.mode.isComeback }
 
     private let workoutRepository: WorkoutRepositoryProviding
     private let programRepository: ProgramRepositoryProviding
@@ -21,7 +26,10 @@ final class WorkoutSessionViewModel {
     private let restTimerScheduler: RestTimerScheduling
     private let liveActivityController: RestTimerLiveActivityControlling
     private let lastSessionLookupService: LastSessionLookupService
+    private let analytics: AnalyticsTracking
+    private let playBaselineRegainedHaptic: () -> Void
     private let now: () -> Date
+    private let currentUserId: @MainActor () -> UUID?
     private var weightUnit: WeightUnit
 
     init(
@@ -32,8 +40,11 @@ final class WorkoutSessionViewModel {
         restTimerScheduler: RestTimerScheduling? = nil,
         liveActivityController: RestTimerLiveActivityControlling? = nil,
         lastSessionLookupService: LastSessionLookupService = LastSessionLookupService(),
+        analytics: AnalyticsTracking? = nil,
+        baselineRegainedHaptic: (() -> Void)? = nil,
         weightUnit: WeightUnit = .kg,
-        now: @escaping () -> Date = Date.init
+        now: @escaping () -> Date = Date.init,
+        currentUserId: @escaping @MainActor () -> UUID? = { AuthService.shared.currentUser?.id }
     ) {
         self.workoutRepository = workoutRepository ?? WorkoutRepository()
         self.programRepository = programRepository ?? ProgramRepository()
@@ -42,8 +53,19 @@ final class WorkoutSessionViewModel {
         self.restTimerScheduler = restTimerScheduler ?? RestTimerNotificationScheduler()
         self.liveActivityController = liveActivityController ?? RestTimerLiveActivityController()
         self.lastSessionLookupService = lastSessionLookupService
+        self.analytics = analytics ?? AnalyticsProvider.makeDefault()
+        self.playBaselineRegainedHaptic = baselineRegainedHaptic ?? Self.playDoubleImpactHaptic
         self.weightUnit = weightUnit
         self.now = now
+        self.currentUserId = currentUserId
+    }
+
+    private static func playDoubleImpactHaptic() {
+        let generator = UIImpactFeedbackGenerator(style: .medium)
+        generator.impactOccurred()
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
+            generator.impactOccurred()
+        }
     }
 
     func checkForRestore() async {
@@ -75,7 +97,19 @@ final class WorkoutSessionViewModel {
             }
 
             let startedAt = now()
-            let session = try await workoutRepository.createSession(programDayId: programDayId, startedAt: startedAt)
+            guard let userId = currentUserId() else {
+                state = .error(.auth(.sessionMissing))
+                return
+            }
+            let session = WorkoutSession(
+                id: UUID(),
+                userId: userId,
+                programDayId: programDayId,
+                startedAt: startedAt,
+                endedAt: nil,
+                notes: nil,
+                createdAt: startedAt
+            )
             let exerciseLookup = Dictionary(uniqueKeysWithValues: exercises.map { ($0.id, $0) })
             let defaultWeights = await resolveDefaultWeights(for: orderedProgramExercises, before: startedAt)
             let rowStates = makeInitialRows(from: orderedProgramExercises, defaultWeights: defaultWeights)
@@ -90,6 +124,9 @@ final class WorkoutSessionViewModel {
                 finishedExerciseIds: [],
                 defaultWeights: defaultWeights
             )
+            if isComebackMode {
+                analytics.track(.comebackSessionStarted)
+            }
             await startWorkoutLiveActivity()
             await buildLastSessionReferences()
             saveBackup()
@@ -182,6 +219,7 @@ final class WorkoutSessionViewModel {
         }
 
         markSetCompletedAndCarryForward(setId: setId, sourceRow: row)
+        checkBaselineRegained(row: row)
         if let targetRestSeconds = row.targetRestSeconds, targetRestSeconds > 0 {
             await startRestTimer(seconds: targetRestSeconds, sourceSetId: setId)
         } else {
@@ -328,7 +366,27 @@ final class WorkoutSessionViewModel {
         defer { isFinishing = false }
 
         let completedRows = data.exerciseSections.flatMap(\.sets).filter(\.isCompleted)
+        let endedAt = now()
+        var sessionToInsert = data.session
+        sessionToInsert.endedAt = endedAt
 
+        // Step 1: Insert the completed session. Nothing has touched the DB yet,
+        // so a failure here leaves zero orphan data.
+        do {
+            workoutLogger.debug("finishSession: inserting session sessionId=\(data.session.id)")
+            try await workoutRepository.insertSession(sessionToInsert)
+            workoutLogger.debug("finishSession: insertSession succeeded")
+        } catch {
+            let mapped = appError(error, operation: "insertWorkoutSession")
+            workoutLogger.error("finishSession-blocked: insertSession failed error=\(String(describing: mapped))")
+            transientError = mapped.visibleOrNil
+            saveBackup()
+            return
+        }
+
+        // Step 2: Upload sets (FK satisfied because session now exists).
+        // On any failure, best-effort rollback the session so we don't leave
+        // a completed-looking row with missing sets.
         for row in completedRows {
             guard let set = makeWorkoutSet(from: row) else {
                 workoutLogger.warning("finishSession: skipping setId=\(row.id) — invalid text (weight='\(row.weightText)' reps='\(row.repsText)')")
@@ -339,26 +397,21 @@ final class WorkoutSessionViewModel {
             } catch {
                 let mapped = appError(error, operation: "uploadWorkoutSet")
                 workoutLogger.error("finishSession-blocked: upload failed for setId=\(row.id) error=\(String(describing: mapped))")
+                try? await workoutRepository.deleteSession(id: data.session.id)
                 transientError = mapped.visibleOrNil
                 saveBackup()
                 return
             }
         }
 
-        do {
-            workoutLogger.debug("finishSession: calling completeSession sessionId=\(data.session.id)")
-            try await workoutRepository.completeSession(data.session.id, endedAt: now())
-            workoutLogger.debug("finishSession: completeSession succeeded")
-            backupRepository.clearBackup()
-            activeTimer = nil
-            restTimerScheduler.cancelAll()
-            await liveActivityController.end()
-            updateSessionEndedAt(now())
-        } catch {
-            let mapped = appError(error, operation: "finishWorkoutSession")
-            workoutLogger.error("finishSession-blocked: completeSession failed error=\(String(describing: mapped))")
-            transientError = mapped.visibleOrNil
-            saveBackup()
+        // Step 3: Full success — clear local backup, tear down live activity.
+        backupRepository.clearBackup()
+        activeTimer = nil
+        restTimerScheduler.cancelAll()
+        await liveActivityController.end()
+        updateSessionEndedAt(endedAt)
+        if isComebackMode {
+            analytics.track(.comebackSessionFinished)
         }
     }
 
@@ -515,7 +568,8 @@ final class WorkoutSessionViewModel {
         defaultWeights: [UUID: Double]
     ) -> [WorkoutSetRowState] {
         programExercises.flatMap { programExercise in
-            (1...max(programExercise.targetSets, 1)).map { setNumber in
+            let setCount = recommendation.adjustments[programExercise.id]?.adjustedSets ?? programExercise.targetSets
+            return (1...max(setCount, 1)).map { setNumber in
                 WorkoutSetRowState(
                     id: UUID(),
                     exerciseId: programExercise.exerciseId,
@@ -537,6 +591,10 @@ final class WorkoutSessionViewModel {
     ) async -> [UUID: Double] {
         var defaultWeights: [UUID: Double] = [:]
         for programExercise in programExercises {
+            if let adjustedWeight = recommendation.adjustments[programExercise.id]?.adjustedTargetWeight {
+                defaultWeights[programExercise.id] = adjustedWeight
+                continue
+            }
             if let targetWeight = programExercise.targetWeight {
                 defaultWeights[programExercise.id] = targetWeight
                 continue
@@ -577,12 +635,82 @@ final class WorkoutSessionViewModel {
                     references[section.programExercise.id] = reference
                 }
             }
-            lastSessionReferences = references
+            lastSessionReferences = applyingBaselineReferences(to: references)
         } catch {
             let mapped = appError(error, operation: "buildLastSessionReferences")
             workoutLogger.debug("Failed to build last-session references: \(String(describing: mapped))")
-            lastSessionReferences = [:]
+            lastSessionReferences = applyingBaselineReferences(to: [:])
         }
+    }
+
+    /// In comeback mode the reference row shows the pre-gap baseline instead of the last session.
+    private func applyingBaselineReferences(
+        to references: [UUID: LastSessionReference]
+    ) -> [UUID: LastSessionReference] {
+        guard isComebackMode, case let .success(data) = state else { return references }
+
+        var updated = references
+        for section in data.exerciseSections {
+            guard let adjustment = recommendation.adjustments[section.programExercise.id],
+                  let baselineWeight = adjustment.baselineWeight,
+                  adjustment.baselineReps.isEmpty == false else {
+                continue
+            }
+            updated[section.programExercise.id] = LastSessionReference(
+                label: .baseline,
+                sets: adjustment.baselineReps.map { reps in
+                    LastSessionReference.SetSummary(
+                        weight: weightUnit.displayValue(fromKilograms: baselineWeight),
+                        reps: reps
+                    )
+                },
+                unit: weightUnit,
+                isFallback: false
+            )
+        }
+        return updated
+    }
+
+    func hasCompletedSets(for programExerciseId: UUID) -> Bool {
+        guard case let .success(data) = state else { return false }
+        return data.exerciseSections
+            .first { $0.programExercise.id == programExerciseId }?
+            .sets.contains(where: \.isCompleted) ?? false
+    }
+
+    func applyFeedback(_ feel: HowDidThatFeel, to programExerciseId: UUID) {
+        guard case let .success(data) = state else { return }
+        let completedSetIds = data.exerciseSections
+            .first { $0.programExercise.id == programExerciseId }?
+            .sets
+            .filter(\.isCompleted)
+            .map(\.id) ?? []
+        guard completedSetIds.isEmpty == false else { return }
+
+        // Sets live locally until finishSession uploads them; RPE is carried through
+        // local row state and included in the WorkoutSet INSERT at finish time.
+        for setId in completedSetIds {
+            updateRow(setId: setId, save: false) { $0.rpe = feel.rpe }
+        }
+        saveBackup()
+    }
+
+    private func checkBaselineRegained(row: WorkoutSetRowState) {
+        guard isComebackMode,
+              baselineRegainedThisSession == false,
+              let programExerciseId = row.programExerciseId,
+              let adjustment = recommendation.adjustments[programExerciseId],
+              let baselineWeight = adjustment.baselineWeight,
+              let baselineReps = adjustment.baselineReps.first,
+              let weightKg = weightUnit.kilogramValue(fromDisplayText: row.weightText),
+              let reps = Int(row.repsText.trimmingCharacters(in: .whitespacesAndNewlines)),
+              weightKg >= baselineWeight,
+              reps >= baselineReps else {
+            return
+        }
+        baselineRegainedThisSession = true
+        playBaselineRegainedHaptic()
+        analytics.track(.comebackExitBaselineReached)
     }
 
     private func upload(_ set: WorkoutSet) async throws {

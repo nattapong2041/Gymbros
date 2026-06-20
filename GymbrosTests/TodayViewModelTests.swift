@@ -136,6 +136,55 @@ struct TodayViewModelTests {
         #expect(data.isWelcomeBack == true)
     }
 
+    // MARK: - Comeback recommendation
+
+    @Test func fifteenDayOldHistory_recommendationIsComebackFirstBand() async throws {
+        let program = makeTodayProgram(withExercises: true)
+        let session = makeSession(programDayId: TodaySamples.day1Id, daysAgo: 15)
+        let workoutRepo = FakeTodayWorkoutRepository(history: [session])
+        workoutRepo.setsBySessionId[session.id] = [makeSet(sessionId: session.id, weight: 80, reps: 8)]
+        let vm = TodayViewModel(
+            programRepository: FakeTodayProgramRepository(active: program),
+            workoutRepository: workoutRepo
+        )
+
+        await vm.load()
+
+        let data = try successValue(vm.state)
+        #expect(data.recommendation.mode.isComeback)
+        #expect(data.recommendation.stage?.bandKey == "comeback.band.14_20")
+        #expect(data.recommendation.stage?.weightMultiplier == 0.9)
+        let adjustment = try #require(data.recommendation.adjustments[TodaySamples.programExerciseId])
+        #expect(adjustment.adjustedTargetWeight == 80 * 0.9)
+    }
+
+    @Test func recentHistory_recommendationIsNormal() async throws {
+        let program = makeTodayProgram(withExercises: true)
+        let session = makeSession(programDayId: TodaySamples.day1Id, daysAgo: 3)
+        let vm = TodayViewModel(
+            programRepository: FakeTodayProgramRepository(active: program),
+            workoutRepository: FakeTodayWorkoutRepository(history: [session])
+        )
+
+        await vm.load()
+
+        let data = try successValue(vm.state)
+        #expect(data.recommendation.mode == .normal)
+    }
+
+    @Test func trackComebackCardShown_forwardsToAnalytics() {
+        let spy = SpyAnalytics()
+        let vm = TodayViewModel(
+            programRepository: FakeTodayProgramRepository(),
+            workoutRepository: FakeTodayWorkoutRepository(),
+            analytics: spy
+        )
+
+        vm.trackComebackCardShown()
+
+        #expect(spy.events == [.comebackCardShown])
+    }
+
     // MARK: - Error handling
 
     @Test func repositoryError_stateIsError() async {
@@ -165,7 +214,7 @@ private func successValue<T>(_ state: ViewState<T>) throws -> T {
     return value
 }
 
-private func makeTodayProgram() -> Program {
+private func makeTodayProgram(withExercises: Bool = false) -> Program {
     var p = Program(
         id: TodaySamples.programId,
         userId: TodaySamples.userId,
@@ -175,11 +224,56 @@ private func makeTodayProgram() -> Program {
         createdAt: TodaySamples.baseDate,
         updatedAt: TodaySamples.baseDate
     )
+    var day1 = ProgramDay(id: TodaySamples.day1Id, programId: TodaySamples.programId, name: "Day A", dayOrder: 0, createdAt: TodaySamples.baseDate)
+    if withExercises {
+        day1.exercises = [
+            ProgramExercise(
+                id: TodaySamples.programExerciseId,
+                programDayId: TodaySamples.day1Id,
+                exerciseId: TodaySamples.exerciseId,
+                targetSets: 3,
+                targetRepsMin: 8,
+                targetRepsMax: 10,
+                targetRestSeconds: 90,
+                targetWeight: nil,
+                exerciseOrder: 0,
+                notes: nil,
+                createdAt: TodaySamples.baseDate
+            )
+        ]
+    }
     p.days = [
-        ProgramDay(id: TodaySamples.day1Id, programId: TodaySamples.programId, name: "Day A", dayOrder: 0, createdAt: TodaySamples.baseDate),
+        day1,
         ProgramDay(id: TodaySamples.day2Id, programId: TodaySamples.programId, name: "Day B", dayOrder: 1, createdAt: TodaySamples.baseDate)
     ]
     return p
+}
+
+private func makeSet(sessionId: UUID, weight: Double, reps: Int, rpe: Double? = nil) -> WorkoutSet {
+    WorkoutSet(
+        id: UUID(),
+        sessionId: sessionId,
+        exerciseId: TodaySamples.exerciseId,
+        programExerciseId: TodaySamples.programExerciseId,
+        setNumber: 1,
+        weight: weight,
+        reps: reps,
+        rpe: rpe,
+        targetRestSeconds: nil,
+        actualRestSeconds: nil,
+        restStartedAt: nil,
+        restEndedAt: nil,
+        completedAt: Date.now,
+        notes: nil
+    )
+}
+
+private final class SpyAnalytics: AnalyticsTracking {
+    var events: [AnalyticsEvent] = []
+
+    func track(_ event: AnalyticsEvent) {
+        events.append(event)
+    }
 }
 
 private func makeSession(programDayId: UUID?, daysAgo: Double) -> WorkoutSession {
@@ -202,6 +296,8 @@ private enum TodaySamples {
     static let programId = UUID(uuidString: "bbbb0000-0000-0000-0000-000000000000")!
     static let day1Id = UUID(uuidString: "cccc0000-0000-0000-0000-000000000000")!
     static let day2Id = UUID(uuidString: "dddd0000-0000-0000-0000-000000000000")!
+    static let programExerciseId = UUID(uuidString: "eeee0000-0000-0000-0000-000000000000")!
+    static let exerciseId = UUID(uuidString: "ffff0000-0000-0000-0000-000000000000")!
     static let baseDate = Date(timeIntervalSince1970: 1_778_342_400)
 }
 
@@ -242,6 +338,7 @@ private final class FakeTodayProgramRepository: ProgramRepositoryProviding {
 @MainActor
 private final class FakeTodayWorkoutRepository: WorkoutRepositoryProviding {
     var history: [WorkoutSession]
+    var setsBySessionId: [UUID: [WorkoutSet]] = [:]
     var fetchHistoryError: AppError?
 
     init(history: [WorkoutSession] = []) {
@@ -253,15 +350,16 @@ private final class FakeTodayWorkoutRepository: WorkoutRepositoryProviding {
         return history
     }
 
-    func createSession(programDayId: UUID, startedAt: Date) async throws -> WorkoutSession { throw AppError.notFound }
+    func insertSession(_ session: WorkoutSession) async throws { throw AppError.notFound }
     func uploadSet(_ set: WorkoutSet) async throws -> WorkoutSet { throw AppError.notFound }
     func updateSet(_ set: WorkoutSet) async throws -> WorkoutSet { throw AppError.notFound }
+    func updateSets(ids: [UUID], rpe: Double) async throws {}
     func deleteSet(id: UUID) async throws {}
     func deleteSession(id: UUID) async throws {}
     func completeSession(_ sessionId: UUID, endedAt: Date) async throws {}
     func updateSessionEndedAt(sessionId: UUID, endedAt: Date) async throws -> WorkoutSession {
         throw AppError.notFound
     }
-    func fetchSets(sessionId: UUID) async throws -> [WorkoutSet] { return [] }
+    func fetchSets(sessionId: UUID) async throws -> [WorkoutSet] { setsBySessionId[sessionId] ?? [] }
     func fetchLastLoggedSet(exerciseId: UUID, before: Date) async throws -> WorkoutSet? { nil }
 }
