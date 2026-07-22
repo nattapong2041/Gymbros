@@ -50,12 +50,19 @@ prompt in comeback mode, not as the everyday per-set control.
 
 ## Non-goals
 
-- No change to how RPE is displayed in read-only historical views (History,
-  `SessionDetailView`, the "last session" reference row in the logger). Those already
-  just print whatever number is stored and aren't the friction point.
+- No change to how RPE is *displayed* in genuinely read-only views (the History list,
+  the "last session" reference row in the logger). Those already just print whatever
+  number is stored and aren't the friction point.
 - No new user preference to hide RPE entirely — the per-set `Clear` option already makes
   it fully optional without adding a new settings surface.
 - No change to `ComebackRampService` or `ProgressiveOverloadEngine` thresholds.
+
+**Correction (found while writing the implementation plan):** `SessionDetailView`'s
+per-set edit form (`session.set.edit.title`, editing a completed `WorkoutSet` from
+History) is *not* read-only — it has its own copy of the same raw 1.0–10.0 `Menu`,
+sharing the `workout.set.rpe` / `workout.set.rpe.clear` keys. This is in scope (see
+Design §1a below); the "read-only" characterization above applies only to the History
+list and the "last session" reference row, not to this edit form.
 
 ## Design
 
@@ -78,6 +85,16 @@ zero layout risk, no changes to `WorkoutSetTableLayout`. Replace only its conten
 
 Column header (`workout.set.header.rpe`, currently literal "RPE" in both locales) is
 renamed to a new key `workout.set.header.feel` = "Feel" (en) / "รู้สึก" (th).
+
+### 1a. Same replacement in `SessionDetailView`'s edit-set form
+
+`Gymbros/Presentation/History/SessionDetailView.swift` (the `session.set.edit.title`
+form, roughly lines 233–249) has its own raw 1.0–10.0 `Menu`, structured as a `Form`
+row rather than a compact table cell (more horizontal room, so it can show full text
+labels, not just an icon). Apply the same 3-option-plus-Clear content here, using the
+same new localization keys from §3. Closed-state row shows the full label text ("Easy" /
+"Just right" / "Hard" / "—" when unset) since a `Form` row has room for it — no icon-only
+constraint here like the compact table cell.
 
 ### 2. Remove comeback mode's separate feedback sheet
 
@@ -133,28 +150,31 @@ No changes needed to either service.
 
 Sets logged before this change (already in the DB) or sitting in a pre-upgrade
 active-session backup may hold arbitrary values from the old 19-item scale (e.g. `6.5`,
-`8.0`). The closed-state icon buckets any stored value to the nearest of the three
-canonical points rather than showing a broken/undefined 4th state:
+`8.0`). Both edit surfaces (`SetRowView`'s closed-state icon and `SessionDetailView`'s
+closed-state label) bucket any stored value to the nearest of the three canonical points
+rather than showing a broken/undefined 4th state, via one shared helper function:
 
 ```
-value <= 6.75            -> Easy icon
-6.75 < value <= 8.25      -> Just right icon
-value > 8.25              -> Hard icon
+value <= 6.75            -> Easy
+6.75 < value <= 8.25      -> Just right
+value > 8.25              -> Hard
 ```
 
 This bucketing is display-only — it does not rewrite the stored value. If the user then
 opens the menu and picks an option, the value snaps to the exact canonical number for
 that option, same as normal.
 
-Read-only historical views (History, `SessionDetailView`, "last session" reference row)
-keep displaying the raw stored number unchanged — they are out of scope (see Non-goals).
+The genuinely read-only views (History list, "last session" reference row) keep
+displaying the raw stored number unchanged — they are out of scope (see Non-goals).
 
 ## Testing
 
 - `SetRowView` previews and any existing snapshot/unit coverage updated for the new
   menu contents and closed-state rendering (icon vs. placeholder).
-- New unit test for the legacy-value bucketing function (three boundary cases plus the
-  two threshold edges: `6.75`, `8.25`).
+- `SessionDetailView`'s edit-set form manually verified for the same new menu contents
+  and closed-state label rendering.
+- New unit test for the shared legacy-value bucketing function (three boundary cases
+  plus the two threshold edges: `6.75`, `8.25`).
 - Remove now-dead tests in `WorkoutSessionViewModelTests` that covered
   `applyFeedback` and the comeback feedback sheet.
 - `ComebackRampServiceTests` and `ProgressiveOverloadEngineTests` are unaffected and
