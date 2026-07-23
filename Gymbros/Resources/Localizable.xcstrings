@@ -2941,6 +2941,22 @@
         }
       }
     },
+    "today.change_day.button" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Change day"
+          }
+        },
+        "th" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "เปลี่ยนวัน"
+          }
+        }
+      }
+    },
     "today.comeback.ramp.decrease" : {
       "localizations" : {
         "en" : {

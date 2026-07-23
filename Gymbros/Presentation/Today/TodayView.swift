@@ -7,8 +7,10 @@ struct TodayView: View {
     let onShowPrograms: () -> Void
     private let loadsOnAppear: Bool
 
+    @Environment(AppPreferences.self) private var appPreferences
     @State private var selectedWorkoutRoute: WorkoutLaunchRoute?
     @State private var didLogComebackCardShown = false
+    @State private var selectedDay: ProgramDay?
 
     @MainActor
     init(
@@ -82,15 +84,39 @@ struct TodayView: View {
                     }
 
                     if let nextDay = data.nextDay {
+                        let displayedDay = selectedDay ?? nextDay
+                        if let program = data.activeProgram {
+                            changeDayMenu(days: program.days, recommendedDay: nextDay)
+                        }
                         if data.recommendation.mode.isComeback {
-                            comebackCard(data: data, nextDay: nextDay)
+                            comebackCard(data: data, nextDay: displayedDay)
                         } else {
-                            nextWorkoutCard(data: data, nextDay: nextDay)
+                            nextWorkoutCard(data: data, nextDay: displayedDay)
                         }
                     }
                 }
                 .padding()
             }
+        }
+    }
+
+    @ViewBuilder
+    private func changeDayMenu(days: [ProgramDay], recommendedDay: ProgramDay) -> some View {
+        let otherDays = days
+            .sorted { $0.dayOrder < $1.dayOrder }
+            .filter { $0.id != recommendedDay.id }
+        if otherDays.isEmpty == false {
+            Menu {
+                ForEach(otherDays) { day in
+                    Button(day.name) {
+                        selectedDay = day
+                    }
+                }
+            } label: {
+                Label("today.change_day.button", systemImage: "arrow.triangle.2.circlepath")
+                    .font(.subheadline)
+            }
+            .frame(minHeight: 48)
         }
     }
 
