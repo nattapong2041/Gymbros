@@ -631,12 +631,13 @@ spec. Not yet assigned to a numbered sprint.
   overload advisor (3b) is its first consumer.
   Design: docs/superpowers/specs/2026-07-23-training-phase-setting-design.md (approved)
 
-☐ 3b. Progressive overload advisor sessions
-  Proactively nudge the user when they've plateaued at a weight instead of only
-  showing a passive hint. Builds on the already-implemented ProgressiveOverloadEngine
-  (Data/Services/ProgressiveOverloadEngine.swift) and overlaps with the still-unbuilt
-  StallDetector / DeloadAdvisor checklist items under Sprint 7 below. Will consume 3a's
-  training phase to soften/skip prompts during cut/maintain. Not designed yet.
+☐ 3b. Progressive overload advisor sessions — DESIGNED
+  New StallDetector (same top-set weight x4 sessions, no session over RPE 8.0) plus a
+  proactive Today card (normal mode only, dismissible/snoozable 14 days), suppressed
+  entirely when 3a's training phase is cut/maintain. Reuses ProgramExercise.targetWeight
+  for the "try it next time" pre-fill -- no new pre-fill plumbing. DeloadAdvisor
+  (Sprint 7 below) is a deliberate non-goal here -- separate signal, opposite trigger.
+  Design: docs/superpowers/specs/2026-07-23-progressive-overload-advisor-design.md (approved)
 
 ☐ 4. RPE UX simplification — IN PROGRESS
   Replace the raw 1.0-10.0 decimal RPE menu (basic users don't know what RPE means,
