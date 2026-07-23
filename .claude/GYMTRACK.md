@@ -519,10 +519,14 @@ App Store: phase-level releases
 ### Sprint Progress
 
 ```text
-✅ Sprint 1 — Foundation + Data          7h actual
-✅ Sprint 2 — Custom Program Builder     10h actual
-✅ Sprint 3 — Logger + Timer             complete
-⏳ Sprint 4 — Today + History + Navigation + Anti-Guilt UX next up
+✅ Sprint 1 — Foundation + Data                       7h actual
+✅ Sprint 2 — Custom Program Builder                  10h actual
+✅ Sprint 3 — Logger + Timer                          complete
+✅ Sprint 4 — Today + History + Navigation + UX       complete
+✅ Sprint 5 — Settings                                complete
+✅ Sprint 5p — Phase 1 Polish (trial feedback)        complete
+✅ Sprint 6 — Next Best Session v1 / Smart Comeback   complete — manual smoke pending
+⏳ Sprint 7 — Onboarding + Templates + i18n           next up (no spec.md yet)
 ```
 
 ---
@@ -533,10 +537,10 @@ App Store: phase-level releases
 
 ### Phase 1 Trial Feedback Polish Backlog
 
-Hands-on feedback after trying the current logger should be considered before wider TestFlight, either as Sprint 5/6 polish or a short Phase 1 stabilization pass.
+Hands-on feedback after trying the current logger, implemented during S05p. Verified done 2026-07-22 by re-checking each acceptance bullet against the current implementation (see file refs below) — code, tests, and localization all confirmed, not just re-stating prior smoke notes.
 
 ```text
-☐ Rest timer background awareness
+✓ Rest timer background awareness — DONE (verified 2026-07-22)
   User problem:
     If the user scrolls another app during rest, they may miss the in-app timer.
   Product direction:
@@ -546,37 +550,93 @@ Hands-on feedback after trying the current logger should be considered before wi
     Use local notifications for background completion; use haptic + subtle ring
     pulse/shake only while GymBros is foregrounded.
   Acceptance:
-    - Foreground: timer completion gives haptic feedback and a clear visual pulse.
-    - Respect Reduce Motion; avoid aggressive shaking for accessibility.
-    - Background: schedule a local notification when rest starts, cancel/reschedule
+    - [x] Foreground: timer completion gives haptic feedback and a clear visual pulse.
+    - [x] Respect Reduce Motion; avoid aggressive shaking for accessibility.
+    - [x] Background: schedule a local notification when rest starts, cancel/reschedule
       when the timer stops or changes, and play the default notification sound.
-    - Ask notification permission contextually, not at first launch.
-    - Localize title/body in Thai and English.
+    - [x] Ask notification permission contextually, not at first launch.
+    - [x] Localize title/body in Thai and English.
+  Implementation:
+    Data/Services/RestTimerNotificationScheduler.swift (schedule/cancel/cancelAll,
+    contextual requestAuthorizationIfNeeded), Presentation/Workout/RestTimerRingView.swift
+    (haptic + scale pulse gated on UIAccessibility.isReduceMotionEnabled),
+    AppDelegate.swift (delegate wiring only, no permission request at launch).
+    Tests: RestTimerNotificationSchedulerTests.swift.
 
-☐ Hide keyboard on outside tap
+✓ Hide keyboard on outside tap — DONE (verified 2026-07-22)
   User problem:
     Weight/reps entry keeps the keyboard open when the user taps elsewhere.
   Product direction:
     Workout logging should feel fast with sweaty hands and one-handed use.
   Acceptance:
-    - Tapping outside an input dismisses the keyboard on workout/program forms.
-    - Scrolling dismisses the keyboard interactively where the layout scrolls.
-    - No draft weight/reps values are lost when the keyboard is dismissed.
-    - Apply through a shared SwiftUI helper if repeated across screens.
+    - [x] Tapping outside an input dismisses the keyboard on workout/program forms.
+    - [x] Scrolling dismisses the keyboard interactively where the layout scrolls.
+    - [x] No draft weight/reps values are lost when the keyboard is dismissed.
+    - [x] Apply through a shared SwiftUI helper if repeated across screens.
+  Implementation:
+    Core/Extensions/View+DismissKeyboard.swift (single shared `dismissKeyboardOnTap()`
+    helper, window-level tap recognizer that ignores taps on text inputs), applied at
+    App/RootView.swift (global) plus WorkoutExercisePageView, SetRowView,
+    ProgramExerciseEditorView, SessionDetailView; `.scrollDismissesKeyboard(.interactively)`
+    paired on the scrollable forms.
 
-☐ Show latest session kg/reps beside current inputs
+✓ Show latest session kg/reps beside current inputs — DONE (verified 2026-07-22)
   User problem:
     During a workout, the user wants to compare today's set with the latest
     completed session for the same exercise.
   Product direction:
     Make progression obvious without making the user open History mid-workout.
   Acceptance:
-    - For each exercise, show latest completed session reference in the logger,
+    - [x] For each exercise, show latest completed session reference in the logger,
       e.g. "Last: 60 kg x 8, 8, 7" or compact per-set hints.
-    - Prefer same program exercise history; fall back to same exercise history.
-    - Respect the user's weight unit setting.
-    - Treat missing history as a normal empty state, not an error.
-    - In comeback mode, label this as baseline/last time without shaming copy.
+    - [x] Prefer same program exercise history; fall back to same exercise history.
+    - [x] Respect the user's weight unit setting.
+    - [x] Treat missing history as a normal empty state, not an error.
+    - [x] In comeback mode, label this as baseline/last time without shaming copy.
+  Implementation:
+    Data/Services/LastSessionLookupService.swift (same-programExercise lookup first,
+    falls back to same-exerciseId with `isFallback` flag; unit conversion via
+    `WeightUnit.displayValue`), Presentation/Workout/WorkoutExercisePageView.swift
+    (`lastSessionReferenceRow`, nil → `workout.last_session.empty` tertiary-styled
+    empty state, `.baseline` label → non-shaming `workout.last_session.baseline.format`
+    copy in comeback mode). Tests: LastSessionLookupServiceTests.swift.
+```
+
+---
+
+### Post-Launch Feature Backlog (gathered 2026-07-23)
+
+Four features requested after using the app hands-on for a while. Independent
+subsystems — each gets its own brainstorm/design/plan cycle rather than one shared
+spec. Not yet assigned to a numbered sprint.
+
+```text
+☐ 1. Skip a day in a workout plan — DESIGNED
+  e.g. skip leg day in a Push/Pull/Legs program. One-off swap on Today only (not a
+  permanent program edit) — turned out to need no engine/ViewModel changes at all,
+  since rotation self-corrects from actual history and comeback adjustments are
+  already program-wide.
+  Design: docs/superpowers/specs/2026-07-23-skip-a-day-design.md (approved)
+
+☐ 2. Switch to a related exercise mid-workout
+  e.g. bench press -> machine chest press.
+  Overlaps with the existing but unspecced roadmap entry Sprint 9 — Substitute +
+  Defer (below) — ranked substitutes by movement pattern/muscle, equipment fallback,
+  SubstituteOriginBadge. Not designed yet; refine that outline into a real spec.
+
+☐ 3. Progressive overload advisor sessions
+  Proactively nudge the user when they've plateaued at a weight instead of only
+  showing a passive hint. Builds on the already-implemented ProgressiveOverloadEngine
+  (Data/Services/ProgressiveOverloadEngine.swift) and overlaps with the still-unbuilt
+  StallDetector / DeloadAdvisor checklist items under Sprint 7 below. Not designed yet.
+
+☐ 4. RPE UX simplification — IN PROGRESS
+  Replace the raw 1.0-10.0 decimal RPE menu (basic users don't know what RPE means,
+  some don't want to record it) with the existing friendly Easy/Just right/Hard scale
+  used in comeback mode, applied everywhere (per-set, not just end-of-exercise), and
+  remove the comeback-only feedback sheet it makes redundant.
+  Design: docs/superpowers/specs/2026-07-22-rpe-ux-simplification-design.md (approved)
+  Plan:   docs/superpowers/plans/2026-07-23-rpe-ux-simplification.md (written, not yet executed)
 ```
 
 ---
@@ -663,24 +723,24 @@ Done:
 
 ---
 
-### Sprint 4 — Today + History + Navigation + Anti-Guilt UX
+### Sprint 4 — Today + History + Navigation + Anti-Guilt UX ✅ DONE
 
 **Effort:** Medium
 
 ```text
 Spec: .claude/sprints/S04-today-history/spec.md
 
-☐ TodayView with greeting, next workout card, Start CTA
-☐ TodayViewModel: active program + next day logic
-☐ HistoryView: past sessions, newest first
-☐ SessionDetailView: sets per exercise (read-only)
-☐ Tab navigation: Today / Programs / History (3 tabs; Settings added in Sprint 5)
-☐ StreakService: week-based streak, anti-guilt rules
-☐ Anti-guilt features:
-  ☐ Welcome back banner after 7+ days
-  ☐ Streak visible only when intact (≥2 consecutive weeks)
-  ☐ Last workout date soft grey
-  ☐ Empty states: “Ready when you are”
+✓ TodayView with greeting, next workout card, Start CTA
+✓ TodayViewModel: active program + next day logic
+✓ HistoryView: past sessions, newest first
+✓ SessionDetailView: sets per exercise (read-only)
+✓ Tab navigation: Today / Programs / History (3 tabs; Settings added in Sprint 5)
+✓ StreakService: week-based streak, anti-guilt rules
+✓ Anti-guilt features:
+  ✓ Welcome back banner after 7+ days
+  ✓ Streak visible only when intact (≥2 consecutive weeks)
+  ✓ Last workout date soft grey
+  ✓ Empty states: “Ready when you are”
 
 Done:
   Full loop exists: open → today → start → log → finish → history.
@@ -691,20 +751,20 @@ Done:
 
 ---
 
-### Sprint 5 — Settings
+### Sprint 5 — Settings ✅ DONE
 
 **Effort:** Simple
 
 ```text
 Spec: .claude/sprints/S05-settings/spec.md
 
-☐ Settings tab (4th tab) added to TabView
-☐ Weight unit toggle: kg / lb (functional, persists via ProfileRepository)
-☐ Sign Out (functional, returns to SignInView)
-☐ App version + build number (static)
-☐ Privacy Policy placeholder
-☐ Delete Account placeholder
-☐ ProfileRepositoryProviding protocol for test injection
+✓ Settings tab (4th tab) added to TabView
+✓ Weight unit toggle: kg / lb (functional, persists via ProfileRepository)
+✓ Sign Out (functional, returns to SignInView)
+✓ App version + build number (static)
+✓ Privacy Policy placeholder
+✓ Delete Account placeholder
+✓ ProfileRepositoryProviding protocol for test injection
 
 Done:
   User can sign out, toggle weight unit, and see app version.
@@ -712,34 +772,38 @@ Done:
 
 ---
 
-### Sprint 6 — Next Best Session Engine v1 / Smart Comeback
+### Sprint 6 — Next Best Session Engine v1 / Smart Comeback ✅ IMPLEMENTED — manual smoke pending
 
 **Effort:** Complex
 
 ```text
 Spec: .claude/sprints/S06-next-best-session/spec.md
+Committed: e1859b6 (2026-06-20)
 
 This sprint defines the product.
 After this sprint, opening the app after 14 days off shows a clear adjusted session.
 
-☐ NextBestSessionEngine coordinator service
-☐ SmartSessionAdvisor pure Swift service + tests
-☐ ComebackRampService pure Swift service + tests
-☐ Basic ProgressiveOverloadEngine pure Swift service + tests
-☐ ComebackCardView — semantic, concrete, bilingual-ready
-☐ WorkoutSessionView comeback mode:
-  ☐ Easing Back badges
-  ☐ Adjusted weights and sets
-  ☐ Previous baseline visible but not shaming
-  ☐ HowDidThatFeelPicker: Easy / Just right / Hard
-☐ TelemetryDeck events:
-  ☐ comeback_card_shown
-  ☐ comeback_session_started
-  ☐ comeback_session_finished
-  ☐ comeback_exit_baseline_reached
-☐ Haptics:
-  ☐ light haptic for comeback set completion
-  ☐ double haptic when baseline is regained
+✓ NextBestSessionEngine coordinator service
+✓ SmartSessionAdvisor pure Swift service + tests
+✓ ComebackRampService pure Swift service + tests
+✓ Basic ProgressiveOverloadEngine pure Swift service + tests
+✓ ComebackCardView — semantic, concrete, bilingual-ready
+✓ WorkoutSessionView comeback mode:
+  ✓ Easing Back badges
+  ✓ Adjusted weights and sets
+  ✓ Previous baseline visible but not shaming
+  ✓ HowDidThatFeelPicker: Easy / Just right / Hard
+✓ TelemetryDeck events:
+  ✓ comeback_card_shown
+  ✓ comeback_session_started
+  ✓ comeback_session_finished
+  ✓ comeback_exit_baseline_reached
+✓ Haptics:
+  ✓ light haptic for comeback set completion
+  ✓ double haptic when baseline is regained
+
+☐ Manual smoke test — not yet run (see STANDUP.md "Next up" for the 7-step checklist;
+  requires editing a workout_sessions.ended_at in Supabase to simulate a 14+ day gap).
 
 Done:
   Force last workout date to 15 days ago → comeback card appears,
