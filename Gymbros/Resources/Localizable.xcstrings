@@ -2893,6 +2893,70 @@
         }
       }
     },
+    "settings.training_phase.bulk" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Building muscle"
+          }
+        },
+        "th" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "เพิ่มกล้ามเนื้อ"
+          }
+        }
+      }
+    },
+    "settings.training_phase.cut" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Losing weight"
+          }
+        },
+        "th" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ลดน้ำหนัก"
+          }
+        }
+      }
+    },
+    "settings.training_phase.maintain" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Maintaining"
+          }
+        },
+        "th" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "คงน้ำหนัก"
+          }
+        }
+      }
+    },
+    "settings.training_phase.title" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Training phase"
+          }
+        },
+        "th" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ช่วงการฝึก"
+          }
+        }
+      }
+    },
     "settings.weight_unit.kg" : {
       "localizations" : {
         "en" : {

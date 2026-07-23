@@ -55,6 +55,28 @@ struct SettingsView: View {
                             .accessibilityValue(Text(verbatim: data.weightUnit.localizedAbbreviation))
                         }
                         .frame(minHeight: 48)
+
+                        HStack {
+                            Text("settings.training_phase.title")
+                            Spacer()
+                            Menu {
+                                Button("settings.training_phase.bulk") {
+                                    Task { await viewModel.updateTrainingPhase(.bulk) }
+                                }
+                                Button("settings.training_phase.cut") {
+                                    Task { await viewModel.updateTrainingPhase(.cut) }
+                                }
+                                Button("settings.training_phase.maintain") {
+                                    Task { await viewModel.updateTrainingPhase(.maintain) }
+                                }
+                            } label: {
+                                Text(trainingPhaseLabel(data.trainingPhase))
+                                    .foregroundStyle(.secondary)
+                            }
+                            .accessibilityLabel(Text("settings.training_phase.title"))
+                            .accessibilityValue(Text(trainingPhaseLabel(data.trainingPhase)))
+                        }
+                        .frame(minHeight: 48)
                     }
 
                     Section(header: Text("settings.section.account")) {
@@ -136,6 +158,15 @@ struct SettingsView: View {
         .task {
             guard loadsOnAppear else { return }
             await viewModel.load()
+        }
+    }
+
+    private func trainingPhaseLabel(_ phase: TrainingPhase?) -> String {
+        switch phase {
+        case .bulk: String(localized: "settings.training_phase.bulk")
+        case .cut: String(localized: "settings.training_phase.cut")
+        case .maintain: String(localized: "settings.training_phase.maintain")
+        case nil: "—"
         }
     }
 }
