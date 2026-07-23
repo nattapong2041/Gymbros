@@ -46,6 +46,9 @@ struct TodayView: View {
                 selectedWorkoutRoute = route
                 deepLinkedWorkoutRoute = nil
             }
+            .onChange(of: viewModel.state.value?.nextDay?.id) { _, _ in
+                selectedDay = nil
+            }
             .refreshable {
                 guard loadsOnAppear else { return }
                 await viewModel.refresh()
