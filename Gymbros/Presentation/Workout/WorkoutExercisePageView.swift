@@ -173,7 +173,7 @@ struct WorkoutExercisePageView: View {
             Text("workout.set.header.reps")
                 .frame(width: columns.reps, alignment: .center)
 
-            Text("workout.set.header.rpe")
+            Text("workout.set.header.feel")
                 .frame(width: columns.rpe, alignment: .center)
 
             Text("workout.set.header.done")

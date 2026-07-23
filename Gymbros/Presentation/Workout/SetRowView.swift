@@ -34,7 +34,24 @@ struct SetRowView: View {
         _repsText = State(initialValue: state.repsText)
         _rpe = State(initialValue: state.rpe)
     }
-    
+
+    @ViewBuilder
+    private var feelLabelContent: some View {
+        if let rpe {
+            Image(systemName: HowDidThatFeel.nearest(to: rpe).symbolName)
+        } else {
+            Text("workout.set.feel")
+        }
+    }
+
+    private var feelAccessibilityLabel: Text {
+        guard let rpe else {
+            return Text("accessibility.workout.set.feel.unset")
+        }
+        return Text("accessibility.workout.set.feel.prefix")
+            + Text(LocalizedStringKey(HowDidThatFeel.nearest(to: rpe).titleKey))
+    }
+
     var body: some View {
         HStack(spacing: WorkoutSetTableLayout.spacing) {
             // Set Number
@@ -80,22 +97,22 @@ struct SetRowView: View {
                 .disabled(isReadOnly)
             }
             
-            // RPE Picker (using Menu for HIG compliance and tap target)
+            // Feel Picker (using Menu for HIG compliance and tap target)
             Menu {
-                ForEach(Array(stride(from: 10.0, through: 1.0, by: -0.5)), id: \.self) { rpeValue in
+                ForEach(HowDidThatFeel.allCases, id: \.self) { feel in
                     Button {
-                        rpe = rpeValue
+                        rpe = feel.rpe
                     } label: {
-                        Text(String(format: "%.1f", rpeValue))
+                        Label(LocalizedStringKey(feel.titleKey), systemImage: feel.symbolName)
                     }
                 }
                 Button(role: .destructive) {
                     rpe = nil
                 } label: {
-                    Text("workout.set.rpe.clear")
+                    Text("workout.set.feel.clear")
                 }
             } label: {
-                Text(rpe.map { String(format: "%.1f", $0) } ?? String(localized: "workout.set.rpe"))
+                feelLabelContent
                     .font(.system(.caption, design: .rounded).bold())
                     .foregroundStyle(rpe != nil ? .primary : .secondary)
                     .frame(width: columns.rpe, height: 48) // Mandated 48pt tap target
@@ -104,6 +121,7 @@ struct SetRowView: View {
             }
             .disabled(isReadOnly)
             .contentShape(Rectangle()) // Ensure entire area is tappable
+            .accessibilityLabel(feelAccessibilityLabel)
 
             // Completion
             HStack(spacing: WorkoutSetTableLayout.actionSpacing) {
