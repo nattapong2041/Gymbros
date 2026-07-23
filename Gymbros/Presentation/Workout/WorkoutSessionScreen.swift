@@ -9,7 +9,6 @@ struct WorkoutSessionScreen: View {
     @Environment(AppPreferences.self) private var appPreferences
     @State private var viewModel = WorkoutSessionViewModel()
     @State private var hasStarted = false
-    @State private var feedbackExerciseId: UUID?
 
     var body: some View {
         WorkoutSessionView(
@@ -47,11 +46,7 @@ struct WorkoutSessionScreen: View {
                 Task { await viewModel.deleteSet(setId: setId) }
             },
             onFinishExercise: { programExerciseId in
-                if viewModel.isComebackMode, viewModel.hasCompletedSets(for: programExerciseId) {
-                    feedbackExerciseId = programExerciseId
-                } else {
-                    Task { await viewModel.finishExercise(programExerciseId: programExerciseId) }
-                }
+                Task { await viewModel.finishExercise(programExerciseId: programExerciseId) }
             },
             onStopTimer: {
                 viewModel.stopRestTimer()
@@ -73,24 +68,6 @@ struct WorkoutSessionScreen: View {
             get: { viewModel.transientError },
             set: { viewModel.transientError = $0 }
         ))
-        .sheet(isPresented: Binding(
-            get: { feedbackExerciseId != nil },
-            set: { isPresented in
-                if isPresented == false { feedbackExerciseId = nil }
-            }
-        )) {
-            HowDidThatFeelPicker { feel in
-                guard let programExerciseId = feedbackExerciseId else { return }
-                feedbackExerciseId = nil
-                Task {
-                    if let feel {
-                        viewModel.applyFeedback(feel, to: programExerciseId)
-                    }
-                    await viewModel.finishExercise(programExerciseId: programExerciseId)
-                }
-            }
-            .interactiveDismissDisabled()
-        }
         .task {
             guard hasStarted == false else { return }
             hasStarted = true

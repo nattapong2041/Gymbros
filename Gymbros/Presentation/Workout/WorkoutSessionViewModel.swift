@@ -671,30 +671,6 @@ final class WorkoutSessionViewModel {
         return updated
     }
 
-    func hasCompletedSets(for programExerciseId: UUID) -> Bool {
-        guard case let .success(data) = state else { return false }
-        return data.exerciseSections
-            .first { $0.programExercise.id == programExerciseId }?
-            .sets.contains(where: \.isCompleted) ?? false
-    }
-
-    func applyFeedback(_ feel: HowDidThatFeel, to programExerciseId: UUID) {
-        guard case let .success(data) = state else { return }
-        let completedSetIds = data.exerciseSections
-            .first { $0.programExercise.id == programExerciseId }?
-            .sets
-            .filter(\.isCompleted)
-            .map(\.id) ?? []
-        guard completedSetIds.isEmpty == false else { return }
-
-        // Sets live locally until finishSession uploads them; RPE is carried through
-        // local row state and included in the WorkoutSet INSERT at finish time.
-        for setId in completedSetIds {
-            updateRow(setId: setId, save: false) { $0.rpe = feel.rpe }
-        }
-        saveBackup()
-    }
-
     private func checkBaselineRegained(row: WorkoutSetRowState) {
         guard isComebackMode,
               baselineRegainedThisSession == false,

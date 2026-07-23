@@ -568,32 +568,6 @@ struct WorkoutSessionViewModelTests {
         #expect(reference.sets.first?.weight == 60)
     }
 
-    @Test func applyFeedbackBackFillsRPEForCompletedSets() async throws {
-        let workoutRepository = FakeWorkoutRepository()
-        let viewModel = makeViewModel(workoutRepository: workoutRepository)
-        viewModel.recommendation = comebackRecommendation()
-
-        await viewModel.start(programDayId: ProgramSamples.upperDayId)
-        let row = try firstRow(viewModel)
-        await viewModel.completeSet(setId: row.id)
-        viewModel.applyFeedback(.justRight, to: ProgramSamples.benchProgramExerciseId)
-
-        // RPE is stored locally; no remote call until finishSession uploads sets.
-        #expect(workoutRepository.rpeUpdates.isEmpty)
-        #expect(try rowState(viewModel, id: row.id).rpe == 7.5)
-    }
-
-    @Test func applyFeedbackWithNoCompletedSetsSkipsUpdate() async throws {
-        let workoutRepository = FakeWorkoutRepository()
-        let viewModel = makeViewModel(workoutRepository: workoutRepository)
-        viewModel.recommendation = comebackRecommendation()
-
-        await viewModel.start(programDayId: ProgramSamples.upperDayId)
-        viewModel.applyFeedback(.hard, to: ProgramSamples.benchProgramExerciseId)
-
-        #expect(workoutRepository.rpeUpdates.isEmpty)
-    }
-
     @Test func baselineRegainedFiresOncePerSession() async throws {
         let spy = SpyWorkoutAnalytics()
         let haptics = HapticCounter()
