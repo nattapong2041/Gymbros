@@ -231,19 +231,19 @@ private struct EditSetSheet: View {
                             .multilineTextAlignment(.trailing)
                     }
                     Menu {
-                        ForEach(Array(stride(from: 10.0, through: 1.0, by: -0.5)), id: \.self) { rpeValue in
-                            Button { rpe = rpeValue } label: {
-                                Text(String(format: "%.1f", rpeValue))
+                        ForEach(HowDidThatFeel.allCases, id: \.self) { feel in
+                            Button { rpe = feel.rpe } label: {
+                                Text(LocalizedStringKey(feel.titleKey))
                             }
                         }
                         Button(role: .destructive) { rpe = nil } label: {
-                            Text("workout.set.rpe.clear")
+                            Text("workout.set.feel.clear")
                         }
                     } label: {
                         HStack {
-                            Text("workout.set.rpe")
+                            Text("workout.set.feel")
                             Spacer()
-                            Text(rpe.map { String(format: "%.1f", $0) } ?? "-")
+                            feelDisplayText
                                 .foregroundStyle(rpe != nil ? .primary : .secondary)
                         }
                     }
@@ -272,6 +272,11 @@ private struct EditSetSheet: View {
                 }
             }
         }
+    }
+
+    private var feelDisplayText: Text {
+        guard let rpe else { return Text(verbatim: "—") }
+        return Text(LocalizedStringKey(HowDidThatFeel.nearest(to: rpe).titleKey))
     }
 
     private var parsedWeight: Double? {
