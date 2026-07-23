@@ -526,15 +526,13 @@ App Store: phase-level releases
 ✅ Sprint 5 — Settings                                complete
 ✅ Sprint 5p — Phase 1 Polish (trial feedback)        complete
 ✅ Sprint 6 — Next Best Session v1 / Smart Comeback   complete — manual smoke pending
-⏳ Sprint 6p — Quick Wins (RPE + Skip a Day)          designed, ready to build
-⏳ Sprint 6q — Progressive Overload Advisor           designed, ready to build
-⏳ Sprint 6r — Substitute (exercise swap)             outline discussed, not yet speced
-⏳ Sprint 7 — Onboarding + Templates + i18n           next up after 6p-6r (no spec.md yet)
+⏳ Sprint 6.1 — Post-Launch Feature Wave              mostly designed, ready to build
+⏳ Sprint 7 — Onboarding + Templates + i18n           next up after 6.1 (no spec.md yet)
 ```
 
 ---
 
-### PHASE 1 — “Real Life Works” → TestFlight (Sprints 1–6, extended through 6p–6r)
+### PHASE 1 — “Real Life Works” → TestFlight (Sprints 1–6, extended through 6.1)
 
 **Goal:** A beta user can create/select a program, log workouts, and experience the key differentiator: after missing time, the app handles the comeback.
 
@@ -607,21 +605,24 @@ Hands-on feedback after trying the current logger, implemented during S05p. Veri
 
 ---
 
-### Sprint 6p — Quick Wins (RPE UX + Skip a Day) ✅ DESIGNED
+### Sprint 6.1 — Post-Launch Feature Wave ⏳ MOSTLY DESIGNED
 
-**Effort:** Simple-Medium
+**Effort:** Medium-Complex (combined)
 
 ```text
-Spec 1: docs/superpowers/specs/2026-07-22-rpe-ux-simplification-design.md (approved)
-Plan 1: docs/superpowers/plans/2026-07-23-rpe-ux-simplification.md (written, not yet executed)
-Spec 2: docs/superpowers/specs/2026-07-23-skip-a-day-design.md (approved)
+All four features requested after using the app hands-on for a while (gathered
+2026-07-23), bundled into one sprint. Independent subsystems internally — each has
+its own design doc — but shipping together as one wave since they're all real-usage
+polish that lands before Phase 2's onboarding work. Three of four sub-items are
+designed and approved; Substitute is not (see its section below) — build order
+within this sprint should still respect that: RPE + Skip a Day first (no
+dependencies), then Training Phase before Overload Advisor (dependency-ordered),
+then Substitute once it's actually approved.
 
-Both requested after using the app hands-on for a while (gathered 2026-07-23).
-Bundled together because both are small, self-contained, UI-only changes with no
-schema/engine dependencies — natural quick wins before Sprint 7's larger onboarding
-scope begins.
+--- 1. RPE UX SIMPLIFICATION — DESIGNED ---
+Spec: docs/superpowers/specs/2026-07-22-rpe-ux-simplification-design.md (approved)
+Plan: docs/superpowers/plans/2026-07-23-rpe-ux-simplification.md (written, not yet executed)
 
-RPE UX SIMPLIFICATION
 ☐ Replace the raw 1.0-10.0 RPE menu (SetRowView + SessionDetailView's edit-set form)
   with the existing Easy/Just right/Hard scale, reusing HowDidThatFeel
 ☐ Remove comeback mode's now-redundant end-of-exercise feedback sheet
@@ -629,37 +630,18 @@ RPE UX SIMPLIFICATION
 ☐ HowDidThatFeel.nearest(to:) bucketing helper for legacy/restored RPE values
 ☐ Localization: workout.set.feel.* keys replace workout.set.rpe* / workout.comeback.feel.*
 
-SKIP A DAY
+--- 2. SKIP A DAY — DESIGNED ---
+Spec: docs/superpowers/specs/2026-07-23-skip-a-day-design.md (approved)
+
 ☐ "Change day" button on Today next to the Start CTA
 ☐ Menu lists activeProgram.days excluding the currently-recommended day
 ☐ WorkoutSessionScreen gets the picked day's id; same TodayRecommendation passed
   through unchanged (comeback adjustments are already program-wide)
 ☐ Hidden when the active program has only one day
 
-Done:
-  User can log a set with Easy/Just right/Hard instead of a raw RPE number, and can
-  swap today's recommended day for a different day in their program before starting.
-```
+--- 3. TRAINING PHASE SETTING — DESIGNED (foundational, ship before #4) ---
+Spec: docs/superpowers/specs/2026-07-23-training-phase-setting-design.md (approved)
 
----
-
-### Sprint 6q — Progressive Overload Advisor ✅ DESIGNED
-
-**Effort:** Medium
-
-```text
-Spec 1: docs/superpowers/specs/2026-07-23-training-phase-setting-design.md (approved)
-Spec 2: docs/superpowers/specs/2026-07-23-progressive-overload-advisor-design.md (approved)
-
-Requested 2026-07-23 ("encourage progressive overload when it's possible, like when
-the user's stayed at this weight for a long time"). Supersedes the "StallDetector +
-tests" line item that used to sit under Sprint 7 with a fully-specified design
-(session-count threshold, RPE gate, training-phase suppression) — removed from Sprint
-7 below now that it lives here. DeloadAdvisor stays a separate, still-unplanned
-Sprint 7 item; see the design's Non-goals for why the two signals are kept apart
-(comfortable-plateau vs. grinding-near-failure are different problems).
-
-TRAINING PHASE SETTING (3a, foundational — ship first)
 ☐ Wire up the existing but completely unused Model/Enums/TrainingPhase.swift
   (bulk/cut/maintain)
 ☐ Add Profile.trainingPhase (nilable) + Supabase migration — needs explicit approval
@@ -667,7 +649,15 @@ TRAINING PHASE SETTING (3a, foundational — ship first)
 ☐ Settings row, mirroring the existing weight-unit toggle pattern exactly
 ☐ Renamed for users: Building muscle / Losing weight / Maintaining
 
-PROGRESSIVE OVERLOAD ADVISOR (3b, depends on 3a)
+--- 4. PROGRESSIVE OVERLOAD ADVISOR — DESIGNED (depends on #3) ---
+Spec: docs/superpowers/specs/2026-07-23-progressive-overload-advisor-design.md (approved)
+
+Supersedes the "StallDetector + tests" line item that used to sit under Sprint 7
+with a fully-specified design — removed from Sprint 7 below now that it lives here.
+DeloadAdvisor stays a separate, still-unplanned Sprint 7 item; see the design's
+Non-goals for why the two signals are kept apart (comfortable-plateau vs.
+grinding-near-failure are different problems).
+
 ☐ StallDetector: same top-set weight across 4 consecutive sessions, no session over
   RPE 8.0 (reuses the boundedExitSessionCount=4 and ProgressiveOverloadEngine's own
   8.0 "hold" ceiling conventions for consistency)
@@ -680,29 +670,15 @@ PROGRESSIVE OVERLOAD ADVISOR (3b, depends on 3a)
 ☐ "Not now" snoozes that exercise's prompt for 14 days (local UserDefaults only,
   mirrors RestTimerNotificationScheduler's storage style)
 
-Done:
-  Force the same weight logged for 4 sessions in a row -> the advisor card appears on
-  Today with a "try it next time" action; setting training phase to cut/maintain
-  suppresses it for that exercise.
-```
-
----
-
-### Sprint 6r — Substitute (Mid-Workout Exercise Swap) ⏳ OUTLINE DISCUSSED, NOT YET APPROVED
-
-**Effort:** Medium (estimate, unconfirmed — not yet speced)
-
-```text
+--- 5. SUBSTITUTE (Mid-Workout Exercise Swap) — NOT YET APPROVED ---
 Spec: not written yet. The design below was presented for approval during the
 2026-07-23 brainstorming session but the session moved to this roadmap
 reorganization before it was confirmed — resume by re-presenting it for approval,
 then write docs/superpowers/specs/YYYY-MM-DD-exercise-substitution-design.md and an
-implementation plan.
-
-Scoped down from the original Sprint 9 "Substitute + Defer" outline (see Sprint 9
-below) to just Substitute, per an explicit 2026-07-23 decision — Defer is a separate,
-unrelated flow (reordering position in the session, not swapping identity) and stays
-in Sprint 9, still undesigned.
+implementation plan. Scoped down from the original Sprint 9 "Substitute + Defer"
+outline (see Sprint 9 below) to just Substitute — Defer is a separate, unrelated
+flow (reordering position in the session, not swapping identity) and stays in
+Sprint 9, still undesigned.
 
 Outline discussed (NOT yet approved):
   - "Swap exercise" button on the exercise page header opens a ranked-candidates sheet
@@ -722,9 +698,12 @@ Outline discussed (NOT yet approved):
   - SubstituteOriginBadge ("↩ Bench") via a new session-local substitutedFrom field
     on the exercise section
 
-Done (once approved and speced):
-  Bench taken -> user can substitute to a ranked related exercise without breaking
-  the session or permanently changing their program.
+Done:
+  User can log a set with Easy/Just right/Hard instead of a raw RPE number; can swap
+  today's recommended day for a different one; can set a training phase in Settings;
+  forcing the same weight for 4 sessions surfaces the overload advisor card unless
+  cut/maintain is set; and (once #5 is approved and built) bench taken -> user can
+  substitute to a ranked related exercise without breaking the session.
 ```
 
 ---
@@ -932,7 +911,7 @@ Spec: .claude/sprints/S07-onboarding-i18n/spec.md
 ☐ Device locale default
 ☐ Settings language override
 ☐ DeloadAdvisor + tests
-  (StallDetector moved to Sprint 6q — Progressive Overload Advisor, designed 2026-07-23)
+  (StallDetector moved to Sprint 6.1 — Progressive Overload Advisor, designed 2026-07-23)
 ☐ TelemetryDeck V1 core events
 ☐ App icon + launch screen
 
@@ -975,14 +954,14 @@ Done:
 
 ---
 
-### Sprint 9 — Defer (Substitute moved to Sprint 6r)
+### Sprint 9 — Defer (Substitute moved to Sprint 6.1)
 
 **Effort:** Medium
 
 ```text
 Spec: .claude/sprints/S09-substitute-defer/spec.md (title predates the 2026-07-23 split)
 
-Substitute (ranked mid-workout exercise swap) moved to Sprint 6r — Substitute, per
+Substitute (ranked mid-workout exercise swap) moved to Sprint 6.1 — Substitute, per
 the 2026-07-23 decision to scope that request down to just Substitute and ship it
 ahead of Phase 2, since it was one of the four things explicitly requested after
 hands-on use. Defer (a separate, unrelated flow — reordering position in the
@@ -1009,7 +988,7 @@ TELEMETRY
 
 Done:
   Bench taken → user can defer the exercise to the end of the session without
-  breaking it. (Substitute's "Done" criterion lives under Sprint 6r now.)
+  breaking it. (Substitute's "Done" criterion lives under Sprint 6.1 now.)
 ```
 
 ---
@@ -1202,12 +1181,10 @@ Running/cardio:
 | 5 | Settings | ✅ | — | Complete |
 | 5p | Phase 1 Polish (trial feedback) | ✅ | — | Complete |
 | 6 | Next Best Session v1 / Smart Comeback | ✅ | — | Complete — pending manual smoke test |
-| 6p | Quick Wins (RPE UX + Skip a Day) | ☐ | — | Designed 2026-07-23, ready to build |
-| 6q | Progressive Overload Advisor | ☐ | — | Designed 2026-07-23, ready to build |
-| 6r | Substitute | ☐ | — | Outline discussed 2026-07-23, not yet speced |
+| 6.1 | Post-Launch Feature Wave (RPE, Skip Day, Training Phase, Overload Advisor, Substitute) | ☐ | — | 4 of 5 designed 2026-07-23; Substitute not yet approved |
 | 7 | Onboarding + Templates + i18n | ☐ | — | App Store polish foundation |
 | 8 | App Store Ship | ☐ | — | 1.0 release |
-| 9 | Defer | ☐ | — | Substitute split out to Sprint 6r |
+| 9 | Defer | ☐ | — | Substitute split out to Sprint 6.1 |
 | 10 | Injury Mode + Progress Graphs | ☐ | — | Real-life adaptation |
 | 11 | HealthKit Recovery / HRV | ☐ | — | Recovery adaptation |
 | 12 | RevenueCat + Paywall | ☐ | — | Monetization |
@@ -1346,7 +1323,7 @@ Exit comeback mode:
 
 Superseded by the grounded design in
 `docs/superpowers/specs/2026-07-23-progressive-overload-advisor-design.md` (Sprint
-6q) — kept here only as the original theoretical sketch for reference:
+6.1) — kept here only as the original theoretical sketch for reference:
 
 ```text
 Stall if:
@@ -1362,7 +1339,7 @@ Then:
 
 Actual design (2026-07-23): same top-set weight across 4 consecutive sessions (not
 3), and no session among those 4 recorded RPE above 8.0 — missing RPE doesn't block
-(RPE is now optional per Sprint 6p). A recorded RPE above 8.0 anywhere in the window
+(RPE is now optional per Sprint 6.1). A recorded RPE above 8.0 anywhere in the window
 is treated as a DeloadAdvisor signal instead (grinding near failure), not a
 StallDetector one (comfortable plateau) — the two are deliberately kept separate.
 
@@ -1391,7 +1368,7 @@ Exit:
 
 ### Substitute Ranker
 
-Not yet formally speced (Sprint 6r — Substitute is an outline discussed 2026-07-23,
+Not yet formally speced (Sprint 6.1's Substitute item is an outline discussed 2026-07-23,
 not yet approved; see that sprint entry above). This section is the original
 theoretical sketch, kept for reference — the discussed outline differs in two ways
 worth flagging before this gets finalized:
@@ -2030,7 +2007,7 @@ Parallel worktrees:
 
 ## 19. Decision Log
 
-### 2026-07-23 — Four post-launch features designed, inserted as Sprint 6p/6q/6r
+### 2026-07-23 — Four post-launch features designed, inserted as Sprint 6.1
 
 - After using the app hands-on for a while, four features were requested: (1) skip a
   day in a program, (2) switch to a related exercise mid-workout, (3) a progressive
@@ -2050,13 +2027,16 @@ Parallel worktrees:
   designed/ready sprint, unlike the other three.
 - (1), (3a), (3b), and (4) are fully designed and approved; (4) additionally has a
   written (not yet executed) implementation plan.
-- Inserted as **Sprint 6p** (quick wins: 1 + 4, bundled — both small, self-contained,
-  no schema/engine dependencies), **Sprint 6q** (3a + 3b, dependency-ordered), and
-  **Sprint 6r** (2, not yet approved) — following the lettered-sub-sprint precedent
-  from Sprint 5p rather than renumbering Sprints 7–14. Placed ahead of Sprint 7
-  because these came directly from real usage friction, which outweighs Phase 2's
-  new-user-onboarding focus for prioritization purposes.
-- Sprint 7's "StallDetector + tests" line item removed (superseded by 6q's fuller
+- Inserted as one combined **Sprint 6.1 — Post-Launch Feature Wave**, covering all
+  five sub-items (1, 2, 3a, 3b, 4) in one sprint rather than split across separate
+  lettered sub-sprints — decimal numbering following a "6.1" precedent rather than
+  Sprint 5p's letter-suffix style, and rather than renumbering Sprints 7–14. Internal
+  ordering within 6.1 still matters: RPE + Skip a Day have no dependencies; Training
+  Phase must ship before the Overload Advisor; Substitute needs its design approved
+  before it can be built at all. Placed ahead of Sprint 7 because these came directly
+  from real usage friction, which outweighs Phase 2's new-user-onboarding focus for
+  prioritization purposes.
+- Sprint 7's "StallDetector + tests" line item removed (superseded by 6.1's fuller
   design); DeloadAdvisor stays in Sprint 7, still unplanned.
 - Sprint 9 trimmed to Defer only; retitled from "Substitute + Defer."
 - `docs/superpowers/specs/2026-07-23-*.md` hold the four approved designs;
