@@ -624,11 +624,19 @@ spec. Not yet assigned to a numbered sprint.
   Defer (below) — ranked substitutes by movement pattern/muscle, equipment fallback,
   SubstituteOriginBadge. Not designed yet; refine that outline into a real spec.
 
-☐ 3. Progressive overload advisor sessions
+☐ 3a. Training phase setting — DESIGNED (split off from 3, foundational)
+  bulk/cut/maintain, renamed for users as Building muscle/Losing weight/Maintaining.
+  Wires up Model/Enums/TrainingPhase.swift, which already existed but was completely
+  unused. Settings-only for now (no onboarding wiring, no behavior change) — the
+  overload advisor (3b) is its first consumer.
+  Design: docs/superpowers/specs/2026-07-23-training-phase-setting-design.md (approved)
+
+☐ 3b. Progressive overload advisor sessions
   Proactively nudge the user when they've plateaued at a weight instead of only
   showing a passive hint. Builds on the already-implemented ProgressiveOverloadEngine
   (Data/Services/ProgressiveOverloadEngine.swift) and overlaps with the still-unbuilt
-  StallDetector / DeloadAdvisor checklist items under Sprint 7 below. Not designed yet.
+  StallDetector / DeloadAdvisor checklist items under Sprint 7 below. Will consume 3a's
+  training phase to soften/skip prompts during cut/maintain. Not designed yet.
 
 ☐ 4. RPE UX simplification — IN PROGRESS
   Replace the raw 1.0-10.0 decimal RPE menu (basic users don't know what RPE means,
