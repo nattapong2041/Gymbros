@@ -3,6 +3,7 @@ import Observation
 
 struct SettingsData: Equatable {
     var weightUnit: WeightUnit
+    var trainingPhase: TrainingPhase?
     let appVersion: String
 }
 
@@ -45,6 +46,7 @@ final class SettingsViewModel {
 
             state = .success(SettingsData(
                 weightUnit: fetchedProfile.weightUnit,
+                trainingPhase: fetchedProfile.trainingPhase,
                 appVersion: appVersionString
             ))
         } catch {
@@ -81,6 +83,28 @@ final class SettingsViewModel {
         }
     }
 
+    func updateTrainingPhase(_ phase: TrainingPhase) async {
+        guard var updatedProfile = profile else { return }
+        updatedProfile.trainingPhase = phase
+
+        let previousState = state
+        if case .success(var data) = state {
+            data.trainingPhase = phase
+            state = .success(data)
+        }
+
+        do {
+            try await profileRepository.updateProfile(updatedProfile)
+            self.profile = updatedProfile
+        } catch {
+            state = previousState
+            let appError = ErrorMapper.map(error, context: .init(operation: "updateTrainingPhase"))
+            if appError != .cancelled {
+                transientError = appError
+            }
+        }
+    }
+
     func signOut() async {
         guard isSigningOut == false else { return }
         isSigningOut = true
@@ -109,7 +133,7 @@ extension SettingsViewModel {
     }
 
     static func success(weightUnit: WeightUnit) -> SettingsViewModel {
-        preview(.success(SettingsData(weightUnit: weightUnit, appVersion: "1.0.0 (42)")))
+        preview(.success(SettingsData(weightUnit: weightUnit, trainingPhase: nil, appVersion: "1.0.0 (42)")))
     }
 
     private static func preview(_ state: ViewState<SettingsData>) -> SettingsViewModel {

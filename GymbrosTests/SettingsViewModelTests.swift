@@ -13,13 +13,14 @@ struct SettingsViewModelTests {
         return value
     }
 
-    private func makeProfile(weightUnit: WeightUnit = .kg) -> Profile {
+    private func makeProfile(weightUnit: WeightUnit = .kg, trainingPhase: TrainingPhase? = nil) -> Profile {
         Profile(
             id: UUID(),
             email: "test@example.com",
             name: "Test User",
             experienceLevel: .intermediate,
             goal: .strength,
+            trainingPhase: trainingPhase,
             daysPerWeek: 3,
             weightUnit: weightUnit,
             locale: "en",
@@ -107,6 +108,36 @@ struct SettingsViewModelTests {
         #expect(data.weightUnit == .kg)
         #expect(appPreferences.weightUnit == .kg)
         #expect(vm.transientError == nil)
+    }
+
+    @Test func updateTrainingPhase_success() async throws {
+        let profile = makeProfile(trainingPhase: nil)
+        let repo = FakeProfileRepository()
+        repo.profile = profile
+        let vm = SettingsViewModel(profileRepository: repo, authService: FakeAuthService(), appPreferences: AppPreferences())
+
+        await vm.load()
+        await vm.updateTrainingPhase(.bulk)
+
+        let data = try successValue(vm.state)
+        #expect(data.trainingPhase == .bulk)
+        #expect(repo.updatedProfile?.trainingPhase == .bulk)
+        #expect(vm.transientError == nil)
+    }
+
+    @Test func updateTrainingPhase_failure_setsTransientErrorAndRollsBack() async throws {
+        let profile = makeProfile(trainingPhase: .bulk)
+        let repo = FakeProfileRepository()
+        repo.profile = profile
+        repo.updateError = AppError.network(.offline)
+        let vm = SettingsViewModel(profileRepository: repo, authService: FakeAuthService(), appPreferences: AppPreferences())
+
+        await vm.load()
+        await vm.updateTrainingPhase(.cut)
+
+        let data = try successValue(vm.state)
+        #expect(data.trainingPhase == .bulk)
+        #expect(vm.transientError == .network(.offline))
     }
 
     @Test func signOut_success() async throws {
