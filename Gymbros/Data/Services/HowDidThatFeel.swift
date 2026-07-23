@@ -23,9 +23,15 @@ enum HowDidThatFeel: CaseIterable {
 
     var titleKey: String {
         switch self {
-        case .easy: "workout.comeback.feel.easy"
-        case .justRight: "workout.comeback.feel.just_right"
-        case .hard: "workout.comeback.feel.hard"
+        case .easy: "workout.set.feel.easy"
+        case .justRight: "workout.set.feel.just_right"
+        case .hard: "workout.set.feel.hard"
         }
+    }
+
+    static func nearest(to rpe: Double) -> HowDidThatFeel {
+        if rpe <= 6.75 { return .easy }
+        if rpe <= 8.25 { return .justRight }
+        return .hard
     }
 }
