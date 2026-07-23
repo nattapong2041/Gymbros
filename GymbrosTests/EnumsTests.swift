@@ -53,4 +53,14 @@ struct EnumsTests {
         #expect(WeightUnit.lb.kilogramValue(fromDisplayText: "132.3")! > 59.9)
         #expect(WeightUnit.lb.kilogramValue(fromDisplayText: "132.3")! < 60.1)
     }
+
+    @Test func trainingPhaseRoundTripsJSON() throws {
+        let encoder = JSONEncoder()
+        let decoder = JSONDecoder()
+        for phase in TrainingPhase.allCases {
+            let data = try encoder.encode(phase)
+            let decoded = try decoder.decode(TrainingPhase.self, from: data)
+            #expect(phase == decoded)
+        }
+    }
 }

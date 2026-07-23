@@ -6,6 +6,7 @@ struct Profile: Codable, Identifiable, Equatable {
     var name: String?
     var experienceLevel: ExperienceLevel?
     var goal: Goal?
+    var trainingPhase: TrainingPhase? = nil
     var daysPerWeek: Int?
     var weightUnit: WeightUnit
     var locale: String
@@ -15,6 +16,7 @@ struct Profile: Codable, Identifiable, Equatable {
     enum CodingKeys: String, CodingKey {
         case id, email, name, goal, locale
         case experienceLevel = "experience_level"
+        case trainingPhase = "training_phase"
         case daysPerWeek = "days_per_week"
         case weightUnit = "weight_unit"
         case createdAt = "created_at"

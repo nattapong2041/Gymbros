@@ -54,6 +54,7 @@ struct CodableTests {
             "name": "Test User",
             "experience_level": "beginner",
             "goal": "strength",
+            "training_phase": "bulk",
             "days_per_week": 3,
             "weight_unit": "kg",
             "locale": "th",
@@ -66,6 +67,28 @@ struct CodableTests {
 
         #expect(profile.email == "user@example.com")
         #expect(profile.name == "Test User")
+        #expect(profile.trainingPhase == .bulk)
+    }
+
+    @Test func profileDecodesNilTrainingPhaseWhenAbsent() throws {
+        let json = """
+        {
+            "id": "550e8400-e29b-41d4-a716-446655440011",
+            "email": "user2@example.com",
+            "name": "Test User Two",
+            "experience_level": "beginner",
+            "goal": "strength",
+            "days_per_week": 3,
+            "weight_unit": "kg",
+            "locale": "en",
+            "created_at": "2026-05-08T10:00:00Z",
+            "updated_at": "2026-05-08T10:00:00Z"
+        }
+        """.data(using: .utf8)!
+
+        let profile = try decoder.decode(Profile.self, from: json)
+
+        #expect(profile.trainingPhase == nil)
     }
 
     @Test func programEncodesWithSnakeCaseKeys() throws {
