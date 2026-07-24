@@ -26,7 +26,7 @@ struct WorkoutExerciseSection: Identifiable, Equatable {
 
 struct WorkoutSetRowState: Identifiable, Equatable {
     let id: UUID
-    let exerciseId: UUID
+    var exerciseId: UUID
     let programExerciseId: UUID?
     var setNumber: Int
     var weightText: String

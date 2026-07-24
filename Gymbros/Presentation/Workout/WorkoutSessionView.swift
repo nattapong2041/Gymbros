@@ -20,6 +20,7 @@ struct WorkoutSessionView: View {
     var onCompleteSet: (UUID) -> Void // setId
     var onDeleteSet: (UUID) -> Void // setId
     var onFinishExercise: (UUID) -> Void // programExerciseId
+    var onSwapExercise: (UUID) -> Void = { _ in } // programExerciseId
     var onStopTimer: () -> Void
     var onSkipTimer: () -> Void
     var onTimerComplete: () -> Void
@@ -149,6 +150,7 @@ struct WorkoutSessionView: View {
                     ForEach(data.exerciseSections.indices, id: \.self) { index in
                         WorkoutExercisePageView(
                             section: data.exerciseSections[index],
+                            exerciseLookup: data.exerciseLookup,
                             lastSessionReference: lastSessionReferences[data.exerciseSections[index].programExercise.id],
                             isComebackMode: isComebackMode,
                             overloadHint: overloadHints[data.exerciseSections[index].programExercise.id],
@@ -156,7 +158,8 @@ struct WorkoutSessionView: View {
                             onUpdateSet: onUpdateSet,
                             onCompleteSet: onCompleteSet,
                             onDeleteSet: onDeleteSet,
-                            onFinishExercise: onFinishExercise
+                            onFinishExercise: onFinishExercise,
+                            onSwapExercise: onSwapExercise
                         )
                         .tag(index)
                     }

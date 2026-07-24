@@ -6,6 +6,8 @@ enum AnalyticsEvent {
     case comebackSessionStarted
     case comebackSessionFinished
     case comebackExitBaselineReached
+    case exerciseSubstituted
+    case substituteRankSelected
 }
 
 protocol AnalyticsTracking {

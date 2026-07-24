@@ -210,6 +210,38 @@
         }
       }
     },
+    "accessibility.workout.substitute_badge" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Originally %@"
+          }
+        },
+        "th" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "เดิมคือ %@"
+          }
+        }
+      }
+    },
+    "accessibility.workout.substitute_button" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Swap exercise"
+          }
+        },
+        "th" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "สลับท่าออกกำลังกาย"
+          }
+        }
+      }
+    },
     "accessibility.workout.timer.skip" : {
       "localizations" : {
         "en" : {
@@ -4445,6 +4477,102 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "เริ่มออกกำลังกาย"
+          }
+        }
+      }
+    },
+    "workout.substitute.badge" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "↩ %@"
+          }
+        },
+        "th" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "↩ %@"
+          }
+        }
+      }
+    },
+    "workout.substitute.button" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Swap exercise"
+          }
+        },
+        "th" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "สลับท่า"
+          }
+        }
+      }
+    },
+    "workout.substitute.sheet.browseAll" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Browse all exercises"
+          }
+        },
+        "th" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ดูท่าออกกำลังกายทั้งหมด"
+          }
+        }
+      }
+    },
+    "workout.substitute.sheet.empty" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No close matches found"
+          }
+        },
+        "th" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ไม่พบท่าที่ใกล้เคียง"
+          }
+        }
+      }
+    },
+    "workout.substitute.sheet.lastWeight" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "last: %@"
+          }
+        },
+        "th" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ครั้งก่อน: %@"
+          }
+        }
+      }
+    },
+    "workout.substitute.sheet.title" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Swap for"
+          }
+        },
+        "th" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "สลับเป็น"
           }
         }
       }

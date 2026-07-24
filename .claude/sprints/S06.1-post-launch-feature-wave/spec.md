@@ -1,24 +1,27 @@
 # Sprint 6.1 — Post-Launch Feature Wave
 
 > Detailed implementation spec for coding agents.
-> Reference: `.claude/GYMTRACK.md` §9 Sprint 6.1, plus the four individual design docs this
+> Reference: `.claude/GYMTRACK.md` §9 Sprint 6.1, plus the five individual design docs this
 > sprint consolidates:
 > - `docs/superpowers/specs/2026-07-22-rpe-ux-simplification-design.md`
 > - `docs/superpowers/specs/2026-07-23-skip-a-day-design.md`
 > - `docs/superpowers/specs/2026-07-23-training-phase-setting-design.md`
 > - `docs/superpowers/specs/2026-07-23-progressive-overload-advisor-design.md`
+> - `docs/superpowers/specs/2026-07-24-exercise-substitution-design.md`
 
 ---
 
 ## Overview
 
-**Goal:** Ship four independent, already-approved post-launch features gathered from
+**Goal:** Ship five independent, already-approved post-launch features gathered from
 real hands-on use after Sprint 6: (1) replace the raw numeric RPE picker with a plain
 Easy/Just right/Hard scale everywhere it appears, (2) let the user start a different day
 than the one recommended for this session only, (3) let the user record a training phase
-(bulk/cut/maintain) in Settings, and (4) proactively surface a "same weight for a while"
+(bulk/cut/maintain) in Settings, (4) proactively surface a "same weight for a while"
 card on Today when a tracked exercise has plateaued, gated on that training phase so a
-cutting/maintaining user is never nagged to add weight.
+cutting/maintaining user is never nagged to add weight, and (5) let the user swap an
+exercise mid-workout for a ranked related exercise when the original is unavailable
+(crowded gym, broken machine), without breaking the session.
 
 **Primary acceptance test:** Log a set choosing "Just right" instead of a raw RPE number,
 in both the live logger and the History edit-set form. On Today, tap "Change day" and
@@ -27,27 +30,33 @@ In Settings, set training phase to "Building muscle." Log the same top-set weigh
 exercise across 4 consecutive sessions at RPE ≤ 8.0 → Today shows an
 `OverloadAdvisorCardView` for that exercise with "Try it next time" / "Not now" actions.
 Switch training phase to "Losing weight" → the card stops appearing for that exercise.
+Mid-workout, tap "Swap exercise," pick a ranked candidate, and confirm the remaining sets
+in that slot switch to it while already-completed sets stay unchanged.
 
 **Effort estimate:** Medium-Complex (combined). Individually: RPE is Simple (UI-only,
 plan already exists), Skip a Day is Simple (`TodayView`-local `@State`), Training Phase
 is Simple (one column + one Settings row, needs a migration), Progressive Overload
 Advisor is Medium (one new pure service, one new local store, one new card,
-`TodayViewModel` wiring).
+`TodayViewModel` wiring), Substitute is Medium (one new pure service, one new sheet,
+`WorkoutSessionViewModel` wiring, one small model mutability change).
 
 **Dependencies:** Sprints S01–S06 complete (S06 manual smoke still pending, tracked
 separately — does not block this sprint). Reuses `HowDidThatFeel`, `SetRowView`,
 `SessionDetailView`'s `EditSetSheet`, `TodayView`/`TodayViewModel`, `ComebackCardView` (as
 a UI pattern to mirror), `ProfileRepositoryProviding`, `SettingsViewModel`,
 `ProgramRepositoryProviding.updateProgramExercise(_:)`, `ProgressiveOverloadEngine`
-(reuses its `weightIncrementKg` constant only — no logic changes), and the `AppError` /
-`ViewState` pipeline throughout.
+(reuses its `weightIncrementKg` constant only — no logic changes), `WorkoutSessionViewModel`'s
+`exerciseLookup` and `fetchLastLoggedSet`, `ExercisePickerView` (reused unmodified), and
+the `AppError` / `ViewState` pipeline throughout.
 
-**Build order within this sprint** (per the 2026-07-23 GYMTRACK.md decision log): RPE UX
+**Build order within this sprint** (per the 2026-07-23/24 GYMTRACK.md decision log): RPE UX
 Simplification and Skip a Day first (both independent, no dependencies on each other or
 on anything else in this sprint). Training Phase Setting next (foundational — nothing
 else in this sprint depends on it, but the Progressive Overload Advisor consumes its
-`Profile.trainingPhase` field). Progressive Overload Advisor last (depends on Training
-Phase Setting shipping first).
+`Profile.trainingPhase` field). Progressive Overload Advisor next (depends on Training
+Phase Setting shipping first). Substitute last — independent of the other four (touches
+`WorkoutSessionViewModel`/`WorkoutExercisePageView`, not `TodayView`/`Settings`), ordered
+last only because its own approval pass landed a day after the other four.
 
 ---
 
@@ -118,17 +127,51 @@ Phase Setting shipping first).
   last 4 completed sessions, not an open-ended history pull
 ☐ Zero changes to ProgressiveOverloadEngine, SmartSessionAdvisor, or ComebackRampService
 
---- ALL FOUR ---
+--- 5. SUBSTITUTE (MID-WORKOUT EXERCISE SWAP) ---
+☐ "Swap exercise" button in the exercise page header, visible whenever
+  `section.isFinished == false` (including mid-exercise after sets are already logged);
+  stays available after a swap so the user can re-swap any number of times
+☐ SubstituteRanker (new pure service): filters the already-loaded exercise library to
+  same movementPattern + primaryMuscle, excluding the currently-active exercise; ranks
+  by different-equipment-from-original first, then has-logged-history, then alphabetical
+☐ SubstituteCandidateSheet: ranked rows (name · equipment · last weight if known); shows
+  a "Browse all exercises" fallback (reusing the existing ExercisePickerView unmodified)
+  when the ranked list has fewer than 3 results
+☐ On selection: every not-yet-completed WorkoutSetRowState in that exercise slot gets
+  the substitute's exerciseId and a re-prefilled weight (from
+  fetchLastLoggedSet(exerciseId:before:), same lookup already used elsewhere); target
+  reps/rest are untouched. Already-completed sets are frozen exactly as logged.
+  WorkoutSetRowState.exerciseId changes from `let` to `var` to support this — the only
+  model change, no schema/backup-format change
+☐ SubstituteOriginBadge renders inline on any set row whose exerciseId differs from the
+  exercise currently shown in the header — no new field, derived from existing state
+☐ addSet(after:) updated to tag new rows with the section's current active exercise
+  (`section.exercise?.id`) instead of always `programExercise.exerciseId`
+☐ No ProgramExercise/Program changes — 100% session-local
+☐ Ships free, no paywall/entitlement check (no subscription infrastructure exists yet)
+☐ Analytics: `.exerciseSubstituted`, `.substituteRankSelected` (no-payload, matching
+  every other existing AnalyticsEvent case)
+
+--- ALL FIVE ---
 ☐ All visible strings localized in Thai and English
 ☐ All errors flow through AppError / ViewState
-☐ Build + full test suite pass on iPhone 17e simulator
+☐ Build + full test suite pass on iPhone 17 simulator (this machine has no iPhone 17e
+  simulator installed, per STANDUP.md's 2026-07-24 environment note; use iPhone 17)
 ```
 
 ### Out of Scope
 
 ```text
-✗ Substitute (mid-workout exercise swap) — outlined during brainstorming but not yet
-  approved; needs its own approval pass, spec, and plan. Not part of this sprint.
+✗ Defer (Sprint 9) and Injury Substitution (Sprint 10) — different flows/triggers from
+  Substitute, still unspecced, not part of this sprint
+✗ Biomechanics-ratio weight estimation for never-tried substitutes — no real data
+  source exists in the app; rejected during the 2026-07-23/24 design discussion
+✗ Historical-set-count familiarity ranking — simplified to a boolean has-history signal
+  (see design doc); no new count query added
+✗ Gym-equipment-inventory ("mark X unavailable") — the app has no such data source;
+  ranking approximates this by preferring different equipment instead
+✗ Substitute paywall/entitlement gating — no subscription infrastructure exists yet
+  (Sprint 12); revisit once it does
 ✗ DeloadAdvisor — a plateau caused by grinding near failure every session is a
   different signal (back off, don't add weight) from what StallDetector detects;
   explicitly deferred, same shape as StallDetector but opposite trigger
@@ -171,6 +214,16 @@ Gymbros/Core/AppPreferences.swift                            environment-injecte
 Gymbros/Core/ErrorHandling/AppError.swift / ViewState.swift / ErrorMapper.swift
 Gymbros/Resources/Localizable.xcstrings                      alphabetically-sorted key catalog
 supabase/migrations/2026-05-11_program_exercises_target_weight.sql  migration file convention
+Gymbros/Presentation/Workout/WorkoutExercisePageView.swift    exerciseHeader (Swap button lands here)
+Gymbros/Presentation/Workout/WorkoutSessionViewModel.swift    exerciseLookup, addSet(after:), formatWeight(_:)
+Gymbros/Data/Repository/WorkoutRepository.swift               fetchLastLoggedSet(exerciseId:before:) (reused, unmodified)
+Gymbros/Data/Services/LastSessionLookupService.swift          same-exercise history-matching pattern to mirror
+Gymbros/Presentation/Programs/ExercisePickerView.swift        reused unmodified as the browse-all fallback
+Gymbros/Presentation/Programs/EquipmentIconView.swift         reused for candidate-row equipment icons
+Gymbros/Presentation/Workout/Components/EasingBackBadge.swift  visual pattern for SubstituteOriginBadge
+Gymbros/Presentation/Workout/Components/FeelPickerSheet.swift  sheet chrome pattern to mirror
+Gymbros/Presentation/Workout/WorkoutSessionScreen.swift        overloadOutcomePrompt item-sheet pattern to mirror
+Gymbros/Data/Services/Analytics/AnalyticsTracking.swift        AnalyticsEvent enum (gains 2 cases)
 ```
 
 ---
@@ -239,6 +292,19 @@ The implementation plan (`plan.md`) locks these before work starts:
    succeeds, so the card disappears immediately. The next full `load()`/`refresh()`
    naturally won't re-surface it (weight changed, or the snoozed-until date is in the
    future).
+
+10. **Substitute weight-lookup fetch is sequential, not concurrent.** `presentSubstituteOptions`
+    loops over the (typically single-digit) filtered candidate list and awaits
+    `fetchLastLoggedSet` one at a time, matching `buildLastSessionReferences`'s existing
+    sequential-await style rather than introducing `withTaskGroup` and its actor-isolation
+    ceremony for a one-off, small, user-triggered action.
+
+11. **"Not-yet-completed" (not "added after the swap") is what gets reassigned.** A
+    section's target sets are pre-created as placeholder rows at session start (before any
+    swap), so "new sets get the substitute's identity" means every row with
+    `isCompleted == false` at the moment of swap, not literally rows created afterward via
+    `addSet(after:)`. This matches the outline's own "already-completed sets keep their
+    original exerciseId" framing once you account for how rows are actually created.
 
 ---
 
@@ -407,7 +473,100 @@ targets on both actions).
 
 ---
 
-## 7. Testing And Acceptance
+## 7. Substitute — Design (folded in, see plan.md Tasks 24-30)
+
+Full rationale lives in
+`docs/superpowers/specs/2026-07-24-exercise-substitution-design.md`. Summary:
+
+### SubstituteRanker (new pure service)
+
+```swift
+// Gymbros/Data/Services/SubstituteRanker.swift
+struct SubstituteCandidate: Identifiable, Equatable {
+    var id: UUID { exercise.id }
+    let exercise: Exercise
+    let lastLoggedWeightKg: Double?
+}
+
+enum SubstituteRanker {
+    static let minimumRankedResultsBeforeBrowseAllFallback = 3
+
+    static func filter(original: Exercise, library: [Exercise]) -> [Exercise]
+
+    static func rank(
+        original: Exercise,
+        candidates: [Exercise],
+        lastLoggedWeightsKg: [UUID: Double]
+    ) -> [SubstituteCandidate]
+}
+```
+
+`filter` runs against `WorkoutSessionData.exerciseLookup.values` — already loaded, no new
+query. `rank` sorts by (1) different equipment from original first, (2) has-logged-history
+first, (3) name alphabetically.
+
+### WorkoutSessionViewModel additions
+
+```swift
+struct SubstitutePrompt: Identifiable {
+    let id = UUID()
+    let programExerciseId: UUID
+    let originalExercise: Exercise
+    let candidates: [SubstituteCandidate]
+    let showsBrowseAllFallback: Bool
+}
+```
+
+- `var substitutePrompt: SubstitutePrompt?` drives a `.sheet(item:)` at the
+  `WorkoutSessionScreen` level, mirroring how `overloadOutcomePrompt` already drives an
+  `.alert`.
+- `presentSubstituteOptions(programExerciseId: UUID) async` — resolves the section's
+  active exercise (`section.exercise`), filters + fetches weights + ranks, sets
+  `substitutePrompt`.
+- `selectSubstitute(_ exercise: Exercise) async` — fetches the picked exercise's last
+  logged weight, sets `section.exercise = exercise` and `section.defaultWeight`, and for
+  every `!isCompleted` row in `section.sets`: reassigns `exerciseId` and reformats
+  `weightText` via the existing `formatWeight(_:)` helper. Tracks `.exerciseSubstituted`
+  and `.substituteRankSelected`, clears `substitutePrompt`, calls `saveBackup()`.
+- `addSet(after:)` changes its hardcoded `exerciseId: ...programExercise.exerciseId` to
+  `section.exercise?.id ?? programExercise.exerciseId`.
+
+### Model change
+
+`WorkoutSetRowState.exerciseId`: `let` → `var`. Nothing else in the model changes;
+`WorkoutSet.exerciseId` was already per-set server-side and `ActiveSessionBackup` already
+encodes both `exercise` and `exerciseId` as they stand today.
+
+### UI
+
+- `WorkoutExercisePageView.exerciseHeader` gains a "Swap exercise" button
+  (`arrow.triangle.2.circlepath`), hidden when `section.isFinished`.
+- Each row in the set list gets an inline `SubstituteOriginBadge` when its `exerciseId`
+  differs from `section.exercise?.id`.
+- New `SubstituteCandidateSheet` view: medium-detent, Cancel toolbar action (mirrors
+  `FeelPickerSheet`), ranked rows using `EquipmentIconView` + last-weight text, a
+  "Browse all exercises" row when `showsBrowseAllFallback` is true that presents the
+  existing `ExercisePickerView` unmodified as a nested sheet with the same selection
+  closure.
+- New `SubstituteOriginBadge` view: same visual family as `EasingBackBadge`/
+  `OverloadSuggestionBadge` (capsule, `.caption.weight(.semibold)`, `arrow.uturn.left`).
+
+### Localization
+
+| Key | en | th |
+|---|---|---|
+| `workout.substitute.button` | Swap exercise | สลับท่า |
+| `workout.substitute.sheet.title` | Swap for | สลับเป็น |
+| `workout.substitute.sheet.lastWeight` | last: %@ | ครั้งก่อน: %@ |
+| `workout.substitute.sheet.browseAll` | Browse all exercises | ดูท่าออกกำลังกายทั้งหมด |
+| `workout.substitute.sheet.empty` | No close matches found | ไม่พบท่าที่ใกล้เคียง |
+| `workout.substitute.badge` | ↩ %@ | ↩ %@ |
+| `accessibility.workout.substitute_button` | Swap exercise | สลับท่าออกกำลังกาย |
+| `accessibility.workout.substitute_badge` | Originally %@ | เดิมคือ %@ |
+
+---
+
+## 8. Testing And Acceptance
 
 ### Automated tests (see plan.md for exact test code)
 
@@ -427,6 +586,12 @@ targets on both actions).
   missing-RPE cases); `OverloadAdvisorSnoozeStoreTests` (snoozed/expired/never-snoozed);
   `TodayViewModelTests` gains cases for card visibility gated on `trainingPhase` and on
   comeback mode.
+- **Substitute:** `SubstituteRankerTests` (filter excludes original + wrong
+  pattern/muscle; sort order across all three tiers; empty-library edge case);
+  `WorkoutSessionViewModelTests` gains cases for `presentSubstituteOptions` (candidates
+  ranked correctly, `showsBrowseAllFallback` true/false at the 3-result boundary) and
+  `selectSubstitute` (not-yet-completed rows reassigned, completed rows untouched,
+  `addSet(after:)` after a swap uses the new exercise, backup round-trips the swap).
 
 ### Manual smoke test
 
@@ -449,7 +614,16 @@ targets on both actions).
    "Building muscle" (or clear it); confirm it reappears. Tap "Not now"; confirm it
    stays hidden across a relaunch. On a fresh (unsnoozed) stall, tap "Try it next time";
    confirm the program exercise's target weight increased by 2.5kg and the card is gone.
-5. Run in both Thai and English device locales; verify all new copy from all four
+5. Substitute: mid-workout, tap "Swap exercise" on an exercise with 3+ ranked candidates
+   in the library; confirm the ranked sheet excludes the current exercise, sorts
+   different-equipment-first, and shows "last: Xkg" for exercises already logged this
+   week. Pick one; confirm the header updates, not-yet-completed sets show the new
+   exercise's suggested weight, and already-completed sets are unchanged. Finish the
+   workout; open it in History and confirm completed sets under the original exercise
+   still show correctly. Swap again to a third exercise; confirm re-swapping works.
+   Force an exercise with <3 candidates (a rare movement/muscle combo); confirm "Browse
+   all exercises" appears and opens the full picker.
+6. Run in both Thai and English device locales; verify all new copy from all five
    features renders correctly.
 ```
 
@@ -459,12 +633,11 @@ targets on both actions).
 xcodebuild test \
   -project Gymbros.xcodeproj \
   -scheme Gymbros \
-  -destination 'platform=iOS Simulator,name=iPhone 17e'
+  -destination 'platform=iOS Simulator,name=iPhone 17'
 ```
 
 ### GYMTRACK + STANDUP updates after sprint
 
-- Update `.claude/GYMTRACK.md` §9 Sprint Tracking row 6.1 status (`⏳` → `✅` on
-  completion, or partial notes if Substitute approval is still pending — Substitute
-  stays out of this sprint regardless).
+- Update `.claude/GYMTRACK.md` §9 Sprint Tracking row 6.1 status to fully complete once
+  all 5 features are manually smoke-tested.
 - Update `STANDUP.md` with HEAD SHA, sprint outcome per feature, and next-up.

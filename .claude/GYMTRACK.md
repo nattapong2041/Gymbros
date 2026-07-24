@@ -1,7 +1,7 @@
 # GymTrack — Source of Truth
 
 > Living document. Update as decisions evolve.  
-> Last updated: 2026-07-23
+> Last updated: 2026-07-24
 
 ---
 
@@ -329,8 +329,8 @@ RestTimerRingView      circular countdown ring
 ComebackCardView       semantic standout card for return/adaptation moments
 EasingBackBadge        appears on comeback-adjusted exercise rows
 HowDidThatFeelPicker   Easy / Just right / Hard input for comeback mode
-SubstituteActionSheet  Substitute / Defer / Skip / Cancel
-DeferredBadge          semantic “Deferred” pill
+SubstituteCandidateSheet  ranked exercise-swap candidates + browse-all fallback
+DeferredBadge          semantic “Deferred” pill (Sprint 9, unbuilt)
 SubstituteOriginBadge  shows what exercise was replaced
 ```
 
@@ -526,7 +526,7 @@ App Store: phase-level releases
 ✅ Sprint 5 — Settings                                complete
 ✅ Sprint 5p — Phase 1 Polish (trial feedback)        complete
 ✅ Sprint 6 — Next Best Session v1 / Smart Comeback   complete — manual smoke pending
-✅ Sprint 6.1 — Post-Launch Feature Wave              4 of 5 implemented — manual smoke pending; Substitute not yet approved
+✅ Sprint 6.1 — Post-Launch Feature Wave              5 of 5 implemented — manual smoke pending
 ⏳ Sprint 7 — Onboarding + Templates + i18n           next up after 6.1 (no spec.md yet)
 ```
 
@@ -610,14 +610,14 @@ Hands-on feedback after trying the current logger, implemented during S05p. Veri
 **Effort:** Medium-Complex (combined)
 
 ```text
-All four features requested after using the app hands-on for a while (gathered
+Five features requested after using the app hands-on for a while (gathered
 2026-07-23), bundled into one sprint. Independent subsystems internally — each has
 its own design doc — but shipping together as one wave since they're all real-usage
-polish that lands before Phase 2's onboarding work. Three of four sub-items are
-designed and approved; Substitute is not (see its section below) — build order
-within this sprint should still respect that: RPE + Skip a Day first (no
+polish that lands before Phase 2's onboarding work. All five sub-items are now
+designed and approved. Build order within this sprint: RPE + Skip a Day first (no
 dependencies), then Training Phase before Overload Advisor (dependency-ordered),
-then Substitute once it's actually approved.
+then Substitute last (independent of the other four, but landed after them since
+it needed its own approval pass, completed 2026-07-24).
 
 Implementation plan: .claude/sprints/S06.1-post-launch-feature-wave/plan.md
 (18 tasks, executed via subagent-driven-development directly on main, 2026-07-24).
@@ -685,40 +685,67 @@ grinding-near-failure are different problems).
   fixed row count, reintroducing a small, deliberate fetch-cost tradeoff that
   Sprint 6's D6 budget had avoided
 
---- 5. SUBSTITUTE (Mid-Workout Exercise Swap) — NOT YET APPROVED ---
-Spec: not written yet. The design below was presented for approval during the
-2026-07-23 brainstorming session but the session moved to this roadmap
-reorganization before it was confirmed — resume by re-presenting it for approval,
-then write docs/superpowers/specs/YYYY-MM-DD-exercise-substitution-design.md and an
-implementation plan. Scoped down from the original Sprint 9 "Substitute + Defer"
+--- 5. SUBSTITUTE (Mid-Workout Exercise Swap) — IMPLEMENTED 2026-07-24, manual smoke pending ---
+Spec: docs/superpowers/specs/2026-07-24-exercise-substitution-design.md (approved).
+Resumes and finalizes the outline discussed during the 2026-07-23 brainstorming
+session, which was never formally confirmed before that session moved into the
+roadmap reorganization. Scoped down from the original Sprint 9 "Substitute + Defer"
 outline (see Sprint 9 below) to just Substitute — Defer is a separate, unrelated
 flow (reordering position in the session, not swapping identity) and stays in
 Sprint 9, still undesigned.
 
-Outline discussed (NOT yet approved):
-  - "Swap exercise" button on the exercise page header opens a ranked-candidates sheet
-  - Ranking: hard filter to same movementPattern + primaryMuscle (via the existing
-    ExerciseRepository.fetch(byMuscle:) / fetch(byPattern:) — no new queries needed),
-    sorted by different-equipment-from-original first (same equipment as original is
-    often *why* the user is swapping), then by user familiarity (historical log count)
+Design (approved):
+  - "Swap exercise" button on the exercise page header, visible any time the
+    exercise isn't finished (including mid-exercise after sets are already
+    logged), opens a ranked-candidates sheet. Stays available after a swap too —
+    the user can re-swap any number of times.
+  - Ranking (SubstituteRanker, pure Swift, Data/Services/): hard filter to same
+    movementPattern + primaryMuscle, excluding the currently-active exercise;
+    sorted by different-equipment-from-original first, then by whether the user
+    has logged history for that candidate (boolean has-history — see simplification
+    below), then alphabetical. Filtering runs against the exercise library already
+    loaded into WorkoutSessionViewModel.exerciseLookup at session start — no new
+    query. If the filtered list has fewer than 3 results, the sheet also offers
+    "Browse all exercises," reusing the existing ExercisePickerView unmodified.
   - Session-scoped only, never touches ProgramExercise/Program: WorkoutSet.exerciseId
     already lives per-set (confirmed via LastSessionLookupService's existing
-    same-programExercise / same-exercise fallback), so already-completed sets keep
-    their original exerciseId and only new sets get the substitute's — no schema
-    changes needed for the core mechanic
-  - Suggested weight: history-based only, if the user has logged the substitute
-    exercise before. The original roadmap's "biomechanics ratio" idea (estimating
-    weight for a never-tried substitute via a strength-ratio table) needs data that
-    doesn't exist anywhere in this app — deferred as an open follow-up, not designed
-  - SubstituteOriginBadge ("↩ Bench") via a new session-local substitutedFrom field
-    on the exercise section
+    same-programExercise / same-exercise fallback). On swap, every NOT-YET-COMPLETED
+    set in that slot is reassigned to the substitute's exerciseId and its weight is
+    re-prefilled (target reps/rest stay the original's, so planned volume doesn't
+    change); already-completed sets are frozen exactly as logged. Required one model
+    change: WorkoutSetRowState.exerciseId goes from `let` to `var` — no schema change,
+    no backup-format change (WorkoutSet.exerciseId was already per-set server-side).
+  - Suggested weight: history-based only, via the existing
+    fetchLastLoggedSet(exerciseId:before:) lookup already used for
+    resolveDefaultWeights — no new query. If the user has never logged the substitute,
+    weight starts blank, same as any new exercise. The "biomechanics ratio" idea for
+    never-tried substitutes was explicitly rejected — the app has no real data source
+    for those ratios; see the design doc's Out of Scope.
+  - SubstituteOriginBadge ("↩ Bench") renders inline per-row for any set whose
+    exerciseId differs from the exercise currently shown in the header — no new
+    session-local field needed, since section.exercise already tracks "currently
+    active exercise" and is safe to mutate in place (every other computation that
+    needs the *original* planned exercise already keys off programExercise.id, not
+    section.exercise).
+  - Ships free — no paywall/entitlement check. GYMTRACK.md §12 lists
+    "substitute/defer intelligence" under a future Pro tier, but no subscription
+    infrastructure exists yet (Sprint 12 is unbuilt); revisit gating once that
+    infrastructure exists rather than building a one-off paywall now.
+
+Simplification from the original theoretical sketch (§10 "Substitute Ranker"):
+  "familiarity" was originally "historical set count." There's no existing count
+  query, so ranking uses a boolean has-history signal instead, sourced from the
+  same fetchLastLoggedSet call already needed for the row's "last: Xkg" display —
+  one fetch serves both the tie-break and the UI.
 
 Done:
   User can log a set with Easy/Just right/Hard instead of a raw RPE number; can swap
   today's recommended day for a different one; can set a training phase in Settings;
   forcing the same weight for 4 sessions surfaces the overload advisor card unless
-  cut/maintain is set; and (once #5 is approved and built) bench taken -> user can
-  substitute to a ranked related exercise without breaking the session.
+  cut/maintain is set; and bench taken -> user can substitute to a ranked related
+  exercise mid-workout without breaking the session. All five implemented and
+  covered by automated tests as of 2026-07-24; manual smoke test across all five
+  together is still pending (see STANDUP.md).
 ```
 
 ---
@@ -1196,7 +1223,7 @@ Running/cardio:
 | 5 | Settings | ✅ | — | Complete |
 | 5p | Phase 1 Polish (trial feedback) | ✅ | — | Complete |
 | 6 | Next Best Session v1 / Smart Comeback | ✅ | — | Complete — pending manual smoke test |
-| 6.1 | Post-Launch Feature Wave (RPE, Skip Day, Training Phase, Overload Advisor, Substitute) | ✅ | 3d204cc | 4 of 5 implemented 2026-07-24, pending manual smoke test; Substitute not yet approved |
+| 6.1 | Post-Launch Feature Wave (RPE, Skip Day, Training Phase, Overload Advisor, Substitute) | ✅ | (pending commit) | 5 of 5 implemented 2026-07-24, automated tests pass, manual smoke test pending |
 | 7 | Onboarding + Templates + i18n | ☐ | — | App Store polish foundation |
 | 8 | App Store Ship | ☐ | — | 1.0 release |
 | 9 | Defer | ☐ | — | Substitute split out to Sprint 6.1 |
@@ -1383,10 +1410,9 @@ Exit:
 
 ### Substitute Ranker
 
-Not yet formally speced (Sprint 6.1's Substitute item is an outline discussed 2026-07-23,
-not yet approved; see that sprint entry above). This section is the original
-theoretical sketch, kept for reference — the discussed outline differs in two ways
-worth flagging before this gets finalized:
+Formally speced 2026-07-24: `docs/superpowers/specs/2026-07-24-exercise-substitution-design.md`
+(see also Sprint 6.1 item 5 above). This section is the original theoretical sketch,
+kept for reference — the approved design differs in two ways from it:
 
 ```text
 Inputs:
@@ -1419,7 +1445,7 @@ Initial biomechanics ratios:
   free weight → smith machine: 0.95
 ```
 
-Discussed outline differences (2026-07-23, not yet approved as a spec):
+Approved design differences (2026-07-24, see the design doc for full detail):
   1. No "unavailable equipment" input exists (no gym-equipment-inventory feature) —
      ranking instead just sorts different-equipment-from-original ahead of
      same-equipment candidates, rather than filtering on a flag the app can't
@@ -2021,6 +2047,30 @@ Parallel worktrees:
 ---
 
 ## 19. Decision Log
+
+### 2026-07-24 — Substitute approved and designed, completing Sprint 6.1
+
+- Resumed the 2026-07-23 Substitute brainstorming session, which had been discussed
+  in full but never formally confirmed before that session moved into the roadmap
+  reorganization. Confirmed the prior outline as the baseline rather than rethinking
+  it, then resolved every open gap that outline had left: swap is available mid-exercise
+  (not just before starting), re-swapping is unlimited, a thin (<3) ranked-candidates
+  list falls back to browsing the full exercise library, new sets keep the original's
+  target reps/rest (only movement/equipment changes), and the set table stays one
+  continuous list with inline origin badges rather than splitting into per-exercise
+  blocks.
+- Ships **free**, no paywall/entitlement gating — `GYMTRACK.md` §12 lists
+  "substitute/defer intelligence" under a future Pro tier, but no subscription
+  infrastructure (StoreKit/RevenueCat/entitlements — Sprint 12) exists in the app
+  yet. Building a one-off paywall ahead of that infrastructure was rejected as scope
+  creep; which features are Pro-gated gets revisited once Sprint 12 actually exists.
+- Ranking's "familiarity" signal simplified from the original sketch's "historical
+  set count" to a boolean has-history flag, since no count query exists and the app
+  already needs a single last-logged-weight fetch per candidate anyway (for the
+  row's "last: Xkg" display) — that one fetch now serves both the ranking tie-break
+  and the display value, rather than adding a second query type.
+- Design: `docs/superpowers/specs/2026-07-24-exercise-substitution-design.md`. This
+  completes all 5 sub-items of Sprint 6.1 — Post-Launch Feature Wave.
 
 ### 2026-07-23 — Four post-launch features designed, inserted as Sprint 6.1
 

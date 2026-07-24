@@ -13,6 +13,14 @@ struct OverloadOutcomePrompt: Identifiable {
     let previousWeight: Double
 }
 
+struct SubstitutePrompt: Identifiable {
+    let id = UUID()
+    let programExerciseId: UUID
+    let originalExercise: Exercise
+    let candidates: [SubstituteCandidate]
+    let showsBrowseAllFallback: Bool
+}
+
 @MainActor
 @Observable
 final class WorkoutSessionViewModel {
@@ -24,6 +32,7 @@ final class WorkoutSessionViewModel {
     var lastSessionReferences: [UUID: LastSessionReference] = [:]
     var recommendation: TodayRecommendation = .normalDefault
     var overloadOutcomePrompt: OverloadOutcomePrompt?
+    var substitutePrompt: SubstitutePrompt?
     private(set) var baselineRegainedThisSession = false
     private var overloadOutcomesHandled: Set<UUID> = []
 
@@ -256,7 +265,8 @@ final class WorkoutSessionViewModel {
         let nextSetNumber = data.exerciseSections[sectionIndex].sets.count + 1
         let newRow = WorkoutSetRowState(
             id: UUID(),
-            exerciseId: data.exerciseSections[sectionIndex].programExercise.exerciseId,
+            exerciseId: data.exerciseSections[sectionIndex].exercise?.id
+                ?? data.exerciseSections[sectionIndex].programExercise.exerciseId,
             programExerciseId: data.exerciseSections[sectionIndex].programExercise.id,
             setNumber: nextSetNumber,
             weightText: sourceRow?.weightText ?? "",
@@ -268,6 +278,64 @@ final class WorkoutSessionViewModel {
         data.exerciseSections[sectionIndex].sets.append(newRow)
         data.exerciseSections[sectionIndex].sets = renumbered(data.exerciseSections[sectionIndex].sets)
         state = .success(data)
+        await updateWorkoutLiveActivity()
+        saveBackup()
+    }
+
+    func presentSubstituteOptions(programExerciseId: UUID) async {
+        guard case let .success(data) = state,
+              let section = data.exerciseSections.first(where: { $0.programExercise.id == programExerciseId }),
+              let activeExercise = section.exercise else {
+            transientError = .notFound
+            return
+        }
+
+        let library = Array(data.exerciseLookup.values)
+        let filtered = SubstituteRanker.filter(original: activeExercise, library: library)
+
+        var lastLoggedWeights: [UUID: Double] = [:]
+        for candidate in filtered {
+            if let lastSet = try? await workoutRepository.fetchLastLoggedSet(exerciseId: candidate.id, before: now()) {
+                lastLoggedWeights[candidate.id] = lastSet.weight
+            }
+        }
+
+        substitutePrompt = SubstitutePrompt(
+            programExerciseId: programExerciseId,
+            originalExercise: activeExercise,
+            candidates: SubstituteRanker.rank(
+                original: activeExercise,
+                candidates: filtered,
+                lastLoggedWeightsKg: lastLoggedWeights
+            ),
+            showsBrowseAllFallback: filtered.count < SubstituteRanker.minimumRankedResultsBeforeBrowseAllFallback
+        )
+    }
+
+    func selectSubstitute(_ exercise: Exercise) async {
+        guard let prompt = substitutePrompt,
+              case var .success(data) = state,
+              let sectionIndex = data.exerciseSections.firstIndex(where: { $0.programExercise.id == prompt.programExerciseId }) else {
+            substitutePrompt = nil
+            return
+        }
+
+        let lastSet = try? await workoutRepository.fetchLastLoggedSet(exerciseId: exercise.id, before: now())
+        let suggestedWeight = lastSet?.weight
+
+        data.exerciseSections[sectionIndex].exercise = exercise
+        data.exerciseSections[sectionIndex].defaultWeight = suggestedWeight
+        for index in data.exerciseSections[sectionIndex].sets.indices
+        where data.exerciseSections[sectionIndex].sets[index].isCompleted == false {
+            data.exerciseSections[sectionIndex].sets[index].exerciseId = exercise.id
+            data.exerciseSections[sectionIndex].sets[index].weightText = formatWeight(suggestedWeight)
+        }
+        state = .success(data)
+        substitutePrompt = nil
+
+        analytics.track(.exerciseSubstituted)
+        analytics.track(.substituteRankSelected)
+
         await updateWorkoutLiveActivity()
         saveBackup()
     }

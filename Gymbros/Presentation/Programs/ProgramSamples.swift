@@ -9,6 +9,7 @@ enum ProgramSamples {
     static let squatExerciseId = UUID(uuidString: "66666666-6666-6666-6666-666666666666")!
     static let benchProgramExerciseId = UUID(uuidString: "77777777-7777-7777-7777-777777777777")!
     static let squatProgramExerciseId = UUID(uuidString: "88888888-8888-8888-8888-888888888888")!
+    static let machineChestPressExerciseId = UUID(uuidString: "99999999-9999-9999-9999-999999999999")!
 
     static let createdAt = Date(timeIntervalSince1970: 1_778_342_400)
 
@@ -41,7 +42,7 @@ enum ProgramSamples {
     }
 
     static var exercises: [Exercise] {
-        [benchPress, backSquat]
+        [benchPress, backSquat, machineChestPress]
     }
 
     static var exerciseLookup: [UUID: Exercise] {
@@ -81,6 +82,21 @@ enum ProgramSamples {
             primaryMuscle: .quads,
             secondaryMuscles: [.glutes, .hamstrings],
             equipment: .barbell,
+            isCompound: true,
+            createdAt: createdAt
+        )
+    }
+
+    static var machineChestPress: Exercise {
+        Exercise(
+            id: machineChestPressExerciseId,
+            ownerUserId: nil,
+            slug: "machine_chest_press",
+            name: "Machine Chest Press",
+            movementPattern: .push,
+            primaryMuscle: .chest,
+            secondaryMuscles: [.shoulders, .triceps],
+            equipment: .machine,
             isCompound: true,
             createdAt: createdAt
         )

@@ -2,18 +2,20 @@ import SwiftUI
 
 struct WorkoutExercisePageView: View {
     let section: WorkoutExerciseSection
+    var exerciseLookup: [UUID: Exercise] = [:]
     var lastSessionReference: LastSessionReference?
     var isComebackMode: Bool = false
     var overloadHint: Double?
     @Environment(AppPreferences.self) private var appPreferences
     @State private var tableWidth: CGFloat = 0
-    
+
     // Actions
     var onAddSet: (UUID) -> Void // setId
     var onUpdateSet: (UUID, String, String, Double?) -> Void // setId
     var onCompleteSet: (UUID) -> Void // setId
     var onDeleteSet: (UUID) -> Void // setId
     var onFinishExercise: (UUID) -> Void // programExerciseId
+    var onSwapExercise: (UUID) -> Void = { _ in } // programExerciseId
     
     var body: some View {
         ScrollView {
@@ -36,6 +38,13 @@ struct WorkoutExercisePageView: View {
                     setTableHeader(columns: columns)
 
                     ForEach(section.sets) { rowState in
+                        if rowState.exerciseId != section.exercise?.id,
+                           let originName = exerciseLookup[rowState.exerciseId]?.name {
+                            SubstituteOriginBadge(originExerciseName: originName)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                                .padding(.top, 8)
+                        }
+
                         SetRowView(
                             state: rowState,
                             isReadOnly: section.isFinished,
@@ -50,7 +59,7 @@ struct WorkoutExercisePageView: View {
                                 onDeleteSet(rowState.id)
                             }
                         )
-                        
+
                         if rowState.id != section.sets.last?.id {
                             Divider()
                                 .padding(.leading, 36)
@@ -96,10 +105,26 @@ struct WorkoutExercisePageView: View {
     
     private var exerciseHeader: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text(section.exercise?.name ?? String(localized: "workout.exercise.unknownExercise"))
-                .font(.system(.title2, design: .rounded).bold())
-                .accessibilityAddTraits(.isHeader)
-            
+            HStack(alignment: .firstTextBaseline) {
+                Text(section.exercise?.name ?? String(localized: "workout.exercise.unknownExercise"))
+                    .font(.system(.title2, design: .rounded).bold())
+                    .accessibilityAddTraits(.isHeader)
+
+                Spacer()
+
+                if !section.isFinished {
+                    Button {
+                        onSwapExercise(section.programExercise.id)
+                    } label: {
+                        Label("workout.substitute.button", systemImage: "arrow.triangle.2.circlepath")
+                            .font(.system(.subheadline, design: .rounded).bold())
+                            .labelStyle(.iconOnly)
+                            .frame(width: 48, height: 48)
+                    }
+                    .accessibilityLabel(Text("accessibility.workout.substitute_button"))
+                }
+            }
+
             HStack(spacing: 12) {
                 Label(
                     String(format: String(localized: "programExercise.setsFormat"), section.programExercise.targetSets),

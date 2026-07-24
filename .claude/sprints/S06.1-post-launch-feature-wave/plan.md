@@ -2,9 +2,10 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Ship four independent, already-approved post-launch features: RPE UX
-simplification, Skip a Day, Training Phase Setting, and the Progressive Overload
-Advisor. Full product spec: `.claude/sprints/S06.1-post-launch-feature-wave/spec.md`.
+**Goal:** Ship five independent, already-approved post-launch features: RPE UX
+simplification, Skip a Day, Training Phase Setting, the Progressive Overload
+Advisor, and Substitute (mid-workout exercise swap). Full product spec:
+`.claude/sprints/S06.1-post-launch-feature-wave/spec.md`.
 
 **Architecture:** RPE (Tasks 1-6) replaces two raw-number `Menu` controls with the
 existing `HowDidThatFeel` 3-option scale and deletes a now-redundant comeback-mode
@@ -14,6 +15,10 @@ column, mirrors the existing weight-unit Settings row exactly. Progressive Overl
 Advisor (Tasks 12-17) adds one new pure service (`StallDetector`), one new local
 UserDefaults-backed store (`OverloadAdvisorSnoozeStore`), one new Today card, and
 `TodayViewModel` wiring that reintroduces a bounded sets-fetch on normal days.
+Substitute (Tasks 18-24) adds one new pure service (`SubstituteRanker`), one small
+model mutability change (`WorkoutSetRowState.exerciseId`), two new
+`WorkoutSessionViewModel` methods, two new UI components, and a header button —
+entirely within the workout logger, no `TodayView`/`Settings` changes.
 
 **Tech Stack:** Swift, SwiftUI, Swift Testing (`import Testing`, `@Test`, `#expect`),
 Xcode String Catalogs (`Localizable.xcstrings`, hand-edited JSON), Supabase Postgres
@@ -23,18 +28,22 @@ Xcode String Catalogs (`Localizable.xcstrings`, hand-edited JSON), Supabase Post
 
 - Module name is `Gymbros` (not `GymBros`) — use `@testable import Gymbros` in all tests.
 - Test framework is Swift Testing, not XCTest — `@Test func ...()`, `#expect(...)`, no `XCTestCase`.
-- Build/test destination is always `platform=iOS Simulator,name=iPhone 17e` (not `iPhone 16`).
+- Build/test destination is `platform=iOS Simulator,name=iPhone 17e` per earlier tasks in
+  this plan, but this machine currently has no `iPhone 17e` simulator installed (only
+  `iPhone 17`/`17 Pro`/`17 Pro Max` — see STANDUP.md's 2026-07-24 environment note); use
+  `iPhone 17` for all Substitute-related (Task 18+) commands.
 - Every user-visible string must have both `en` and `th` entries in `Localizable.xcstrings` — no hardcoded strings in views.
 - Minimum tap target is 48pt — do not shrink any existing tappable area.
 - Commit messages end with `Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>`; never use `git commit --amend` or `--no-verify`.
 - Custom brand colors (`AccentColor`, `GymPurple`) must NOT be used — semantic system colors only.
 - Any operation that applies a database migration requires **explicit user confirmation at implementation time** per `CLAUDE.md` → "Data Safety and Approval" — see Task 9.
-- Build order: RPE + Skip a Day first (independent), Training Phase Setting next (foundational), Progressive Overload Advisor last (depends on Training Phase Setting).
+- Build order: RPE + Skip a Day first (independent), Training Phase Setting next (foundational), Progressive Overload Advisor next (depends on Training Phase Setting), Substitute last (independent of the other four, ordered last only because its approval landed a day later).
 - Design docs, read first if anything below is ambiguous:
   - `docs/superpowers/specs/2026-07-22-rpe-ux-simplification-design.md`
   - `docs/superpowers/specs/2026-07-23-skip-a-day-design.md`
   - `docs/superpowers/specs/2026-07-23-training-phase-setting-design.md`
   - `docs/superpowers/specs/2026-07-23-progressive-overload-advisor-design.md`
+  - `docs/superpowers/specs/2026-07-24-exercise-substitution-design.md`
 
 ---
 
@@ -3367,30 +3376,333 @@ EOF
 
 ---
 
-# PART 5 — FULL SPRINT VERIFICATION
+# PART 5 — SUBSTITUTE (MID-WORKOUT EXERCISE SWAP)
 
-### Task 18: Full verification pass + STANDUP/GYMTRACK updates
+> Design: `docs/superpowers/specs/2026-07-24-exercise-substitution-design.md`.
+> Approved 2026-07-24, resuming the 2026-07-23 outline. Independent of Parts 1-4 —
+> touches `WorkoutSessionViewModel`/`WorkoutExercisePageView`, not `TodayView`/`Settings`.
+
+### Task 18: `SubstituteRanker` pure service + tests
+
+**Files:**
+- Create: `Gymbros/Data/Services/SubstituteRanker.swift`
+- Create: `GymbrosTests/SubstituteRankerTests.swift`
+
+**Interfaces:**
+- Consumes: `Exercise` (existing model).
+- Produces: `SubstituteCandidate`, `SubstituteRanker.filter(original:library:)`,
+  `SubstituteRanker.rank(original:candidates:lastLoggedWeightsKg:)` — consumed by Task 20.
+
+- [x] **Step 1: Write the failing tests**
+
+Cover: `filter` excludes the original exercise by id; excludes exercises with a
+different `movementPattern` or `primaryMuscle`; includes exercises matching both.
+`rank` orders different-equipment-from-original ahead of same-equipment; within an
+equipment tier, has-history (`lastLoggedWeightsKg[id] != nil`) ranks ahead of
+no-history; final tie-break is alphabetical by name. Empty `library`/`candidates`
+returns `[]` without crashing.
+
+- [x] **Step 2: Run tests to verify they fail to build**
+
+- [x] **Step 3: Implement `SubstituteRanker`**
+
+```swift
+import Foundation
+
+struct SubstituteCandidate: Identifiable, Equatable {
+    var id: UUID { exercise.id }
+    let exercise: Exercise
+    let lastLoggedWeightKg: Double?
+}
+
+enum SubstituteRanker {
+    static let minimumRankedResultsBeforeBrowseAllFallback = 3
+
+    static func filter(original: Exercise, library: [Exercise]) -> [Exercise] {
+        library.filter {
+            $0.id != original.id
+                && $0.movementPattern == original.movementPattern
+                && $0.primaryMuscle == original.primaryMuscle
+        }
+    }
+
+    static func rank(
+        original: Exercise,
+        candidates: [Exercise],
+        lastLoggedWeightsKg: [UUID: Double]
+    ) -> [SubstituteCandidate] {
+        candidates
+            .map { SubstituteCandidate(exercise: $0, lastLoggedWeightKg: lastLoggedWeightsKg[$0.id]) }
+            .sorted { lhs, rhs in
+                let lhsDifferentEquipment = lhs.exercise.equipment != original.equipment
+                let rhsDifferentEquipment = rhs.exercise.equipment != original.equipment
+                if lhsDifferentEquipment != rhsDifferentEquipment {
+                    return lhsDifferentEquipment
+                }
+                let lhsHasHistory = lhs.lastLoggedWeightKg != nil
+                let rhsHasHistory = rhs.lastLoggedWeightKg != nil
+                if lhsHasHistory != rhsHasHistory {
+                    return lhsHasHistory
+                }
+                return lhs.exercise.name < rhs.exercise.name
+            }
+    }
+}
+```
+
+- [x] **Step 4: Run tests to verify they pass**
+- [ ] **Step 5: Commit**
+
+---
+
+### Task 19: Substitute localization
+
+**Files:**
+- Modify: `Gymbros/Resources/Localizable.xcstrings`
+
+**Interfaces:**
+- Produces the keys listed in spec.md §7's Localization table:
+  `workout.substitute.button`, `workout.substitute.sheet.title`,
+  `workout.substitute.sheet.lastWeight`, `workout.substitute.sheet.browseAll`,
+  `workout.substitute.sheet.empty`, `workout.substitute.badge`,
+  `accessibility.workout.substitute_button`, `accessibility.workout.substitute_badge`
+  — consumed by Tasks 21-23.
+
+- [x] **Step 1: Add the `workout.substitute.*` and `accessibility.workout.substitute_*`
+  cluster to `Localizable.xcstrings`, both `en` and `th`, per spec.md §7's table**
+- [x] **Step 2: Validate JSON** — `jq empty Gymbros/Resources/Localizable.xcstrings`
+- [ ] **Step 3: Commit**
+
+---
+
+### Task 20: `WorkoutSessionViewModel` substitute flow
+
+**Files:**
+- Modify: `Gymbros/Presentation/Workout/WorkoutSessionState.swift`
+  (`WorkoutSetRowState.exerciseId`: `let` → `var`)
+- Modify: `Gymbros/Presentation/Workout/WorkoutSessionViewModel.swift`
+- Modify: `Gymbros/Data/Services/Analytics/AnalyticsTracking.swift`
+  (add `.exerciseSubstituted`, `.substituteRankSelected` cases)
+- Modify: `GymbrosTests/WorkoutSessionViewModelTests.swift`
+
+**Interfaces:**
+- Consumes: `SubstituteRanker` (Task 18), existing `workoutRepository.fetchLastLoggedSet`,
+  existing `formatWeight(_:)`.
+- Produces: `SubstitutePrompt`, `var substitutePrompt: SubstitutePrompt?`,
+  `presentSubstituteOptions(programExerciseId:) async`, `selectSubstitute(_:) async` —
+  consumed by Task 23's `WorkoutSessionScreen` wiring.
+
+- [x] **Step 1: Write the failing tests**
+
+Cover: `presentSubstituteOptions` builds `substitutePrompt` with correctly ranked
+candidates and the right `showsBrowseAllFallback` value at the 3-result boundary (2 →
+true, 3 → false); `selectSubstitute` reassigns `exerciseId` and clears/reformats
+`weightText` on every not-yet-completed row while leaving completed rows' `exerciseId`/
+`weightText`/`reps` untouched; `section.exercise` and `section.defaultWeight` update;
+`addSet(after:)` called after a swap tags the new row with the substitute's
+`exerciseId`; `.exerciseSubstituted` and `.substituteRankSelected` are tracked via a
+fake `AnalyticsTracking`; backup is saved (existing `saveBackup()` call pattern).
+
+- [x] **Step 2: Run tests to verify they fail to build**
+
+- [x] **Step 3: Relax `WorkoutSetRowState.exerciseId` to `var`**
+
+In `WorkoutSessionState.swift`, change `let exerciseId: UUID` to `var exerciseId: UUID`
+on `WorkoutSetRowState`. No other field changes.
+
+- [x] **Step 4: Add `.exerciseSubstituted` / `.substituteRankSelected` to `AnalyticsEvent`**
+
+Two more no-payload cases, matching every existing case in the enum.
+
+- [x] **Step 5: Add `SubstitutePrompt` and the two view-model methods**
+
+```swift
+struct SubstitutePrompt: Identifiable {
+    let id = UUID()
+    let programExerciseId: UUID
+    let originalExercise: Exercise
+    let candidates: [SubstituteCandidate]
+    let showsBrowseAllFallback: Bool
+}
+```
+
+`var substitutePrompt: SubstitutePrompt?` as a new `@Observable` property, alongside
+`overloadOutcomePrompt`.
+
+```swift
+func presentSubstituteOptions(programExerciseId: UUID) async {
+    guard case let .success(data) = state,
+          let section = data.exerciseSections.first(where: { $0.programExercise.id == programExerciseId }),
+          let activeExercise = section.exercise else {
+        transientError = .notFound
+        return
+    }
+    let library = Array(data.exerciseLookup.values)
+    let filtered = SubstituteRanker.filter(original: activeExercise, library: library)
+
+    var lastLoggedWeights: [UUID: Double] = [:]
+    for candidate in filtered {
+        if let lastSet = try? await workoutRepository.fetchLastLoggedSet(exerciseId: candidate.id, before: now()) {
+            lastLoggedWeights[candidate.id] = lastSet.weight
+        }
+    }
+
+    substitutePrompt = SubstitutePrompt(
+        programExerciseId: programExerciseId,
+        originalExercise: activeExercise,
+        candidates: SubstituteRanker.rank(original: activeExercise, candidates: filtered, lastLoggedWeightsKg: lastLoggedWeights),
+        showsBrowseAllFallback: filtered.count < SubstituteRanker.minimumRankedResultsBeforeBrowseAllFallback
+    )
+}
+
+func selectSubstitute(_ exercise: Exercise) async {
+    guard let prompt = substitutePrompt,
+          case var .success(data) = state,
+          let sectionIndex = data.exerciseSections.firstIndex(where: { $0.programExercise.id == prompt.programExerciseId }) else {
+        substitutePrompt = nil
+        return
+    }
+
+    let lastSet = try? await workoutRepository.fetchLastLoggedSet(exerciseId: exercise.id, before: now())
+    let suggestedWeight = lastSet?.weight
+
+    data.exerciseSections[sectionIndex].exercise = exercise
+    data.exerciseSections[sectionIndex].defaultWeight = suggestedWeight
+    for index in data.exerciseSections[sectionIndex].sets.indices
+    where data.exerciseSections[sectionIndex].sets[index].isCompleted == false {
+        data.exerciseSections[sectionIndex].sets[index].exerciseId = exercise.id
+        data.exerciseSections[sectionIndex].sets[index].weightText = formatWeight(suggestedWeight)
+    }
+    state = .success(data)
+    substitutePrompt = nil
+
+    analytics.track(.exerciseSubstituted)
+    analytics.track(.substituteRankSelected)
+
+    await updateWorkoutLiveActivity()
+    saveBackup()
+}
+```
+
+- [x] **Step 6: Fix `addSet(after:)` to use the section's active exercise**
+
+Change the hardcoded `exerciseId: data.exerciseSections[sectionIndex].programExercise.exerciseId`
+to `exerciseId: data.exerciseSections[sectionIndex].exercise?.id ?? data.exerciseSections[sectionIndex].programExercise.exerciseId`.
+
+- [x] **Step 7: Run tests to verify they pass**
+- [ ] **Step 8: Commit**
+
+---
+
+### Task 21: `SubstituteOriginBadge` component
+
+**Files:**
+- Create: `Gymbros/Presentation/Workout/Components/SubstituteOriginBadge.swift`
+
+**Interfaces:**
+- Consumes: an exercise name `String`.
+- Produces: a view consumed by Task 23.
+
+- [x] **Step 1: Create the badge**, same visual family as `EasingBackBadge`/
+  `OverloadSuggestionBadge` (capsule, `.caption.weight(.semibold)`,
+  `arrow.uturn.left` icon, `Color(uiColor: .tertiarySystemFill)` background,
+  `.secondary` foreground), showing `workout.substitute.badge` formatted with the
+  origin exercise name, with `accessibility.workout.substitute_badge` as its
+  accessibility label.
+- [x] **Step 2: Build to verify it compiles**
+- [ ] **Step 3: Commit**
+
+---
+
+### Task 22: `SubstituteCandidateSheet` component
+
+**Files:**
+- Create: `Gymbros/Presentation/Workout/Components/SubstituteCandidateSheet.swift`
+
+**Interfaces:**
+- Consumes: `SubstitutePrompt` (Task 20), `WeightUnit` (existing), `ExercisePickerView`/
+  `ExercisePickerViewModel` (existing, unmodified), `EquipmentIconView` (existing).
+- Produces: a view consumed by Task 23. `onSelect: (Exercise) -> Void` closure.
+
+- [x] **Step 1: Create the sheet**
+
+Medium-detent sheet (mirrors `FeelPickerSheet`'s chrome: Cancel toolbar action,
+`.presentationDetents([.medium])`). Body: `workout.substitute.sheet.title` header,
+then a `List` of `prompt.candidates` rows (`EquipmentIconView` + exercise name +
+`workout.substitute.sheet.lastWeight` formatted with the unit-converted weight when
+`lastLoggedWeightKg != nil`), each row calling `onSelect` and dismissing on tap. Empty
+candidates show `workout.substitute.sheet.empty`. When `prompt.showsBrowseAllFallback`
+is true, a trailing row/button labeled `workout.substitute.sheet.browseAll` sets
+`@State private var showingBrowseAll = true`, presenting `ExercisePickerView` as a
+nested sheet with the same `onSelect` closure.
+
+- [x] **Step 2: Build to verify it compiles**
+- [ ] **Step 3: Commit**
+
+---
+
+### Task 23: Wire the Swap button, origin badges, and sheet presentation
+
+**Files:**
+- Modify: `Gymbros/Presentation/Workout/WorkoutExercisePageView.swift`
+- Modify: `Gymbros/Presentation/Workout/WorkoutSessionView.swift`
+- Modify: `Gymbros/Presentation/Workout/WorkoutSessionScreen.swift`
+
+**Interfaces:**
+- Consumes: `onSwapExercise: (UUID) -> Void` action closure threaded through
+  `WorkoutSessionScreen` → `WorkoutSessionView` → `WorkoutExercisePageView`, same
+  pattern as `onFinishExercise`. `viewModel.substitutePrompt` / `selectSubstitute(_:)`
+  (Task 20).
+
+- [x] **Step 1: `WorkoutExercisePageView.exerciseHeader`** — add a "Swap exercise"
+  button (`arrow.triangle.2.circlepath` + `workout.substitute.button`,
+  `accessibility.workout.substitute_button`), hidden when `section.isFinished`, calling
+  a new `onSwapExercise: (UUID) -> Void` action with `section.programExercise.id`.
+- [x] **Step 2: Set-row origin badges** — in the `ForEach(section.sets)` loop, render
+  `SubstituteOriginBadge` above/alongside a row when
+  `rowState.exerciseId != section.exercise?.id`, using
+  `section.exerciseLookup`/passed-in lookup to resolve the origin exercise's name (thread
+  the existing `exerciseLookup` dictionary down from `WorkoutSessionData`, same as
+  `lastSessionReference` is already threaded per-section).
+- [x] **Step 3: Thread `onSwapExercise` through `WorkoutSessionView`** — new action
+  parameter, passed to each `WorkoutExercisePageView`.
+- [x] **Step 4: `WorkoutSessionScreen`** — wire `onSwapExercise` to
+  `Task { await viewModel.presentSubstituteOptions(programExerciseId: $0) }`; add
+  `.sheet(item:)` bound to `viewModel.substitutePrompt` presenting
+  `SubstituteCandidateSheet(prompt:, onSelect: { exercise in Task { await viewModel.selectSubstitute(exercise) } })`.
+- [x] **Step 5: Build to verify it compiles**
+- [ ] **Step 6: Manual smoke test** — mid-workout, swap an exercise with 3+ candidates;
+  confirm the header updates, not-yet-completed sets get the new suggested weight, and
+  completed sets are unchanged and show the origin badge. Re-swap. Force a <3-candidate
+  exercise; confirm the browse-all fallback opens `ExercisePickerView`.
+- [ ] **Step 7: Commit**
+
+---
+
+# PART 6 — FULL SPRINT VERIFICATION
+
+### Task 25: Full verification pass + STANDUP/GYMTRACK updates
 
 **Files:**
 - Modify: `STANDUP.md`
 - Modify: `.claude/GYMTRACK.md`
 
 **Interfaces:**
-- Consumes: the complete result of Tasks 1-17.
+- Consumes: the complete result of Tasks 1-24.
 - Produces: nothing — this is the final gate before considering Sprint 6.1 done.
 
 - [ ] **Step 1: Run the full test suite**
 
 ```bash
-xcodebuild test -project Gymbros.xcodeproj -scheme Gymbros -destination 'platform=iOS Simulator,name=iPhone 17e'
+xcodebuild test -project Gymbros.xcodeproj -scheme Gymbros -destination 'platform=iOS Simulator,name=iPhone 17'
 ```
 
-Expected: `** TEST SUCCEEDED **`. In particular, confirm `ComebackRampServiceTests` and `ProgressiveOverloadEngineTests` pass unmodified across all four features — proves zero downstream impact on the existing comeback/overload engines.
+Expected: `** TEST SUCCEEDED **`. In particular, confirm `ComebackRampServiceTests` and `ProgressiveOverloadEngineTests` pass unmodified across all five features — proves zero downstream impact on the existing comeback/overload engines. Note: this machine has no `iPhone 17e` simulator installed (only `iPhone 17`/`17 Pro`/`17 Pro Max` — see STANDUP.md's 2026-07-24 environment note); use `iPhone 17` here even though earlier tasks in this plan reference `17e`.
 
 - [ ] **Step 2: Run the full build**
 
 ```bash
-xcodebuild -project Gymbros.xcodeproj -scheme Gymbros -destination 'platform=iOS Simulator,name=iPhone 17e' build
+xcodebuild -project Gymbros.xcodeproj -scheme Gymbros -destination 'platform=iOS Simulator,name=iPhone 17' build
 ```
 
 Expected: `** BUILD SUCCEEDED **`.
@@ -3406,15 +3718,17 @@ Expected: `valid json`, no whitespace-conflict output from `git diff --check`.
 
 - [ ] **Step 4: Run the combined manual smoke checklist**
 
-Repeat the manual smoke steps from Task 6 (RPE), Task 7 Step 6 (Skip a Day), Task 11 Step 6 (Training Phase), and Task 17 Step 4 (Progressive Overload Advisor) in one sitting, in that order, using the same simulator session so the four features are confirmed to coexist without interfering with each other (e.g. confirm the "Change day" control and the Overload Advisor card can both appear on the same Today load; confirm switching training phase does not affect the RPE picker or Skip a Day).
+Repeat the manual smoke steps from Task 6 (RPE), Task 7 Step 6 (Skip a Day), Task 11 Step 6 (Training Phase), Task 17 Step 4 (Progressive Overload Advisor), and Task 23 Step 6 (Substitute) in one sitting, in that order, using the same simulator session so all five features are confirmed to coexist without interfering with each other (e.g. confirm the "Change day" control and the Overload Advisor card can both appear on the same Today load; confirm switching training phase does not affect the RPE picker, Skip a Day, or Substitute; confirm swapping an exercise mid-workout doesn't disturb the rest timer or Live Activity).
 
 - [ ] **Step 5: Update `.claude/GYMTRACK.md`**
 
-Update the Sprint 6.1 row in §9's Sprint Tracking table and the `### Sprint 6.1 — Post-Launch Feature Wave` section: mark items 1-4 (RPE, Skip a Day, Training Phase, Progressive Overload Advisor) as done; leave item 5 (Substitute) as not yet approved, unchanged.
+Update the Sprint 6.1 row in §9's Sprint Tracking table and the `### Sprint 6.1 — Post-Launch Feature Wave` section: mark all five items (RPE, Skip a Day, Training Phase, Progressive Overload Advisor, Substitute) as fully complete once manual smoke passes.
 
 - [ ] **Step 6: Update `STANDUP.md`**
 
-Add a new entry under "Last session did" summarizing the four shipped features, the HEAD SHA, and the verification commands run. Update "Next up" to reflect that Sprint 6.1 (minus Substitute) is complete and the next work is either Substitute's approval pass or Sprint 7.
+Add a new entry under "Last session did" summarizing the Substitute feature (design +
+implementation), the HEAD SHA, and the verification commands run. Update "Next up" to
+reflect that Sprint 6.1 is fully complete and the next work is Sprint 7.
 
 - [ ] **Step 7: Commit the documentation updates**
 
@@ -3423,9 +3737,8 @@ git add STANDUP.md .claude/GYMTRACK.md
 git commit -m "$(cat <<'EOF'
 docs: mark Sprint 6.1 post-launch feature wave complete
 
-RPE UX simplification, Skip a Day, Training Phase Setting, and the
-Progressive Overload Advisor are implemented, tested, and manually
-smoke-tested. Substitute remains unapproved and out of this sprint.
+Substitute (mid-workout exercise swap) is now designed and implemented,
+completing all 5 of Sprint 6.1's post-launch features.
 
 Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>
 EOF

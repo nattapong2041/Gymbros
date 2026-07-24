@@ -4,13 +4,13 @@
 
 ---
 
-**Last updated:** 2026-07-24 | HEAD `47ce920` (Sprint 6.1 — Overload Advisor weight-bump badge + RPE≥9 keep/revert prompt) | Branch `main` (69 commits ahead of `origin/main`, not yet pushed)
+**Last updated:** 2026-07-24 | HEAD `db0ae8f` + uncommitted Substitute work (Sprint 6.1 — mid-workout exercise swap, design + implementation) | Branch `main` (69 commits ahead of `origin/main`, not yet pushed)
 
 ---
 
 ## Where we are
 
-Sprints 1–6 and S05p fully implemented and committed. Local-first workout sessions and S06 were committed together at `e1859b6`. S06 manual smoke is still genuinely pending — requires editing a `workout_sessions.ended_at` in Supabase to simulate a 14+ day gap. Sprint 6.1 (Post-Launch Feature Wave) is now implemented end-to-end for 4 of its 5 features (RPE UX Simplification, Skip a Day, Training Phase Setting, Progressive Overload Advisor) — Substitute remains unapproved and out of scope. Sprint 6.1's own manual smoke is also pending; see "Next up" below.
+Sprints 1–6 and S05p fully implemented and committed. Local-first workout sessions and S06 were committed together at `e1859b6`. S06 manual smoke is still genuinely pending — requires editing a `workout_sessions.ended_at` in Supabase to simulate a 14+ day gap. Sprint 6.1 (Post-Launch Feature Wave) is now implemented end-to-end for all 5 of its features (RPE UX Simplification, Skip a Day, Training Phase Setting, Progressive Overload Advisor, and — as of this session — Substitute). Substitute's design and implementation are done and automated-tested but **not yet committed**; see "Next up" below. Sprint 6.1's combined manual smoke (all five features together) is still pending.
 
 | Sprint | Name | Status |
 |--------|------|--------|
@@ -22,11 +22,22 @@ Sprints 1–6 and S05p fully implemented and committed. Local-first workout sess
 | **S05p** | **Phase 1 Polish** | **implemented, manual smoke passed, committed** |
 | **S06** | **Next Best Session v1 / Smart Comeback** | **implemented, committed at `e1859b6` — manual smoke still pending** |
 | **local-first** | **Session upload only on Finish** | **implemented, committed at `e1859b6`** |
-| **S06.1** | **Post-Launch Feature Wave (RPE, Skip Day, Training Phase, Overload Advisor)** | **implemented, committed through `3d204cc` — manual smoke pending; Substitute not yet approved** |
+| **S06.1** | **Post-Launch Feature Wave (RPE, Skip Day, Training Phase, Overload Advisor, Substitute)** | **all 5 implemented; first 4 committed through `3d204cc`, Substitute implemented this session but not yet committed — manual smoke pending on all 5** |
 
 ---
 
 ## Last session did
+
+- **Substitute (mid-workout exercise swap) — approved, designed, and implemented end-to-end (uncommitted):**
+  - Resumed the 2026-07-23 brainstorming session that had never been formally approved. Confirmed the prior outline as the baseline, then resolved the open gaps: swap works mid-exercise (not just before starting), unlimited re-swaps, a <3-candidate ranked list falls back to browsing the full exercise library, new sets keep the original's target reps/rest, and the set table stays one continuous list with inline origin badges. Ships free — no paywall (no subscription infra exists yet). Design: `docs/superpowers/specs/2026-07-24-exercise-substitution-design.md`.
+  - New `SubstituteRanker` (pure Swift, `Data/Services/`): filters the already-loaded exercise library to same `movementPattern` + `primaryMuscle`, ranks by different-equipment-first, then has-logged-history (simplified from the original "historical set count" idea — no count query exists, so this reuses the same `fetchLastLoggedSet` call already needed for the row's "last: Xkg" display), then alphabetically. 10 unit tests.
+  - `WorkoutSessionViewModel` gained `presentSubstituteOptions(programExerciseId:)` and `selectSubstitute(_:)`, plus a `SubstitutePrompt` item-sheet type (mirrors how `overloadOutcomePrompt` is presented). On swap, every not-yet-completed `WorkoutSetRowState` in that exercise slot is reassigned to the substitute's `exerciseId` with a re-prefilled weight; completed sets are untouched. Required relaxing `WorkoutSetRowState.exerciseId` from `let` to `var` — the only model change, no schema/backup-format change. Also fixed `addSet(after:)`, which previously always hardcoded the original program exercise's `exerciseId` even after a swap. 4 new view-model tests; added a third sample exercise (`ProgramSamples.machineChestPress`) since the fixture library only had one push/chest exercise before.
+  - New UI: `SubstituteOriginBadge` (small capsule, same visual family as `EasingBackBadge`), `SubstituteCandidateSheet` (ranked list + last-weight hint + "Browse all exercises" fallback reusing `ExercisePickerView` unmodified), a "Swap exercise" header button on `WorkoutExercisePageView` (hidden once the exercise is finished), and inline origin badges on set rows whose exercise differs from the one currently shown in the header.
+  - 8 new localization keys (`workout.substitute.*`, `accessibility.workout.substitute_*`) in en + th.
+  - Two new no-payload `AnalyticsEvent` cases: `.exerciseSubstituted`, `.substituteRankSelected`.
+  - Docs updated: `.claude/GYMTRACK.md` (Substitute section marked implemented, Decision Log entry, Sprint 6.1 status, Substitute Ranker algorithm reference), `.claude/sprints/S06.1-post-launch-feature-wave/spec.md` (new §7 design section, requirements, out-of-scope, localization table, testing plan) and `plan.md` (Tasks 18-24 for Substitute, Task 25 renumbered final-verification pass covering all 5 features).
+  - Verified: full build `** BUILD SUCCEEDED **`, full `GymbrosTests` suite `** TEST SUCCEEDED **` (including `SubstituteRankerTests` and the 4 new `WorkoutSessionViewModelTests` cases), `jq empty Gymbros/Resources/Localizable.xcstrings` valid, `git diff --check` clean.
+  - **Not done this session**: nothing has been committed yet (user asked to build the feature; commit was not requested). Manual smoke test (actually swapping an exercise in the simulator) has not been run — see spec.md §8 step 5 and plan.md Task 23 Step 6 for the checklist. This machine has no `iPhone 17e` simulator (only `iPhone 17`/`17 Pro`/`17 Pro Max`) — all commands this session used `iPhone 17`.
 
 - Post-smoke-feedback follow-ups on the Overload Advisor, plus a new Overload Advisor session-badge feature (commit `47ce920`):
   - Manual-testing round on Sprint 6.1 surfaced several real items, each resolved in-session: fixed a real "Change day" bug where switching away from the recommended day permanently removed it from the menu (menu now excludes whichever day is *currently displayed*, not always the original recommendation); the welcome-back banner now names the day the user will start (`today.welcome_back %@`); cleaned up Overload Advisor Thai copy per the user's suggested phrase ("อยู่น้ำหนักเดิมมาสักพักแล้ว ลองเพิ่มดูไหม"); confirmed and explained (no code change) how comeback-mode exit, the RPE 1-10 vs `ComebackRampService`'s `.5`-threshold checks, and comeback exit's whole-program (not per-day) scope all work; removed dead `HowDidThatFeel.defaultRPE` (unused since the picker moved fully to the slider).
@@ -322,7 +333,9 @@ Sprints 1–6 and S05p fully implemented and committed. Local-first workout sess
 
 ## Next up
 
-**Local-first sessions, S06, and Sprint 6.1 (4 of 5 features) are all implemented and committed.** Two manual smoke tests remain — note that Sprint 6.1's `HowDidThatFeelPicker` removal means step 4 of the S06 checklist below (the sheet appearing) **no longer applies**; per-set Easy/Just right/Hard input now replaces it in every mode, and the ramp decision should be verified from those per-set picks directly.
+**Local-first sessions, S06, and all 5 of Sprint 6.1's features are now implemented.** The first 4 Sprint 6.1 features are committed; Substitute (implemented this session) is not yet committed — review the diff and commit when ready. Three manual smoke checklists remain (S06, the original 4-feature Sprint 6.1 sweep, and Substitute) — note that Sprint 6.1's `HowDidThatFeelPicker` removal means step 4 of the S06 checklist below (the sheet appearing) **no longer applies**; per-set Easy/Just right/Hard input now replaces it in every mode, and the ramp decision should be verified from those per-set picks directly.
+
+**Substitute manual smoke test** (see `.claude/sprints/S06.1-post-launch-feature-wave/spec.md` §8 step 5 for the full checklist): mid-workout, tap "Swap exercise" on an exercise with 3+ ranked candidates; confirm the sheet excludes the current exercise, sorts different-equipment-first, and shows "last: Xkg" for previously-logged exercises. Pick one; confirm the header updates, not-yet-completed sets show the new suggested weight, and completed sets are unchanged with an origin badge. Re-swap to a third exercise. Force an exercise with <3 candidates; confirm "Browse all exercises" opens the full picker.
 
 **S06 manual smoke test** (requires editing a `workout_sessions.ended_at` in Supabase to be ≥14 days ago for the active user):
 1. Today screen shows `ComebackCardView` with bilingual greeting and reason line (e.g. "ขาดไป 15 วัน / 15 days since last session").
@@ -340,7 +353,7 @@ Sprints 1–6 and S05p fully implemented and committed. Local-first workout sess
 4b. **New (commit `47ce920`, not yet manually smoke-tested)**: after "Try it next time," start the session that includes that exercise next — confirm the green "New weight — give it a shot" badge appears above its set table. Log a set at RPE ≤8 — confirm no interruption and the badge doesn't reappear in a later session. Repeat with a fresh bump, this time log a set at RPE ≥9 — confirm the "That felt tough" alert appears with the correct exercise name and old weight; tapping "Keep New Weight" dismisses it with no change; tapping "Go Back to Old Weight" reverts the program exercise's target weight (verify via the exercise header's target-weight chip in a later session, or Program editing).
 5. Run in both Thai and English device locales; verify all new copy from all four features, including the new overload-badge/outcome-prompt copy.
 
-After both smoke tests pass, update `.claude/GYMTRACK.md` §9 Sprint Tracking rows 6 and 6.1 to `✅`, mark this section done here, and either pursue Substitute's approval (Sprint 6.1's 5th, unapproved item) or start **Sprint 7 — Onboarding + Templates + i18n + Brain Polish** (no spec written yet; see `.claude/GYMTRACK.md` §9).
+After all three smoke tests pass (and Substitute is committed), update `.claude/GYMTRACK.md` §9 Sprint Tracking rows 6 and 6.1 to fully `✅`, mark this section done here, and start **Sprint 7 — Onboarding + Templates + i18n + Brain Polish** (no spec written yet; see `.claude/GYMTRACK.md` §9).
 
 ---
 
@@ -357,7 +370,7 @@ After both smoke tests pass, update `.claude/GYMTRACK.md` §9 Sprint Tracking ro
 - [ ] After S05p manual smoke passes, update GYMTRACK.md §9 Phase 1 Trial Feedback Polish Backlog items from ☐ to ✓.
 - [x] Confirm `Gymbros.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved` is present after follow-up verification.
 - [ ] `CLAUDE.md` still says the available simulator is `iPhone 17e`; this machine only has `iPhone 17` / `iPhone 17 Pro` / `iPhone 17 Pro Max`. Confirm which is correct going forward (may be a per-machine difference) and update `CLAUDE.md` if `iPhone 17e` is genuinely gone.
-- [ ] Sprint 6.1: pursue Substitute's approval (outline discussed 2026-07-23, not yet confirmed) or explicitly defer it past this sprint.
+- [x] Sprint 6.1: Substitute approved and implemented 2026-07-24 (see design doc + "Last session did" above). Remaining: commit the work, then run its manual smoke test.
 - [ ] Sprint 6.1 final-review Minor findings, deferred (none block shipping): (a) `OverloadAdvisorCardView` shows the recommended day's stalled exercise even after "Change day" swaps to a different day — data isn't wrong, but placement can read as belonging to the wrong day; (b) [fixed 2026-07-24 — `today.overload_advisor.body` no longer hardcodes a session count after the StallDetector window redesign] `today.overload_advisor.body` still uses non-positional `%@` (fine today since en/th share word order, latent hazard for future translations); (c) the 30-session fetch cap on normal days can still under-fire on very high-frequency (4+ day/week) program rotations near the 35-day window's edge, and `fetchSets` calls in `fetchBudgetedSets` run sequentially rather than concurrently — worth revisiting if Today-load latency or advisor recall on such splits becomes a real issue.
 
 ---

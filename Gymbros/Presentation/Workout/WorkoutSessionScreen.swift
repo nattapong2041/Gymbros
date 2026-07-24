@@ -48,6 +48,9 @@ struct WorkoutSessionScreen: View {
             onFinishExercise: { programExerciseId in
                 Task { await viewModel.finishExercise(programExerciseId: programExerciseId) }
             },
+            onSwapExercise: { programExerciseId in
+                Task { await viewModel.presentSubstituteOptions(programExerciseId: programExerciseId) }
+            },
             onStopTimer: {
                 viewModel.stopRestTimer()
             },
@@ -75,6 +78,14 @@ struct WorkoutSessionScreen: View {
             actions: overloadOutcomeActions,
             message: overloadOutcomeMessageView
         )
+        .sheet(item: Binding(
+            get: { viewModel.substitutePrompt },
+            set: { if $0 == nil { viewModel.substitutePrompt = nil } }
+        )) { prompt in
+            SubstituteCandidateSheet(prompt: prompt) { exercise in
+                Task { await viewModel.selectSubstitute(exercise) }
+            }
+        }
         .task {
             guard hasStarted == false else { return }
             hasStarted = true

@@ -497,6 +497,7 @@ struct WorkoutSessionViewModelTests {
     private func makeViewModel(
         workoutRepository: FakeWorkoutRepository? = nil,
         programRepository: FakeWorkoutProgramRepository? = nil,
+        exerciseRepository: FakeWorkoutExerciseRepository? = nil,
         backupRepository: FakeBackupRepository? = nil,
         restTimerScheduler: FakeRestTimerScheduler? = nil,
         liveActivityController: FakeRestTimerLiveActivityController? = nil,
@@ -508,7 +509,7 @@ struct WorkoutSessionViewModelTests {
         WorkoutSessionViewModel(
             workoutRepository: workoutRepository ?? FakeWorkoutRepository(),
             programRepository: programRepository ?? FakeWorkoutProgramRepository(),
-            exerciseRepository: FakeWorkoutExerciseRepository(),
+            exerciseRepository: exerciseRepository ?? FakeWorkoutExerciseRepository(),
             backupRepository: backupRepository ?? FakeBackupRepository(),
             restTimerScheduler: restTimerScheduler ?? FakeRestTimerScheduler(),
             liveActivityController: liveActivityController ?? FakeRestTimerLiveActivityController(),
@@ -714,6 +715,115 @@ struct WorkoutSessionViewModelTests {
         await viewModel.completeSet(setId: rows[1].id)
 
         #expect(viewModel.overloadOutcomePrompt == nil)
+    }
+
+    // MARK: - Substitute
+
+    @Test func presentSubstituteOptionsBuildsRankedCandidatesExcludingCurrentExercise() async throws {
+        let workoutRepository = FakeWorkoutRepository()
+        let viewModel = makeViewModel(workoutRepository: workoutRepository)
+
+        await viewModel.start(programDayId: ProgramSamples.upperDayId)
+        await viewModel.presentSubstituteOptions(programExerciseId: ProgramSamples.benchProgramExerciseId)
+
+        let prompt = try #require(viewModel.substitutePrompt)
+        #expect(prompt.programExerciseId == ProgramSamples.benchProgramExerciseId)
+        #expect(prompt.originalExercise.id == ProgramSamples.benchExerciseId)
+        #expect(prompt.candidates.map(\.exercise.id) == [ProgramSamples.machineChestPressExerciseId])
+        // Only one matching candidate exists in the fixture library -- below the
+        // 3-result threshold, so the browse-all fallback should be offered.
+        #expect(prompt.showsBrowseAllFallback)
+    }
+
+    @Test func presentSubstituteOptionsHidesBrowseAllFallbackAtThreeOrMoreCandidates() async throws {
+        let exerciseRepository = FakeWorkoutExerciseRepository()
+        exerciseRepository.exercises = ProgramSamples.exercises + [
+            makeChestExercise(name: "Cable Chest Fly", equipment: .cable),
+            makeChestExercise(name: "Dumbbell Bench Press", equipment: .dumbbell)
+        ]
+        let viewModel = makeViewModel(exerciseRepository: exerciseRepository)
+
+        await viewModel.start(programDayId: ProgramSamples.upperDayId)
+        await viewModel.presentSubstituteOptions(programExerciseId: ProgramSamples.benchProgramExerciseId)
+
+        let prompt = try #require(viewModel.substitutePrompt)
+        #expect(prompt.candidates.count == 3)
+        #expect(prompt.showsBrowseAllFallback == false)
+    }
+
+    @Test func selectSubstituteReassignsNotYetCompletedRowsAndPreservesCompletedRows() async throws {
+        let workoutRepository = FakeWorkoutRepository()
+        workoutRepository.lastLoggedSets[ProgramSamples.machineChestPressExerciseId] = WorkoutSet(
+            id: UUID(),
+            sessionId: UUID(),
+            exerciseId: ProgramSamples.machineChestPressExerciseId,
+            programExerciseId: nil,
+            setNumber: 1,
+            weight: 40,
+            reps: 10,
+            rpe: nil,
+            targetRestSeconds: nil,
+            actualRestSeconds: nil,
+            restStartedAt: nil,
+            restEndedAt: nil,
+            completedAt: ProgramSamples.createdAt.addingTimeInterval(-86_400),
+            notes: nil
+        )
+        let spy = SpyWorkoutAnalytics()
+        let viewModel = makeViewModel(workoutRepository: workoutRepository, analytics: spy)
+
+        await viewModel.start(programDayId: ProgramSamples.upperDayId)
+        let firstSetId = try firstRow(viewModel).id
+        await viewModel.updateDraft(setId: firstSetId, weightText: "62.5", repsText: "8", rpe: nil)
+        await viewModel.completeSet(setId: firstSetId)
+
+        await viewModel.presentSubstituteOptions(programExerciseId: ProgramSamples.benchProgramExerciseId)
+        await viewModel.selectSubstitute(ProgramSamples.machineChestPress)
+
+        #expect(viewModel.substitutePrompt == nil)
+        #expect(spy.events == [.exerciseSubstituted, .substituteRankSelected])
+
+        let section = try #require(successValue(viewModel.state).exerciseSections.first)
+        #expect(section.exercise?.id == ProgramSamples.machineChestPressExerciseId)
+        #expect(section.defaultWeight == 40)
+
+        let completedRow = try #require(section.sets.first)
+        #expect(completedRow.isCompleted)
+        #expect(completedRow.exerciseId == ProgramSamples.benchExerciseId)
+        #expect(completedRow.weightText == "62.5")
+
+        let remainingRows = section.sets.dropFirst()
+        #expect(remainingRows.allSatisfy { $0.exerciseId == ProgramSamples.machineChestPressExerciseId })
+        #expect(remainingRows.allSatisfy { $0.weightText == "40" })
+    }
+
+    @Test func addSetAfterSwapUsesTheSubstituteExerciseId() async throws {
+        let viewModel = makeViewModel()
+
+        await viewModel.start(programDayId: ProgramSamples.upperDayId)
+        await viewModel.presentSubstituteOptions(programExerciseId: ProgramSamples.benchProgramExerciseId)
+        await viewModel.selectSubstitute(ProgramSamples.machineChestPress)
+
+        let lastRow = try #require(successValue(viewModel.state).exerciseSections.first?.sets.last)
+        await viewModel.addSet(after: lastRow.id)
+
+        let added = try #require(successValue(viewModel.state).exerciseSections.first?.sets.last)
+        #expect(added.exerciseId == ProgramSamples.machineChestPressExerciseId)
+    }
+
+    private func makeChestExercise(name: String, equipment: Equipment) -> Exercise {
+        Exercise(
+            id: UUID(),
+            ownerUserId: nil,
+            slug: name.lowercased().replacingOccurrences(of: " ", with: "_"),
+            name: name,
+            movementPattern: .push,
+            primaryMuscle: .chest,
+            secondaryMuscles: [],
+            equipment: equipment,
+            isCompound: true,
+            createdAt: ProgramSamples.createdAt
+        )
     }
 
     private func successValue<T>(_ state: ViewState<T>) throws -> T {
@@ -941,8 +1051,10 @@ private final class FakeOverloadSuggestionTracker: OverloadSuggestionTracking {
 
 @MainActor
 private final class FakeWorkoutExerciseRepository: ExerciseRepositoryProviding {
+    var exercises: [Exercise] = ProgramSamples.exercises
+
     func fetchAll() async throws -> [Exercise] {
-        ProgramSamples.exercises
+        exercises
     }
 }
 
