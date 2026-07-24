@@ -35,8 +35,10 @@ final class TodayViewModel {
     private let analytics: AnalyticsTracking
     private let overloadSnoozeStore: OverloadAdvisorSnoozing
 
-    /// Per-session set fetches are budgeted: only when a gap candidate exists, and
-    /// only for post-gap sessions plus this many recent pre-gap sessions (baseline window).
+    /// Per-session set fetches are budgeted to this many recent sessions on every load --
+    /// wide enough to cover comeback baseline/current tracking (post-gap sessions plus this
+    /// many recent pre-gap sessions) and, on normal days, to give StallDetector enough history
+    /// to find sessionThreshold *qualifying* (same-exercise) sessions under a multi-day rotation.
     private static let baselineSessionWindow = 10
 
     init(
