@@ -282,7 +282,10 @@ struct TodayViewModelTests {
         }
         let vm = TodayViewModel(
             programRepository: FakeTodayProgramRepository(active: program),
-            workoutRepository: workoutRepo
+            workoutRepository: workoutRepo,
+            exerciseRepository: FakeTodayExerciseRepository(),
+            profileRepository: FakeTodayProfileRepository(),
+            overloadSnoozeStore: FakeOverloadSnoozeStore()
         )
 
         await vm.load()
