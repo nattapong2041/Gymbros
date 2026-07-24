@@ -27,6 +27,10 @@ struct WorkoutExercisePageView: View {
                         EasingBackBadge()
                             .frame(maxWidth: .infinity, alignment: .leading)
                             .padding(.top, 8)
+                    } else if showsOverloadSuggestionBadge {
+                        OverloadSuggestionBadge()
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .padding(.top, 8)
                     }
 
                     setTableHeader(columns: columns)
@@ -156,6 +160,10 @@ struct WorkoutExercisePageView: View {
 
     private var showsEasingBackBadge: Bool {
         isComebackMode && lastSessionReference?.label == .baseline
+    }
+
+    private var showsOverloadSuggestionBadge: Bool {
+        section.pendingOverloadPreviousWeight != nil
     }
 
     private var setTableColumns: WorkoutSetTableLayout.Columns {

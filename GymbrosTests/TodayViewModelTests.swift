@@ -334,11 +334,13 @@ struct TodayViewModelTests {
         let exerciseRepo = FakeTodayExerciseRepository()
         exerciseRepo.exercises = [makeExercise()]
         let programRepo = FakeTodayProgramRepository(active: program)
+        let suggestionTracker = FakeOverloadSuggestionTracker()
         let vm = TodayViewModel(
             programRepository: programRepo,
             workoutRepository: workoutRepo,
             exerciseRepository: exerciseRepo,
-            overloadSnoozeStore: FakeOverloadSnoozeStore()
+            overloadSnoozeStore: FakeOverloadSnoozeStore(),
+            overloadSuggestionTracker: suggestionTracker
         )
 
         await vm.load()
@@ -347,6 +349,7 @@ struct TodayViewModelTests {
 
         #expect(programRepo.updatedProgramExercise?.targetWeight == 82.5)
         #expect(try successValue(vm.state).stalledExercise == nil)
+        #expect(suggestionTracker.recordedPreviousWeights[TodaySamples.programExerciseId] == 80)
     }
 
     @Test func snoozeOverloadSuggestionHidesCardAndPersists() async throws {
@@ -550,6 +553,16 @@ private final class FakeOverloadSnoozeStore: OverloadAdvisorSnoozing {
     var snoozed: Set<UUID> = []
     func isSnoozed(programExerciseId: UUID, now: Date) -> Bool { snoozed.contains(programExerciseId) }
     func snooze(programExerciseId: UUID, now: Date) { snoozed.insert(programExerciseId) }
+}
+
+@MainActor
+private final class FakeOverloadSuggestionTracker: OverloadSuggestionTracking {
+    var recordedPreviousWeights: [UUID: Double] = [:]
+    func pendingPreviousWeight(programExerciseId: UUID) -> Double? { recordedPreviousWeights[programExerciseId] }
+    func recordSuggestion(programExerciseId: UUID, previousWeight: Double) {
+        recordedPreviousWeights[programExerciseId] = previousWeight
+    }
+    func clearSuggestion(programExerciseId: UUID) { recordedPreviousWeights.removeValue(forKey: programExerciseId) }
 }
 
 @MainActor

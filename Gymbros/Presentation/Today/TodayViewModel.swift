@@ -34,6 +34,7 @@ final class TodayViewModel {
     private let engine: NextBestSessionEngine
     private let analytics: AnalyticsTracking
     private let overloadSnoozeStore: OverloadAdvisorSnoozing
+    private let overloadSuggestionTracker: OverloadSuggestionTracking
 
     /// Comeback baseline/current tracking is budgeted by session count: post-gap sessions plus
     /// this many recent pre-gap sessions. Gaps can be arbitrarily old, so a calendar window
@@ -54,7 +55,8 @@ final class TodayViewModel {
         profileRepository: ProfileRepositoryProviding? = nil,
         engine: NextBestSessionEngine = NextBestSessionEngine(),
         analytics: AnalyticsTracking? = nil,
-        overloadSnoozeStore: OverloadAdvisorSnoozing? = nil
+        overloadSnoozeStore: OverloadAdvisorSnoozing? = nil,
+        overloadSuggestionTracker: OverloadSuggestionTracking? = nil
     ) {
         self.programRepository = programRepository ?? ProgramRepository()
         self.workoutRepository = workoutRepository ?? WorkoutRepository()
@@ -63,6 +65,7 @@ final class TodayViewModel {
         self.engine = engine
         self.analytics = analytics ?? AnalyticsProvider.makeDefault()
         self.overloadSnoozeStore = overloadSnoozeStore ?? OverloadAdvisorSnoozeStore()
+        self.overloadSuggestionTracker = overloadSuggestionTracker ?? OverloadSuggestionTracker()
     }
 
     func trackComebackCardShown() {
@@ -207,6 +210,10 @@ final class TodayViewModel {
         updated.targetWeight = stalled.weight + ProgressiveOverloadEngine.weightIncrementKg
         do {
             _ = try await programRepository.updateProgramExercise(updated)
+            overloadSuggestionTracker.recordSuggestion(
+                programExerciseId: stalled.programExercise.id,
+                previousWeight: stalled.weight
+            )
             clearStalledExercise()
         } catch {
             let appError = ErrorMapper.map(error, context: .init(operation: "applyOverloadSuggestion"))

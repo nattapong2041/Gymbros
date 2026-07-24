@@ -68,6 +68,13 @@ struct WorkoutSessionScreen: View {
             get: { viewModel.transientError },
             set: { viewModel.transientError = $0 }
         ))
+        .alert(
+            "workout.overload.outcome.title",
+            isPresented: isOverloadOutcomePromptPresented,
+            presenting: viewModel.overloadOutcomePrompt,
+            actions: overloadOutcomeActions,
+            message: overloadOutcomeMessageView
+        )
         .task {
             guard hasStarted == false else { return }
             hasStarted = true
@@ -106,6 +113,29 @@ struct WorkoutSessionScreen: View {
         )
     }
 
+    private var isOverloadOutcomePromptPresented: Binding<Bool> {
+        Binding(
+            get: { viewModel.overloadOutcomePrompt != nil },
+            set: { isPresented in
+                if isPresented == false { viewModel.overloadOutcomePrompt = nil }
+            }
+        )
+    }
+
+    @ViewBuilder
+    private func overloadOutcomeActions(_ prompt: OverloadOutcomePrompt) -> some View {
+        Button("workout.overload.outcome.keep") {
+            viewModel.keepNewOverloadWeight()
+        }
+        Button("workout.overload.outcome.revert") {
+            Task { await viewModel.revertOverloadWeight() }
+        }
+    }
+
+    private func overloadOutcomeMessageView(_ prompt: OverloadOutcomePrompt) -> some View {
+        Text(overloadOutcomeMessage(prompt))
+    }
+
     private func startWorkout() async {
         await viewModel.start(programDayId: programDayId)
         moveToInitialExerciseIfNeeded()
@@ -137,6 +167,15 @@ struct WorkoutSessionScreen: View {
             return
         }
         viewModel.goToExercise(index: index)
+    }
+
+    private func overloadOutcomeMessage(_ prompt: OverloadOutcomePrompt) -> String {
+        let previousWeightText = "\(appPreferences.weightUnit.formattedKilograms(prompt.previousWeight)) \(appPreferences.weightUnit.localizedAbbreviation)"
+        return String(
+            format: String(localized: "workout.overload.outcome.message"),
+            prompt.exerciseName,
+            previousWeightText
+        )
     }
 
     private func postWorkoutScreenVisibility(_ isVisible: Bool) {

@@ -5,6 +5,14 @@ import UIKit
 
 private let workoutLogger = Logger(subsystem: "com.nattapongsawa.gymbros", category: "WorkoutSessionViewModel")
 
+struct OverloadOutcomePrompt: Identifiable {
+    let id: UUID
+    let programExercise: ProgramExercise
+    let exerciseName: String
+    let newWeight: Double
+    let previousWeight: Double
+}
+
 @MainActor
 @Observable
 final class WorkoutSessionViewModel {
@@ -15,7 +23,9 @@ final class WorkoutSessionViewModel {
     var pendingRestore: ActiveSessionSnapshot?
     var lastSessionReferences: [UUID: LastSessionReference] = [:]
     var recommendation: TodayRecommendation = .normalDefault
+    var overloadOutcomePrompt: OverloadOutcomePrompt?
     private(set) var baselineRegainedThisSession = false
+    private var overloadOutcomesHandled: Set<UUID> = []
 
     var isComebackMode: Bool { recommendation.mode.isComeback }
 
@@ -27,6 +37,7 @@ final class WorkoutSessionViewModel {
     private let liveActivityController: RestTimerLiveActivityControlling
     private let lastSessionLookupService: LastSessionLookupService
     private let analytics: AnalyticsTracking
+    private let overloadSuggestionTracker: OverloadSuggestionTracking
     private let playBaselineRegainedHaptic: () -> Void
     private let now: () -> Date
     private let currentUserId: @MainActor () -> UUID?
@@ -41,6 +52,7 @@ final class WorkoutSessionViewModel {
         liveActivityController: RestTimerLiveActivityControlling? = nil,
         lastSessionLookupService: LastSessionLookupService = LastSessionLookupService(),
         analytics: AnalyticsTracking? = nil,
+        overloadSuggestionTracker: OverloadSuggestionTracking? = nil,
         baselineRegainedHaptic: (() -> Void)? = nil,
         weightUnit: WeightUnit = .kg,
         now: @escaping () -> Date = Date.init,
@@ -54,6 +66,7 @@ final class WorkoutSessionViewModel {
         self.liveActivityController = liveActivityController ?? RestTimerLiveActivityController()
         self.lastSessionLookupService = lastSessionLookupService
         self.analytics = analytics ?? AnalyticsProvider.makeDefault()
+        self.overloadSuggestionTracker = overloadSuggestionTracker ?? OverloadSuggestionTracker()
         self.playBaselineRegainedHaptic = baselineRegainedHaptic ?? Self.playDoubleImpactHaptic
         self.weightUnit = weightUnit
         self.now = now
@@ -220,6 +233,7 @@ final class WorkoutSessionViewModel {
 
         markSetCompletedAndCarryForward(setId: setId, sourceRow: row)
         checkBaselineRegained(row: row)
+        checkOverloadSuggestionOutcome(row: row)
         if let targetRestSeconds = row.targetRestSeconds, targetRestSeconds > 0 {
             await startRestTimer(seconds: targetRestSeconds, sourceSetId: setId)
         } else {
@@ -689,6 +703,58 @@ final class WorkoutSessionViewModel {
         analytics.track(.comebackExitBaselineReached)
     }
 
+    /// Resolves the outcome of an Overload Advisor bump the first time this session logs an
+    /// RPE for the flagged exercise: RPE < 9 quietly confirms the new weight, RPE >= 9 asks
+    /// the user whether to keep it or revert to what they lifted before the bump.
+    private func checkOverloadSuggestionOutcome(row: WorkoutSetRowState) {
+        guard let programExerciseId = row.programExerciseId,
+              overloadOutcomesHandled.contains(programExerciseId) == false,
+              case let .success(data) = state,
+              let section = data.exerciseSections.first(where: { $0.programExercise.id == programExerciseId }),
+              let previousWeight = section.pendingOverloadPreviousWeight,
+              let rpe = row.rpe else {
+            return
+        }
+
+        overloadOutcomesHandled.insert(programExerciseId)
+
+        guard rpe >= 9 else {
+            overloadSuggestionTracker.clearSuggestion(programExerciseId: programExerciseId)
+            return
+        }
+
+        overloadOutcomePrompt = OverloadOutcomePrompt(
+            id: programExerciseId,
+            programExercise: section.programExercise,
+            exerciseName: section.exercise?.displayName ?? String(localized: "workout.exercise.unknownExercise"),
+            newWeight: section.programExercise.targetWeight ?? previousWeight,
+            previousWeight: previousWeight
+        )
+    }
+
+    func keepNewOverloadWeight() {
+        guard let prompt = overloadOutcomePrompt else { return }
+        overloadSuggestionTracker.clearSuggestion(programExerciseId: prompt.programExercise.id)
+        overloadOutcomePrompt = nil
+    }
+
+    func revertOverloadWeight() async {
+        guard let prompt = overloadOutcomePrompt else { return }
+        overloadOutcomePrompt = nil
+        overloadSuggestionTracker.clearSuggestion(programExerciseId: prompt.programExercise.id)
+
+        var updated = prompt.programExercise
+        updated.targetWeight = prompt.previousWeight
+        do {
+            _ = try await programRepository.updateProgramExercise(updated)
+        } catch {
+            let appError = appError(error, operation: "revertOverloadWeight")
+            if appError != .cancelled {
+                transientError = appError
+            }
+        }
+    }
+
     private func upload(_ set: WorkoutSet) async throws {
         do {
             _ = try await workoutRepository.uploadSet(set)
@@ -760,7 +826,10 @@ final class WorkoutSessionViewModel {
                 sets: renumbered(rowsByProgramExerciseId[programExercise.id] ?? []),
                 isFinished: finishedExerciseIds.contains(programExercise.id),
                 finishedAt: nil,
-                defaultWeight: defaultWeights[programExercise.id]
+                defaultWeight: defaultWeights[programExercise.id],
+                pendingOverloadPreviousWeight: overloadSuggestionTracker.pendingPreviousWeight(
+                    programExerciseId: programExercise.id
+                )
             )
         }
         state = .success(WorkoutSessionData(

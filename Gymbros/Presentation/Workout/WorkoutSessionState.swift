@@ -16,6 +16,10 @@ struct WorkoutExerciseSection: Identifiable, Equatable {
     var isFinished: Bool
     var finishedAt: Date?
     var defaultWeight: Double?
+    /// The weight the Overload Advisor bumped this exercise from, if this is the very next
+    /// session for it since that bump -- drives the encouragement badge and the RPE >= 9
+    /// keep/revert prompt. Nil once this session has resolved the outcome.
+    var pendingOverloadPreviousWeight: Double? = nil
 
     var id: UUID { programExercise.id }
 }

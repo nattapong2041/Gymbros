@@ -501,6 +501,7 @@ struct WorkoutSessionViewModelTests {
         restTimerScheduler: FakeRestTimerScheduler? = nil,
         liveActivityController: FakeRestTimerLiveActivityController? = nil,
         analytics: AnalyticsTracking? = nil,
+        overloadSuggestionTracker: FakeOverloadSuggestionTracker? = nil,
         baselineRegainedHaptic: (() -> Void)? = nil,
         weightUnit: WeightUnit = .kg
     ) -> WorkoutSessionViewModel {
@@ -512,6 +513,7 @@ struct WorkoutSessionViewModelTests {
             restTimerScheduler: restTimerScheduler ?? FakeRestTimerScheduler(),
             liveActivityController: liveActivityController ?? FakeRestTimerLiveActivityController(),
             analytics: analytics ?? NoopAnalytics(),
+            overloadSuggestionTracker: overloadSuggestionTracker ?? FakeOverloadSuggestionTracker(),
             baselineRegainedHaptic: baselineRegainedHaptic ?? {},
             weightUnit: weightUnit,
             now: { ProgramSamples.createdAt },
@@ -607,6 +609,111 @@ struct WorkoutSessionViewModelTests {
         await viewModel.finishSession()
 
         #expect(spy.events.contains(.comebackSessionFinished))
+    }
+
+    // MARK: - Overload suggestion outcome
+
+    @Test func overloadSuggestionBadgePopulatesFromTrackerAtSessionStart() async throws {
+        let tracker = FakeOverloadSuggestionTracker()
+        tracker.recordSuggestion(programExerciseId: ProgramSamples.benchProgramExerciseId, previousWeight: 57.5)
+        let viewModel = makeViewModel(overloadSuggestionTracker: tracker)
+
+        await viewModel.start(programDayId: ProgramSamples.upperDayId)
+
+        let section = try #require(successValue(viewModel.state).exerciseSections.first)
+        #expect(section.pendingOverloadPreviousWeight == 57.5)
+    }
+
+    @Test func completingSetBelowRpeNineQuietlyClearsSuggestionWithoutPrompting() async throws {
+        let tracker = FakeOverloadSuggestionTracker()
+        tracker.recordSuggestion(programExerciseId: ProgramSamples.benchProgramExerciseId, previousWeight: 57.5)
+        let programRepository = FakeWorkoutProgramRepository()
+        let viewModel = makeViewModel(programRepository: programRepository, overloadSuggestionTracker: tracker)
+
+        await viewModel.start(programDayId: ProgramSamples.upperDayId)
+        let row = try firstRow(viewModel)
+        await viewModel.updateDraft(setId: row.id, weightText: "60", repsText: "8", rpe: 7)
+        await viewModel.completeSet(setId: row.id)
+
+        #expect(viewModel.overloadOutcomePrompt == nil)
+        #expect(tracker.clearedProgramExerciseIds == [ProgramSamples.benchProgramExerciseId])
+        #expect(programRepository.updatedProgramExercises.isEmpty)
+    }
+
+    @Test func completingSetAtRpeNineOrAboveShowsKeepOrRevertPrompt() async throws {
+        let tracker = FakeOverloadSuggestionTracker()
+        tracker.recordSuggestion(programExerciseId: ProgramSamples.benchProgramExerciseId, previousWeight: 57.5)
+        let viewModel = makeViewModel(overloadSuggestionTracker: tracker)
+
+        await viewModel.start(programDayId: ProgramSamples.upperDayId)
+        let row = try firstRow(viewModel)
+        await viewModel.updateDraft(setId: row.id, weightText: "60", repsText: "8", rpe: 9)
+        await viewModel.completeSet(setId: row.id)
+
+        let prompt = try #require(viewModel.overloadOutcomePrompt)
+        #expect(prompt.programExercise.id == ProgramSamples.benchProgramExerciseId)
+        #expect(prompt.exerciseName == "Bench Press")
+        #expect(prompt.previousWeight == 57.5)
+        #expect(prompt.newWeight == 60)
+        // Not resolved yet -- the suggestion stays pending until the user answers the prompt.
+        #expect(tracker.recordedPreviousWeights[ProgramSamples.benchProgramExerciseId] == 57.5)
+    }
+
+    @Test func keepingNewOverloadWeightClearsPromptWithoutChangingProgramExercise() async throws {
+        let tracker = FakeOverloadSuggestionTracker()
+        tracker.recordSuggestion(programExerciseId: ProgramSamples.benchProgramExerciseId, previousWeight: 57.5)
+        let programRepository = FakeWorkoutProgramRepository()
+        let viewModel = makeViewModel(programRepository: programRepository, overloadSuggestionTracker: tracker)
+
+        await viewModel.start(programDayId: ProgramSamples.upperDayId)
+        let row = try firstRow(viewModel)
+        await viewModel.updateDraft(setId: row.id, weightText: "60", repsText: "8", rpe: 9)
+        await viewModel.completeSet(setId: row.id)
+        _ = try #require(viewModel.overloadOutcomePrompt)
+
+        viewModel.keepNewOverloadWeight()
+
+        #expect(viewModel.overloadOutcomePrompt == nil)
+        #expect(tracker.recordedPreviousWeights[ProgramSamples.benchProgramExerciseId] == nil)
+        #expect(programRepository.updatedProgramExercises.isEmpty)
+    }
+
+    @Test func revertingOverloadWeightUpdatesProgramExerciseTargetWeight() async throws {
+        let tracker = FakeOverloadSuggestionTracker()
+        tracker.recordSuggestion(programExerciseId: ProgramSamples.benchProgramExerciseId, previousWeight: 57.5)
+        let programRepository = FakeWorkoutProgramRepository()
+        let viewModel = makeViewModel(programRepository: programRepository, overloadSuggestionTracker: tracker)
+
+        await viewModel.start(programDayId: ProgramSamples.upperDayId)
+        let row = try firstRow(viewModel)
+        await viewModel.updateDraft(setId: row.id, weightText: "60", repsText: "8", rpe: 10)
+        await viewModel.completeSet(setId: row.id)
+        _ = try #require(viewModel.overloadOutcomePrompt)
+
+        await viewModel.revertOverloadWeight()
+
+        #expect(viewModel.overloadOutcomePrompt == nil)
+        #expect(tracker.recordedPreviousWeights[ProgramSamples.benchProgramExerciseId] == nil)
+        #expect(programRepository.updatedProgramExercises.last?.id == ProgramSamples.benchProgramExerciseId)
+        #expect(programRepository.updatedProgramExercises.last?.targetWeight == 57.5)
+    }
+
+    @Test func overloadOutcomeIsOnlyResolvedOnceInASession() async throws {
+        let tracker = FakeOverloadSuggestionTracker()
+        tracker.recordSuggestion(programExerciseId: ProgramSamples.benchProgramExerciseId, previousWeight: 57.5)
+        let viewModel = makeViewModel(overloadSuggestionTracker: tracker)
+
+        await viewModel.start(programDayId: ProgramSamples.upperDayId)
+        let rows = try successValue(viewModel.state).exerciseSections[0].sets
+        await viewModel.updateDraft(setId: rows[0].id, weightText: "60", repsText: "8", rpe: 9)
+        await viewModel.completeSet(setId: rows[0].id)
+        _ = try #require(viewModel.overloadOutcomePrompt)
+        viewModel.keepNewOverloadWeight()
+
+        await viewModel.updateDraft(setId: rows[1].id, weightText: "60", repsText: "8", rpe: 9)
+        await viewModel.completeSet(setId: rows[1].id)
+
+        #expect(viewModel.overloadOutcomePrompt == nil)
     }
 
     private func successValue<T>(_ state: ViewState<T>) throws -> T {
@@ -781,6 +888,7 @@ private final class FakeRestTimerLiveActivityController: RestTimerLiveActivityCo
 private final class FakeWorkoutProgramRepository: ProgramRepositoryProviding {
     var day = ProgramSamples.days[0]
     var programExercises = [ProgramSamples.benchProgramExercise]
+    var updatedProgramExercises: [ProgramExercise] = []
 
     func fetchAll() async throws -> [Program] { ProgramSamples.programs }
     func fetchFull(id: UUID) async throws -> Program { ProgramSamples.program }
@@ -808,9 +916,27 @@ private final class FakeWorkoutProgramRepository: ProgramRepositoryProviding {
     ) async throws -> ProgramExercise {
         ProgramSamples.benchProgramExercise
     }
-    func updateProgramExercise(_ programExercise: ProgramExercise) async throws -> ProgramExercise { programExercise }
+    func updateProgramExercise(_ programExercise: ProgramExercise) async throws -> ProgramExercise {
+        updatedProgramExercises.append(programExercise)
+        return programExercise
+    }
     func deleteProgramExercise(id: UUID) async throws {}
     func reorderProgramExercises(_ exercises: [ProgramExercise]) async throws {}
+}
+
+@MainActor
+private final class FakeOverloadSuggestionTracker: OverloadSuggestionTracking {
+    var recordedPreviousWeights: [UUID: Double] = [:]
+    var clearedProgramExerciseIds: [UUID] = []
+
+    func pendingPreviousWeight(programExerciseId: UUID) -> Double? { recordedPreviousWeights[programExerciseId] }
+    func recordSuggestion(programExerciseId: UUID, previousWeight: Double) {
+        recordedPreviousWeights[programExerciseId] = previousWeight
+    }
+    func clearSuggestion(programExerciseId: UUID) {
+        recordedPreviousWeights.removeValue(forKey: programExerciseId)
+        clearedProgramExerciseIds.append(programExerciseId)
+    }
 }
 
 @MainActor

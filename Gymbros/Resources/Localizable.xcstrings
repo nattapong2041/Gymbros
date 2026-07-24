@@ -178,6 +178,22 @@
         }
       }
     },
+    "accessibility.workout.overload_badge" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This exercise's weight was increased by the Overload Advisor. Give it a try."
+          }
+        },
+        "th" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "น้ำหนักของท่านี้ถูกเพิ่มขึ้นโดยตัวช่วยเพิ่มน้ำหนัก ลองดูนะ"
+          }
+        }
+      }
+    },
     "accessibility.workout.set.complete" : {
       "localizations" : {
         "en" : {
@@ -3786,6 +3802,22 @@
         }
       }
     },
+    "workout.overload.badge" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "New weight — give it a shot"
+          }
+        },
+        "th" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "น้ำหนักใหม่ ลองดูนะ"
+          }
+        }
+      }
+    },
     "workout.overload.hint" : {
       "localizations" : {
         "en" : {
@@ -3798,6 +3830,70 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "ลอง %@ เซ็ตถัดไป"
+          }
+        }
+      }
+    },
+    "workout.overload.outcome.keep" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Keep New Weight"
+          }
+        },
+        "th" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "เก็บน้ำหนักใหม่"
+          }
+        }
+      }
+    },
+    "workout.overload.outcome.message" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Keep the new weight for %@, or go back to %@?"
+          }
+        },
+        "th" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "เก็บน้ำหนักใหม่ของ %@ ไว้ หรือกลับไปที่ %@?"
+          }
+        }
+      }
+    },
+    "workout.overload.outcome.revert" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Go Back to Old Weight"
+          }
+        },
+        "th" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "กลับไปน้ำหนักเดิม"
+          }
+        }
+      }
+    },
+    "workout.overload.outcome.title" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "That felt tough"
+          }
+        },
+        "th" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "หนักไปหน่อยใช่ไหม"
           }
         }
       }
