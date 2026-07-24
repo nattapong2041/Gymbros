@@ -185,6 +185,163 @@ struct TodayViewModelTests {
         #expect(spy.events == [.comebackCardShown])
     }
 
+    // MARK: - Progressive Overload Advisor
+
+    private func makeExercise() -> Exercise {
+        Exercise(
+            id: TodaySamples.exerciseId,
+            ownerUserId: nil,
+            slug: "bench_press",
+            name: "Bench Press",
+            movementPattern: .push,
+            primaryMuscle: .chest,
+            secondaryMuscles: [],
+            equipment: .barbell,
+            isCompound: true,
+            createdAt: TodaySamples.baseDate
+        )
+    }
+
+    private func makeTodayProfile(trainingPhase: TrainingPhase?) -> Profile {
+        Profile(
+            id: TodaySamples.userId,
+            email: nil,
+            name: nil,
+            experienceLevel: nil,
+            goal: nil,
+            trainingPhase: trainingPhase,
+            daysPerWeek: nil,
+            weightUnit: .kg,
+            locale: "en",
+            createdAt: TodaySamples.baseDate,
+            updatedAt: TodaySamples.baseDate
+        )
+    }
+
+    @Test func stalledExerciseAppearsInNormalModeAfterFourSessions() async throws {
+        let program = makeTodayProgram(withExercises: true)
+        // Last session on day2 so nextDay wraps to day1, which owns the exercise.
+        let sessions = [1, 3, 5, 7].map { makeSession(programDayId: TodaySamples.day2Id, daysAgo: Double($0)) }
+        let workoutRepo = FakeTodayWorkoutRepository(history: sessions)
+        for session in sessions {
+            workoutRepo.setsBySessionId[session.id] = [makeSet(sessionId: session.id, weight: 80, reps: 8, rpe: 7.0)]
+        }
+        let exerciseRepo = FakeTodayExerciseRepository()
+        exerciseRepo.exercises = [makeExercise()]
+        let vm = TodayViewModel(
+            programRepository: FakeTodayProgramRepository(active: program),
+            workoutRepository: workoutRepo,
+            exerciseRepository: exerciseRepo,
+            overloadSnoozeStore: FakeOverloadSnoozeStore()
+        )
+
+        await vm.load()
+
+        let data = try successValue(vm.state)
+        #expect(data.recommendation.mode == .normal)
+        let stalled = try #require(data.stalledExercise)
+        #expect(stalled.programExercise.id == TodaySamples.programExerciseId)
+        #expect(stalled.exerciseName == "Bench Press")
+        #expect(stalled.weight == 80)
+    }
+
+    @Test func stalledExerciseSuppressedWhenTrainingPhaseIsCut() async throws {
+        let program = makeTodayProgram(withExercises: true)
+        let sessions = [1, 3, 5, 7].map { makeSession(programDayId: TodaySamples.day2Id, daysAgo: Double($0)) }
+        let workoutRepo = FakeTodayWorkoutRepository(history: sessions)
+        for session in sessions {
+            workoutRepo.setsBySessionId[session.id] = [makeSet(sessionId: session.id, weight: 80, reps: 8, rpe: 7.0)]
+        }
+        let exerciseRepo = FakeTodayExerciseRepository()
+        exerciseRepo.exercises = [makeExercise()]
+        let profileRepo = FakeTodayProfileRepository()
+        profileRepo.profile = makeTodayProfile(trainingPhase: .cut)
+        let vm = TodayViewModel(
+            programRepository: FakeTodayProgramRepository(active: program),
+            workoutRepository: workoutRepo,
+            exerciseRepository: exerciseRepo,
+            profileRepository: profileRepo,
+            overloadSnoozeStore: FakeOverloadSnoozeStore()
+        )
+
+        await vm.load()
+
+        let data = try successValue(vm.state)
+        #expect(data.trainingPhase == .cut)
+        #expect(data.stalledExercise == nil)
+    }
+
+    @Test func stalledExerciseNeverShownAlongsideComebackMode() async throws {
+        let program = makeTodayProgram(withExercises: true)
+        // All 4 sessions are >=14 days old and identical weight: would be a stall in
+        // normal mode, but the whole history being that old also triggers comeback.
+        let sessions = [20, 22, 24, 26].map { makeSession(programDayId: TodaySamples.day1Id, daysAgo: Double($0)) }
+        let workoutRepo = FakeTodayWorkoutRepository(history: sessions)
+        for session in sessions {
+            workoutRepo.setsBySessionId[session.id] = [makeSet(sessionId: session.id, weight: 80, reps: 8, rpe: 7.0)]
+        }
+        let vm = TodayViewModel(
+            programRepository: FakeTodayProgramRepository(active: program),
+            workoutRepository: workoutRepo
+        )
+
+        await vm.load()
+
+        let data = try successValue(vm.state)
+        #expect(data.recommendation.mode.isComeback)
+        #expect(data.stalledExercise == nil)
+    }
+
+    @Test func tryOverloadSuggestionUpdatesTargetWeightAndClearsCard() async throws {
+        let program = makeTodayProgram(withExercises: true)
+        let sessions = [1, 3, 5, 7].map { makeSession(programDayId: TodaySamples.day2Id, daysAgo: Double($0)) }
+        let workoutRepo = FakeTodayWorkoutRepository(history: sessions)
+        for session in sessions {
+            workoutRepo.setsBySessionId[session.id] = [makeSet(sessionId: session.id, weight: 80, reps: 8, rpe: 7.0)]
+        }
+        let exerciseRepo = FakeTodayExerciseRepository()
+        exerciseRepo.exercises = [makeExercise()]
+        let programRepo = FakeTodayProgramRepository(active: program)
+        let vm = TodayViewModel(
+            programRepository: programRepo,
+            workoutRepository: workoutRepo,
+            exerciseRepository: exerciseRepo,
+            overloadSnoozeStore: FakeOverloadSnoozeStore()
+        )
+
+        await vm.load()
+        let stalled = try #require(try successValue(vm.state).stalledExercise)
+        await vm.tryOverloadSuggestion(stalled)
+
+        #expect(programRepo.updatedProgramExercise?.targetWeight == 82.5)
+        #expect(try successValue(vm.state).stalledExercise == nil)
+    }
+
+    @Test func snoozeOverloadSuggestionHidesCardAndPersists() async throws {
+        let program = makeTodayProgram(withExercises: true)
+        let sessions = [1, 3, 5, 7].map { makeSession(programDayId: TodaySamples.day2Id, daysAgo: Double($0)) }
+        let workoutRepo = FakeTodayWorkoutRepository(history: sessions)
+        for session in sessions {
+            workoutRepo.setsBySessionId[session.id] = [makeSet(sessionId: session.id, weight: 80, reps: 8, rpe: 7.0)]
+        }
+        let exerciseRepo = FakeTodayExerciseRepository()
+        exerciseRepo.exercises = [makeExercise()]
+        let snoozeStore = FakeOverloadSnoozeStore()
+        let vm = TodayViewModel(
+            programRepository: FakeTodayProgramRepository(active: program),
+            workoutRepository: workoutRepo,
+            exerciseRepository: exerciseRepo,
+            overloadSnoozeStore: snoozeStore
+        )
+
+        await vm.load()
+        let stalled = try #require(try successValue(vm.state).stalledExercise)
+        vm.snoozeOverloadSuggestion(stalled)
+
+        #expect(try successValue(vm.state).stalledExercise == nil)
+        #expect(snoozeStore.snoozed.contains(TodaySamples.programExerciseId))
+    }
+
     // MARK: - Error handling
 
     @Test func repositoryError_stateIsError() async {
@@ -330,9 +487,37 @@ private final class FakeTodayProgramRepository: ProgramRepositoryProviding {
     func deleteDay(id: UUID) async throws {}
     func reorderDays(_ days: [ProgramDay]) async throws {}
     func createProgramExercise(dayId: UUID, exerciseId: UUID, targetSets: Int, targetRepsMin: Int, targetRepsMax: Int, targetRestSeconds: Int, targetWeight: Double?, order: Int, notes: String?) async throws -> ProgramExercise { throw AppError.notFound }
-    func updateProgramExercise(_ programExercise: ProgramExercise) async throws -> ProgramExercise { throw AppError.notFound }
+
+    var updatedProgramExercise: ProgramExercise?
+    func updateProgramExercise(_ programExercise: ProgramExercise) async throws -> ProgramExercise {
+        updatedProgramExercise = programExercise
+        return programExercise
+    }
     func deleteProgramExercise(id: UUID) async throws {}
     func reorderProgramExercises(_ exercises: [ProgramExercise]) async throws {}
+}
+
+@MainActor
+private final class FakeTodayProfileRepository: ProfileRepositoryProviding {
+    var profile: Profile?
+    func fetchCurrentProfile() async throws -> Profile {
+        guard let profile else { throw AppError.notFound }
+        return profile
+    }
+    func updateProfile(_ profile: Profile) async throws {}
+}
+
+@MainActor
+private final class FakeTodayExerciseRepository: ExerciseRepositoryProviding {
+    var exercises: [Exercise] = []
+    func fetchAll() async throws -> [Exercise] { exercises }
+}
+
+@MainActor
+private final class FakeOverloadSnoozeStore: OverloadAdvisorSnoozing {
+    var snoozed: Set<UUID> = []
+    func isSnoozed(programExerciseId: UUID, now: Date) -> Bool { snoozed.contains(programExerciseId) }
+    func snooze(programExerciseId: UUID, now: Date) { snoozed.insert(programExerciseId) }
 }
 
 @MainActor

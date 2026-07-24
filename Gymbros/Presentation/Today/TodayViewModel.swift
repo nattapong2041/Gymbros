@@ -1,6 +1,12 @@
 import Foundation
 import Observation
 
+struct StalledExercise: Equatable {
+    let programExercise: ProgramExercise
+    let exerciseName: String
+    let weight: Double
+}
+
 struct TodayData {
     var activeProgram: Program?
     var nextDay: ProgramDay?
@@ -10,6 +16,8 @@ struct TodayData {
     var isWelcomeBack: Bool
     var recommendation: TodayRecommendation = .normalDefault
     var rampPreview: [UUID: RampDecision] = [:]
+    var trainingPhase: TrainingPhase? = nil
+    var stalledExercise: StalledExercise? = nil
 }
 
 @MainActor
@@ -20,9 +28,12 @@ final class TodayViewModel {
 
     private let programRepository: ProgramRepositoryProviding
     private let workoutRepository: WorkoutRepositoryProviding
+    private let exerciseRepository: ExerciseRepositoryProviding
+    private let profileRepository: ProfileRepositoryProviding
     private let streakService = StreakService()
     private let engine: NextBestSessionEngine
     private let analytics: AnalyticsTracking
+    private let overloadSnoozeStore: OverloadAdvisorSnoozing
 
     /// Per-session set fetches are budgeted: only when a gap candidate exists, and
     /// only for post-gap sessions plus this many recent pre-gap sessions (baseline window).
@@ -31,13 +42,19 @@ final class TodayViewModel {
     init(
         programRepository: ProgramRepositoryProviding? = nil,
         workoutRepository: WorkoutRepositoryProviding? = nil,
+        exerciseRepository: ExerciseRepositoryProviding? = nil,
+        profileRepository: ProfileRepositoryProviding? = nil,
         engine: NextBestSessionEngine = NextBestSessionEngine(),
-        analytics: AnalyticsTracking? = nil
+        analytics: AnalyticsTracking? = nil,
+        overloadSnoozeStore: OverloadAdvisorSnoozing? = nil
     ) {
         self.programRepository = programRepository ?? ProgramRepository()
         self.workoutRepository = workoutRepository ?? WorkoutRepository()
+        self.exerciseRepository = exerciseRepository ?? ExerciseRepository()
+        self.profileRepository = profileRepository ?? ProfileRepository()
         self.engine = engine
         self.analytics = analytics ?? AnalyticsProvider.makeDefault()
+        self.overloadSnoozeStore = overloadSnoozeStore ?? OverloadAdvisorSnoozeStore()
     }
 
     func trackComebackCardShown() {
@@ -66,6 +83,16 @@ final class TodayViewModel {
             let now = Date.now
             let sets = await fetchBudgetedSets(for: completed, now: now)
             let recommendation = engine.recommend(program: activeProgram, history: completed, sets: sets, now: now)
+            let trainingPhase = await fetchTrainingPhase()
+            let stalledExercise = recommendation.mode.isComeback
+                ? nil
+                : await findStalledExercise(
+                    in: recommendation.programDay,
+                    completed: completed,
+                    sets: sets,
+                    trainingPhase: trainingPhase,
+                    now: now
+                )
 
             let isWelcomeBack: Bool
             if let lastDate = lastSessionDate {
@@ -82,7 +109,9 @@ final class TodayViewModel {
                 lastSessionDate: lastSessionDate,
                 isWelcomeBack: isWelcomeBack,
                 recommendation: recommendation,
-                rampPreview: recommendation.rampPreview
+                rampPreview: recommendation.rampPreview,
+                trainingPhase: trainingPhase,
+                stalledExercise: stalledExercise
             ))
         } catch {
             let appError = ErrorMapper.map(error, context: .init(operation: "loadToday"))
@@ -93,10 +122,13 @@ final class TodayViewModel {
     }
 
     private func fetchBudgetedSets(for completed: [WorkoutSession], now: Date) async -> [UUID: [WorkoutSet]] {
-        guard NextBestSessionEngine.hasGapCandidate(history: completed, now: now) else { return [:] }
+        guard completed.isEmpty == false else { return [:] }
+        let sessionBudget = NextBestSessionEngine.hasGapCandidate(history: completed, now: now)
+            ? Self.baselineSessionWindow + NextBestSessionEngine.boundedExitSessionCount
+            : StallDetector.sessionThreshold
 
         var sets: [UUID: [WorkoutSet]] = [:]
-        for session in completed.prefix(Self.baselineSessionWindow + NextBestSessionEngine.boundedExitSessionCount) {
+        for session in completed.prefix(sessionBudget) {
             do {
                 sets[session.id] = try await workoutRepository.fetchSets(sessionId: session.id)
             } catch {
@@ -105,6 +137,75 @@ final class TodayViewModel {
             }
         }
         return sets
+    }
+
+    private func fetchTrainingPhase() async -> TrainingPhase? {
+        (try? await profileRepository.fetchCurrentProfile())?.trainingPhase
+    }
+
+    private func findStalledExercise(
+        in day: ProgramDay?,
+        completed: [WorkoutSession],
+        sets: [UUID: [WorkoutSet]],
+        trainingPhase: TrainingPhase?,
+        now: Date
+    ) async -> StalledExercise? {
+        guard trainingPhase != .cut, trainingPhase != .maintain else { return nil }
+        guard let day, day.exercises.isEmpty == false else { return nil }
+
+        let exercises = (try? await exerciseRepository.fetchAll()) ?? []
+        let exercisesById = Dictionary(uniqueKeysWithValues: exercises.map { ($0.id, $0) })
+        let detector = StallDetector()
+
+        for programExercise in day.exercises.sorted(by: { $0.exerciseOrder < $1.exerciseOrder }) {
+            guard overloadSnoozeStore.isSnoozed(programExerciseId: programExercise.id, now: now) == false else { continue }
+            guard detector.isStalled(
+                exerciseId: programExercise.exerciseId,
+                recentSessions: completed,
+                sets: sets
+            ) else { continue }
+            guard let weight = Self.topWeight(forExerciseId: programExercise.exerciseId, sessions: completed, sets: sets) else {
+                continue
+            }
+            let name = exercisesById[programExercise.exerciseId]?.displayName
+                ?? String(localized: "workout.exercise.unknownExercise")
+            return StalledExercise(programExercise: programExercise, exerciseName: name, weight: weight)
+        }
+        return nil
+    }
+
+    private static func topWeight(forExerciseId exerciseId: UUID, sessions: [WorkoutSession], sets: [UUID: [WorkoutSet]]) -> Double? {
+        for session in sessions {
+            if let weight = (sets[session.id] ?? []).filter({ $0.exerciseId == exerciseId }).map(\.weight).max() {
+                return weight
+            }
+        }
+        return nil
+    }
+
+    func tryOverloadSuggestion(_ stalled: StalledExercise) async {
+        var updated = stalled.programExercise
+        updated.targetWeight = stalled.weight + ProgressiveOverloadEngine.weightIncrementKg
+        do {
+            _ = try await programRepository.updateProgramExercise(updated)
+            clearStalledExercise()
+        } catch {
+            let appError = ErrorMapper.map(error, context: .init(operation: "applyOverloadSuggestion"))
+            if appError != .cancelled {
+                transientError = appError
+            }
+        }
+    }
+
+    func snoozeOverloadSuggestion(_ stalled: StalledExercise) {
+        overloadSnoozeStore.snooze(programExerciseId: stalled.programExercise.id, now: .now)
+        clearStalledExercise()
+    }
+
+    private func clearStalledExercise() {
+        guard case .success(var data) = state else { return }
+        data.stalledExercise = nil
+        state = .success(data)
     }
 }
 
