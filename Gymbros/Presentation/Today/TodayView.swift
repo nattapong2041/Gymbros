@@ -82,14 +82,14 @@ struct TodayView: View {
                         .frame(maxWidth: .infinity, alignment: .leading)
                         .dynamicTypeSize(...DynamicTypeSize.accessibility2)
 
-                    if data.isWelcomeBack {
-                        welcomeBackBanner
+                    if data.isWelcomeBack, let nextDay = data.nextDay {
+                        welcomeBackBanner(dayName: (selectedDay ?? nextDay).name)
                     }
 
                     if let nextDay = data.nextDay {
                         let displayedDay = selectedDay ?? nextDay
                         if let program = data.activeProgram {
-                            changeDayMenu(days: program.days, recommendedDay: nextDay)
+                            changeDayMenu(days: program.days, currentDay: displayedDay)
                         }
                         if data.recommendation.mode.isComeback {
                             comebackCard(data: data, nextDay: displayedDay)
@@ -107,10 +107,14 @@ struct TodayView: View {
     }
 
     @ViewBuilder
-    private func changeDayMenu(days: [ProgramDay], recommendedDay: ProgramDay) -> some View {
+    private func changeDayMenu(days: [ProgramDay], currentDay: ProgramDay) -> some View {
+        // Excludes whatever day is currently displayed (the default recommendation, or a
+        // previously-picked alternate) so the picked-away-from day is always reachable
+        // again -- excluding only the original recommendation would permanently remove it
+        // from this list the moment the user picked something else.
         let otherDays = days
             .sorted { $0.dayOrder < $1.dayOrder }
-            .filter { $0.id != recommendedDay.id }
+            .filter { $0.id != currentDay.id }
         if otherDays.isEmpty == false {
             Menu {
                 ForEach(otherDays) { day in
@@ -148,14 +152,14 @@ struct TodayView: View {
         }
     }
 
-    private var welcomeBackBanner: some View {
+    private func welcomeBackBanner(dayName: String) -> some View {
         HStack(alignment: .top, spacing: 12) {
             Image(systemName: "hand.wave.fill")
                 .foregroundStyle(.secondary)
                 .font(.title3)
                 .accessibilityHidden(true)
 
-            Text("today.welcome_back")
+            Text("today.welcome_back \(dayName)")
                 .font(.subheadline)
                 .foregroundStyle(.primary)
                 .frame(maxWidth: .infinity, alignment: .leading)

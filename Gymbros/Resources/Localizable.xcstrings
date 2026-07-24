@@ -3407,18 +3407,18 @@
         }
       }
     },
-    "today.welcome_back" : {
+    "today.welcome_back %@" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Welcome back! Ready to pick up where you left off?"
+            "value" : "Welcome back! You'll start with %@ today."
           }
         },
         "th" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "ยินดีต้อนรับกลับ! พร้อมต่อจากจุดเดิมไหม"
+            "value" : "ยินดีต้อนรับกลับ! วันนี้เริ่มด้วย %@"
           }
         }
       }
