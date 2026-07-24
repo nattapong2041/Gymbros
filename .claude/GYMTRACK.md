@@ -663,9 +663,15 @@ DeloadAdvisor stays a separate, still-unplanned Sprint 7 item; see the design's
 Non-goals for why the two signals are kept apart (comfortable-plateau vs.
 grinding-near-failure are different problems).
 
-✓ StallDetector: same top-set weight across 4 consecutive sessions, no session over
-  RPE 8.0 (reuses the boundedExitSessionCount=4 and ProgressiveOverloadEngine's own
-  8.0 "hold" ceiling conventions for consistency)
+✓ StallDetector: same top-set weight across the most recent 3 qualifying
+  (same-exercise) sessions within a rolling 35-day window, no session over RPE 8.0
+  (reuses ProgressiveOverloadEngine's own 8.0 "hold" ceiling convention for
+  consistency). Redesigned post-implementation, 2026-07-24: the original spec's
+  "exactly 4 consecutive sessions" was frequency-agnostic and did not match how
+  real coaching (RP mesocycles, Stronger By Science) evaluates plateaus — against a
+  4-6 week calendar block, not a fixed rep-through-rotation count. A fixed count also
+  let progression earlier in a long window mask a genuine current plateau. See
+  StallDetector.swift and STANDUP.md for the research and the exact tradeoffs.
 ✓ OverloadAdvisorCardView on Today (normal mode only — never alongside the comeback
   card; one exercise at a time, scoped to today's recommended day only)
 ✓ Suppressed entirely when trainingPhase is cut or maintain — a deliberate manual
@@ -674,9 +680,10 @@ grinding-near-failure are different problems).
   existing pre-fill mechanism, no new plumbing
 ✓ "Not now" snoozes that exercise's prompt for 14 days (local UserDefaults only,
   mirrors RestTimerNotificationScheduler's storage style)
-✓ TodayViewModel now also fetches sets on normal days (bounded to
-  StallDetector.sessionThreshold = 4), reintroducing a small, deliberate fetch-cost
-  tradeoff that Sprint 6's D6 budget had avoided
+✓ TodayViewModel now also fetches sets on normal days, bounded by calendar cutoff
+  (StallDetector.windowDays = 35, capped defensively at 30 sessions) rather than a
+  fixed row count, reintroducing a small, deliberate fetch-cost tradeoff that
+  Sprint 6's D6 budget had avoided
 
 --- 5. SUBSTITUTE (Mid-Workout Exercise Swap) — NOT YET APPROVED ---
 Spec: not written yet. The design below was presented for approval during the
