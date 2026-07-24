@@ -38,7 +38,7 @@ struct SetRowView: View {
     @ViewBuilder
     private var feelLabelContent: some View {
         if let rpe {
-            Image(systemName: HowDidThatFeel.nearest(to: rpe).symbolName)
+            Text("\(Int(rpe.rounded()))")
         } else {
             Text("workout.set.feel")
         }
@@ -49,7 +49,14 @@ struct SetRowView: View {
             return Text("accessibility.workout.set.feel.unset")
         }
         return Text("accessibility.workout.set.feel.prefix")
-            + Text(LocalizedStringKey(HowDidThatFeel.nearest(to: rpe).titleKey))
+            + Text(verbatim: "\(Int(rpe.rounded())), ")
+            + Text(LocalizedStringKey(HowDidThatFeel.band(for: rpe).titleKey))
+    }
+
+    private func exactNumberSectionHeader(for feel: HowDidThatFeel) -> Text {
+        Text(LocalizedStringKey(feel.titleKey))
+            + Text(verbatim: " (\(feel.range.lowerBound)\u{2013}\(feel.range.upperBound)) \u{2014} ")
+            + Text(LocalizedStringKey(feel.descriptionKey))
     }
 
     var body: some View {
@@ -101,10 +108,27 @@ struct SetRowView: View {
             Menu {
                 ForEach(HowDidThatFeel.allCases, id: \.self) { feel in
                     Button {
-                        rpe = feel.rpe
+                        rpe = feel.defaultRPE
                     } label: {
                         Label(LocalizedStringKey(feel.titleKey), systemImage: feel.symbolName)
                     }
+                }
+                Menu {
+                    ForEach(HowDidThatFeel.allCases, id: \.self) { feel in
+                        Section {
+                            ForEach(feel.range, id: \.self) { number in
+                                Button {
+                                    rpe = Double(number)
+                                } label: {
+                                    Text("\(number)")
+                                }
+                            }
+                        } header: {
+                            exactNumberSectionHeader(for: feel)
+                        }
+                    }
+                } label: {
+                    Label("workout.set.feel.exact_number", systemImage: "number")
                 }
                 Button(role: .destructive) {
                     rpe = nil

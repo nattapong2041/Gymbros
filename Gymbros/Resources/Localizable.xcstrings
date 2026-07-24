@@ -4016,6 +4016,38 @@
         }
       }
     },
+    "workout.set.feel.all_out" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "All Out"
+          }
+        },
+        "th" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "สุดกำลัง"
+          }
+        }
+      }
+    },
+    "workout.set.feel.all_out.description" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Maximum effort, no reps left"
+          }
+        },
+        "th" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "สุดแรง ไม่เหลือแรงแล้ว"
+          }
+        }
+      }
+    },
     "workout.set.feel.clear" : {
       "localizations" : {
         "en" : {
@@ -4048,6 +4080,38 @@
         }
       }
     },
+    "workout.set.feel.easy.description" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Very light, plenty of reps left"
+          }
+        },
+        "th" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "เบามาก เหลือแรงอีกเยอะ"
+          }
+        }
+      }
+    },
+    "workout.set.feel.exact_number" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Choose exact number..."
+          }
+        },
+        "th" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "เลือกตัวเลขที่แน่นอน..."
+          }
+        }
+      }
+    },
     "workout.set.feel.hard" : {
       "localizations" : {
         "en" : {
@@ -4064,18 +4128,50 @@
         }
       }
     },
-    "workout.set.feel.just_right" : {
+    "workout.set.feel.hard.description" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Just right"
+            "value" : "Challenging, a couple reps left"
           }
         },
         "th" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "พอดี"
+            "value" : "หนัก เหลือแรงอีกนิดเดียว"
+          }
+        }
+      }
+    },
+    "workout.set.feel.moderate" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Moderate"
+          }
+        },
+        "th" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ปานกลาง"
+          }
+        }
+      }
+    },
+    "workout.set.feel.moderate.description" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Comfortable, several reps left"
+          }
+        },
+        "th" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "กำลังดี เหลือแรงอีกหน่อย"
           }
         }
       }

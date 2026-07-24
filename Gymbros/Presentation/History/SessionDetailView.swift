@@ -232,9 +232,24 @@ private struct EditSetSheet: View {
                     }
                     Menu {
                         ForEach(HowDidThatFeel.allCases, id: \.self) { feel in
-                            Button { rpe = feel.rpe } label: {
+                            Button { rpe = feel.defaultRPE } label: {
                                 Text(LocalizedStringKey(feel.titleKey))
                             }
+                        }
+                        Menu {
+                            ForEach(HowDidThatFeel.allCases, id: \.self) { feel in
+                                Section {
+                                    ForEach(feel.range, id: \.self) { number in
+                                        Button { rpe = Double(number) } label: {
+                                            Text("\(number)")
+                                        }
+                                    }
+                                } header: {
+                                    exactNumberSectionHeader(for: feel)
+                                }
+                            }
+                        } label: {
+                            Label("workout.set.feel.exact_number", systemImage: "number")
                         }
                         Button(role: .destructive) { rpe = nil } label: {
                             Text("workout.set.feel.clear")
@@ -276,7 +291,14 @@ private struct EditSetSheet: View {
 
     private var feelDisplayText: Text {
         guard let rpe else { return Text(verbatim: "—") }
-        return Text(LocalizedStringKey(HowDidThatFeel.nearest(to: rpe).titleKey))
+        return Text(verbatim: "\(Int(rpe.rounded())) \u{00B7} ")
+            + Text(LocalizedStringKey(HowDidThatFeel.band(for: rpe).titleKey))
+    }
+
+    private func exactNumberSectionHeader(for feel: HowDidThatFeel) -> Text {
+        Text(LocalizedStringKey(feel.titleKey))
+            + Text(verbatim: " (\(feel.range.lowerBound)\u{2013}\(feel.range.upperBound)) \u{2014} ")
+            + Text(LocalizedStringKey(feel.descriptionKey))
     }
 
     private var parsedWeight: Double? {
