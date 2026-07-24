@@ -95,6 +95,9 @@ struct TodayView: View {
                             comebackCard(data: data, nextDay: displayedDay)
                         } else {
                             nextWorkoutCard(data: data, nextDay: displayedDay)
+                            if let stalled = data.stalledExercise {
+                                overloadAdvisorCard(stalled)
+                            }
                         }
                     }
                 }
@@ -219,6 +222,20 @@ struct TodayView: View {
         }
         .padding()
         .background(.quaternary, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+    }
+
+    private func overloadAdvisorCard(_ stalled: StalledExercise) -> some View {
+        OverloadAdvisorCardView(
+            exerciseName: stalled.exerciseName,
+            weightText: appPreferences.weightUnit.formattedKilograms(stalled.weight),
+            weightUnitAbbreviation: appPreferences.weightUnit.localizedAbbreviation,
+            onTryNextTime: {
+                Task { await viewModel.tryOverloadSuggestion(stalled) }
+            },
+            onNotNow: {
+                viewModel.snoozeOverloadSuggestion(stalled)
+            }
+        )
     }
 
     private func streakBadge(weeks: Int) -> some View {
