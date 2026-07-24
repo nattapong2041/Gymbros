@@ -35,11 +35,17 @@ final class TodayViewModel {
     private let analytics: AnalyticsTracking
     private let overloadSnoozeStore: OverloadAdvisorSnoozing
 
-    /// Per-session set fetches are budgeted to this many recent sessions on every load --
-    /// wide enough to cover comeback baseline/current tracking (post-gap sessions plus this
-    /// many recent pre-gap sessions) and, on normal days, to give StallDetector enough history
-    /// to find sessionThreshold *qualifying* (same-exercise) sessions under a multi-day rotation.
+    /// Comeback baseline/current tracking is budgeted by session count: post-gap sessions plus
+    /// this many recent pre-gap sessions. Gaps can be arbitrarily old, so a calendar window
+    /// doesn't fit this use -- it's a fixed count of sessions immediately around the gap.
     private static let baselineSessionWindow = 10
+
+    /// On normal (non-comeback) days, set fetches are instead bounded by calendar time, not
+    /// count: StallDetector evaluates a mesocycle-style window (StallDetector.windowDays), and
+    /// how many sessions fall inside that window depends entirely on training frequency and
+    /// program day-count, which a fixed row count can't predict. This cap only guards against
+    /// runaway cost for very high-frequency training within the window.
+    private static let stallDetectionFetchCap = 30
 
     init(
         programRepository: ProgramRepositoryProviding? = nil,
@@ -125,14 +131,22 @@ final class TodayViewModel {
 
     private func fetchBudgetedSets(for completed: [WorkoutSession], now: Date) async -> [UUID: [WorkoutSet]] {
         guard completed.isEmpty == false else { return [:] }
-        // StallDetector needs sessionThreshold *qualifying* (same-exercise) sessions, not just
-        // sessionThreshold recent sessions overall -- on any multi-day rotation the most recent
-        // few sessions rarely all share one exercise, so this reuses the wider comeback-baseline
-        // budget on every day, not just gap-candidate days.
-        let sessionBudget = Self.baselineSessionWindow + NextBestSessionEngine.boundedExitSessionCount
+
+        let sessionsToFetch: [WorkoutSession]
+        if NextBestSessionEngine.hasGapCandidate(history: completed, now: now) {
+            let sessionBudget = Self.baselineSessionWindow + NextBestSessionEngine.boundedExitSessionCount
+            sessionsToFetch = Array(completed.prefix(sessionBudget))
+        } else {
+            let cutoff = now.addingTimeInterval(-TimeInterval(StallDetector.windowDays) * 86_400)
+            sessionsToFetch = Array(
+                completed
+                    .filter { ($0.endedAt ?? $0.startedAt) >= cutoff }
+                    .prefix(Self.stallDetectionFetchCap)
+            )
+        }
 
         var sets: [UUID: [WorkoutSet]] = [:]
-        for session in completed.prefix(sessionBudget) {
+        for session in sessionsToFetch {
             do {
                 sets[session.id] = try await workoutRepository.fetchSets(sessionId: session.id)
             } catch {
@@ -166,7 +180,8 @@ final class TodayViewModel {
             guard detector.isStalled(
                 exerciseId: programExercise.exerciseId,
                 recentSessions: completed,
-                sets: sets
+                sets: sets,
+                now: now
             ) else { continue }
             guard let weight = Self.topWeight(forExerciseId: programExercise.exerciseId, sessions: completed, sets: sets) else {
                 continue
