@@ -1189,7 +1189,7 @@ Running/cardio:
 | 5 | Settings | ✅ | — | Complete |
 | 5p | Phase 1 Polish (trial feedback) | ✅ | — | Complete |
 | 6 | Next Best Session v1 / Smart Comeback | ✅ | — | Complete — pending manual smoke test |
-| 6.1 | Post-Launch Feature Wave (RPE, Skip Day, Training Phase, Overload Advisor, Substitute) | ⏳ | 3d204cc | 4 of 5 implemented 2026-07-24, manual smoke pending; Substitute not yet approved |
+| 6.1 | Post-Launch Feature Wave (RPE, Skip Day, Training Phase, Overload Advisor, Substitute) | ✅ | 3d204cc | 4 of 5 implemented 2026-07-24, pending manual smoke test; Substitute not yet approved |
 | 7 | Onboarding + Templates + i18n | ☐ | — | App Store polish foundation |
 | 8 | App Store Ship | ☐ | — | 1.0 release |
 | 9 | Defer | ☐ | — | Substitute split out to Sprint 6.1 |
