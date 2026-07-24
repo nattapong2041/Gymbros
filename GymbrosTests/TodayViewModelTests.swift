@@ -245,6 +245,35 @@ struct TodayViewModelTests {
         #expect(stalled.weight == 80)
     }
 
+    @Test func stalledExerciseDetectedAcrossInterleavedMultiDayRotation() async throws {
+        let program = makeTodayProgram(withExercises: true)
+        // Exercise lives only on day1. Alternate day2/day1 so day1 sessions are interleaved,
+        // not consecutive -- this is what a real 2-day split's history looks like. Most
+        // recent session is day2, so nextDay wraps to day1 (which owns the exercise).
+        let day1Sessions = [2, 4, 6, 8].map { makeSession(programDayId: TodaySamples.day1Id, daysAgo: Double($0)) }
+        let day2Sessions = [1, 3, 5, 7].map { makeSession(programDayId: TodaySamples.day2Id, daysAgo: Double($0)) }
+        let workoutRepo = FakeTodayWorkoutRepository(history: day1Sessions + day2Sessions)
+        for session in day1Sessions {
+            workoutRepo.setsBySessionId[session.id] = [makeSet(sessionId: session.id, weight: 80, reps: 8, rpe: 7.0)]
+        }
+        let exerciseRepo = FakeTodayExerciseRepository()
+        exerciseRepo.exercises = [makeExercise()]
+        let vm = TodayViewModel(
+            programRepository: FakeTodayProgramRepository(active: program),
+            workoutRepository: workoutRepo,
+            exerciseRepository: exerciseRepo,
+            overloadSnoozeStore: FakeOverloadSnoozeStore()
+        )
+
+        await vm.load()
+
+        let data = try successValue(vm.state)
+        #expect(data.recommendation.mode == .normal)
+        let stalled = try #require(data.stalledExercise)
+        #expect(stalled.programExercise.id == TodaySamples.programExerciseId)
+        #expect(stalled.weight == 80)
+    }
+
     @Test func stalledExerciseSuppressedWhenTrainingPhaseIsCut() async throws {
         let program = makeTodayProgram(withExercises: true)
         let sessions = [1, 3, 5, 7].map { makeSession(programDayId: TodaySamples.day2Id, daysAgo: Double($0)) }

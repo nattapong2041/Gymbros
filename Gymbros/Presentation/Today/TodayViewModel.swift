@@ -123,9 +123,11 @@ final class TodayViewModel {
 
     private func fetchBudgetedSets(for completed: [WorkoutSession], now: Date) async -> [UUID: [WorkoutSet]] {
         guard completed.isEmpty == false else { return [:] }
-        let sessionBudget = NextBestSessionEngine.hasGapCandidate(history: completed, now: now)
-            ? Self.baselineSessionWindow + NextBestSessionEngine.boundedExitSessionCount
-            : StallDetector.sessionThreshold
+        // StallDetector needs sessionThreshold *qualifying* (same-exercise) sessions, not just
+        // sessionThreshold recent sessions overall -- on any multi-day rotation the most recent
+        // few sessions rarely all share one exercise, so this reuses the wider comeback-baseline
+        // budget on every day, not just gap-candidate days.
+        let sessionBudget = Self.baselineSessionWindow + NextBestSessionEngine.boundedExitSessionCount
 
         var sets: [UUID: [WorkoutSet]] = [:]
         for session in completed.prefix(sessionBudget) {
