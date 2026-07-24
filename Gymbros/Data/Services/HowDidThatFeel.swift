@@ -18,16 +18,6 @@ enum HowDidThatFeel: CaseIterable {
         }
     }
 
-    /// The value a single quick tap on this band applies, before drilling into an exact number.
-    var defaultRPE: Double {
-        switch self {
-        case .easy: 2
-        case .moderate: 5
-        case .hard: 7
-        case .allOut: 9
-        }
-    }
-
     var symbolName: String {
         switch self {
         case .easy: "face.smiling"

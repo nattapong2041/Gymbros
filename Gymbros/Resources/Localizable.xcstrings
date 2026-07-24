@@ -3283,13 +3283,13 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "You've held %@ on %@ for a while now."
+            "value" : "You've stayed at %@ on %@ for a while — want to try adding more?"
           }
         },
         "th" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "คุณใช้น้ำหนัก %@ กับ %@ มาสักพักแล้ว"
+            "value" : "อยู่ที่ %@ กับ %@ มาสักพักแล้ว ลองเพิ่มดูไหม"
           }
         }
       }
@@ -3321,7 +3321,7 @@
         "th" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "น้ำหนักเท่าเดิมมาสักพัก"
+            "value" : "อยู่น้ำหนักเดิมมาสักพักแล้ว"
           }
         }
       }

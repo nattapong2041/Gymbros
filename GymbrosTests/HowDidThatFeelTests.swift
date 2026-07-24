@@ -14,15 +14,11 @@ struct HowDidThatFeelTests {
         #expect(covered == Set(1...10))
     }
 
-    @Test func defaultRPEFallsWithinItsOwnRange() {
+    @Test func bandBucketsEveryValueInItsOwnRangeBackToItself() {
         for feel in HowDidThatFeel.allCases {
-            #expect(feel.range.contains(Int(feel.defaultRPE)))
-        }
-    }
-
-    @Test func bandBucketsEachCasesDefaultRPEBackToItself() {
-        for feel in HowDidThatFeel.allCases {
-            #expect(HowDidThatFeel.band(for: feel.defaultRPE) == feel)
+            for value in feel.range {
+                #expect(HowDidThatFeel.band(for: Double(value)) == feel)
+            }
         }
     }
 
