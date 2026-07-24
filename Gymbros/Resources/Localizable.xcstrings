@@ -4096,22 +4096,6 @@
         }
       }
     },
-    "workout.set.feel.exact_number" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Choose exact number..."
-          }
-        },
-        "th" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "เลือกตัวเลขที่แน่นอน..."
-          }
-        }
-      }
-    },
     "workout.set.feel.hard" : {
       "localizations" : {
         "en" : {
@@ -4172,6 +4156,38 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "กำลังดี เหลือแรงอีกหน่อย"
+          }
+        }
+      }
+    },
+    "workout.set.feel.picker.slider" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Effort level, 1 to 10"
+          }
+        },
+        "th" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ระดับความหนัก 1 ถึง 10"
+          }
+        }
+      }
+    },
+    "workout.set.feel.picker.title" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rate Your Effort"
+          }
+        },
+        "th" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ให้คะแนนความหนัก"
           }
         }
       }

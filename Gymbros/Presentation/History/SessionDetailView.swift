@@ -199,6 +199,7 @@ private struct EditSetSheet: View {
     @State private var repsText: String
     @State private var rpe: Double?
     @State private var didSyncWeightText = false
+    @State private var isShowingFeelPicker = false
     @Environment(AppPreferences.self) private var appPreferences
     @Environment(\.dismiss) private var dismiss
 
@@ -230,37 +231,23 @@ private struct EditSetSheet: View {
                             .keyboardType(.numberPad)
                             .multilineTextAlignment(.trailing)
                     }
-                    Menu {
-                        ForEach(HowDidThatFeel.allCases, id: \.self) { feel in
-                            Button { rpe = feel.defaultRPE } label: {
-                                Text(LocalizedStringKey(feel.titleKey))
-                            }
-                        }
-                        Menu {
-                            ForEach(HowDidThatFeel.allCases, id: \.self) { feel in
-                                Section {
-                                    ForEach(feel.range, id: \.self) { number in
-                                        Button { rpe = Double(number) } label: {
-                                            Text("\(number)")
-                                        }
-                                    }
-                                } header: {
-                                    exactNumberSectionHeader(for: feel)
-                                }
-                            }
-                        } label: {
-                            Label("workout.set.feel.exact_number", systemImage: "number")
-                        }
-                        Button(role: .destructive) { rpe = nil } label: {
-                            Text("workout.set.feel.clear")
-                        }
+                    Button {
+                        isShowingFeelPicker = true
                     } label: {
                         HStack {
                             Text("workout.set.feel")
+                                .foregroundStyle(.primary)
                             Spacer()
                             feelDisplayText
                                 .foregroundStyle(rpe != nil ? .primary : .secondary)
                         }
+                    }
+                    .sheet(isPresented: $isShowingFeelPicker) {
+                        FeelPickerSheet(
+                            initialRPE: rpe,
+                            onConfirm: { rpe = $0 },
+                            onClear: { rpe = nil }
+                        )
                     }
                 }
             }
@@ -293,12 +280,6 @@ private struct EditSetSheet: View {
         guard let rpe else { return Text(verbatim: "—") }
         return Text(verbatim: "\(Int(rpe.rounded())) \u{00B7} ")
             + Text(LocalizedStringKey(HowDidThatFeel.band(for: rpe).titleKey))
-    }
-
-    private func exactNumberSectionHeader(for feel: HowDidThatFeel) -> Text {
-        Text(LocalizedStringKey(feel.titleKey))
-            + Text(verbatim: " (\(feel.range.lowerBound)\u{2013}\(feel.range.upperBound)) \u{2014} ")
-            + Text(LocalizedStringKey(feel.descriptionKey))
     }
 
     private var parsedWeight: Double? {

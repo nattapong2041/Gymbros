@@ -13,6 +13,7 @@ struct SetRowView: View {
     @State private var weightText: String
     @State private var repsText: String
     @State private var rpe: Double?
+    @State private var isShowingFeelPicker = false
     @FocusState private var isWeightFocused: Bool
     @FocusState private var isRepsFocused: Bool
 
@@ -51,12 +52,6 @@ struct SetRowView: View {
         return Text("accessibility.workout.set.feel.prefix")
             + Text(verbatim: "\(Int(rpe.rounded())), ")
             + Text(LocalizedStringKey(HowDidThatFeel.band(for: rpe).titleKey))
-    }
-
-    private func exactNumberSectionHeader(for feel: HowDidThatFeel) -> Text {
-        Text(LocalizedStringKey(feel.titleKey))
-            + Text(verbatim: " (\(feel.range.lowerBound)\u{2013}\(feel.range.upperBound)) \u{2014} ")
-            + Text(LocalizedStringKey(feel.descriptionKey))
     }
 
     var body: some View {
@@ -104,37 +99,9 @@ struct SetRowView: View {
                 .disabled(isReadOnly)
             }
             
-            // Feel Picker (using Menu for HIG compliance and tap target)
-            Menu {
-                ForEach(HowDidThatFeel.allCases, id: \.self) { feel in
-                    Button {
-                        rpe = feel.defaultRPE
-                    } label: {
-                        Label(LocalizedStringKey(feel.titleKey), systemImage: feel.symbolName)
-                    }
-                }
-                Menu {
-                    ForEach(HowDidThatFeel.allCases, id: \.self) { feel in
-                        Section {
-                            ForEach(feel.range, id: \.self) { number in
-                                Button {
-                                    rpe = Double(number)
-                                } label: {
-                                    Text("\(number)")
-                                }
-                            }
-                        } header: {
-                            exactNumberSectionHeader(for: feel)
-                        }
-                    }
-                } label: {
-                    Label("workout.set.feel.exact_number", systemImage: "number")
-                }
-                Button(role: .destructive) {
-                    rpe = nil
-                } label: {
-                    Text("workout.set.feel.clear")
-                }
+            // Feel Picker (opens FeelPickerSheet: slide/tap a 1-10 track, HIG-compliant 48pt tap target)
+            Button {
+                isShowingFeelPicker = true
             } label: {
                 feelLabelContent
                     .font(.system(.caption, design: .rounded).bold())
@@ -146,6 +113,13 @@ struct SetRowView: View {
             .disabled(isReadOnly)
             .contentShape(Rectangle()) // Ensure entire area is tappable
             .accessibilityLabel(feelAccessibilityLabel)
+            .sheet(isPresented: $isShowingFeelPicker) {
+                FeelPickerSheet(
+                    initialRPE: rpe,
+                    onConfirm: { rpe = $0 },
+                    onClear: { rpe = nil }
+                )
+            }
 
             // Completion
             HStack(spacing: WorkoutSetTableLayout.actionSpacing) {
