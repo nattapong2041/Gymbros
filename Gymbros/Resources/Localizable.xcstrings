@@ -64,6 +64,22 @@
         }
       }
     },
+    "accessibility.today.overload_advisor_card" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Overload advisor. %@"
+          }
+        },
+        "th" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "การ์ดแนะนำเพิ่มน้ำหนัก %@"
+          }
+        }
+      }
+    },
     "accessibility.today.start" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -3258,6 +3274,70 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "การออกกำลังกายถัดไป"
+          }
+        }
+      }
+    },
+    "today.overload_advisor.body" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "You've held %@ on %@ for 4 sessions in a row."
+          }
+        },
+        "th" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "คุณใช้น้ำหนัก %@ กับ %@ มา 4 ครั้งติดกันแล้ว"
+          }
+        }
+      }
+    },
+    "today.overload_advisor.not_now" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Not now"
+          }
+        },
+        "th" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ยังไม่ตอนนี้"
+          }
+        }
+      }
+    },
+    "today.overload_advisor.title" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Same weight for a while"
+          }
+        },
+        "th" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "น้ำหนักเท่าเดิมมาสักพัก"
+          }
+        }
+      }
+    },
+    "today.overload_advisor.try_next_time" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Try it next time"
+          }
+        },
+        "th" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ลองครั้งหน้า"
           }
         }
       }
