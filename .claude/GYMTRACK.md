@@ -526,7 +526,7 @@ App Store: phase-level releases
 ✅ Sprint 5 — Settings                                complete
 ✅ Sprint 5p — Phase 1 Polish (trial feedback)        complete
 ✅ Sprint 6 — Next Best Session v1 / Smart Comeback   complete — manual smoke pending
-⏳ Sprint 6.1 — Post-Launch Feature Wave              mostly designed, ready to build
+✅ Sprint 6.1 — Post-Launch Feature Wave              4 of 5 implemented — manual smoke pending; Substitute not yet approved
 ⏳ Sprint 7 — Onboarding + Templates + i18n           next up after 6.1 (no spec.md yet)
 ```
 
@@ -605,7 +605,7 @@ Hands-on feedback after trying the current logger, implemented during S05p. Veri
 
 ---
 
-### Sprint 6.1 — Post-Launch Feature Wave ⏳ MOSTLY DESIGNED
+### Sprint 6.1 — Post-Launch Feature Wave ✅ 4 OF 5 IMPLEMENTED — manual smoke pending
 
 **Effort:** Medium-Complex (combined)
 
@@ -619,37 +619,42 @@ within this sprint should still respect that: RPE + Skip a Day first (no
 dependencies), then Training Phase before Overload Advisor (dependency-ordered),
 then Substitute once it's actually approved.
 
---- 1. RPE UX SIMPLIFICATION — DESIGNED ---
+Implementation plan: .claude/sprints/S06.1-post-launch-feature-wave/plan.md
+(18 tasks, executed via subagent-driven-development directly on main, 2026-07-24).
+
+--- 1. RPE UX SIMPLIFICATION — IMPLEMENTED ---
 Spec: docs/superpowers/specs/2026-07-22-rpe-ux-simplification-design.md (approved)
-Plan: docs/superpowers/plans/2026-07-23-rpe-ux-simplification.md (written, not yet executed)
 
-☐ Replace the raw 1.0-10.0 RPE menu (SetRowView + SessionDetailView's edit-set form)
+✓ Replaced the raw 1.0-10.0 RPE menu (SetRowView + SessionDetailView's edit-set form)
   with the existing Easy/Just right/Hard scale, reusing HowDidThatFeel
-☐ Remove comeback mode's now-redundant end-of-exercise feedback sheet
+✓ Removed comeback mode's now-redundant end-of-exercise feedback sheet
   (HowDidThatFeelPicker, WorkoutSessionViewModel.applyFeedback)
-☐ HowDidThatFeel.nearest(to:) bucketing helper for legacy/restored RPE values
-☐ Localization: workout.set.feel.* keys replace workout.set.rpe* / workout.comeback.feel.*
+✓ HowDidThatFeel.nearest(to:) bucketing helper for legacy/restored RPE values
+✓ Localization: workout.set.feel.* keys replace workout.set.rpe* / workout.comeback.feel.*
 
---- 2. SKIP A DAY — DESIGNED ---
+--- 2. SKIP A DAY — IMPLEMENTED ---
 Spec: docs/superpowers/specs/2026-07-23-skip-a-day-design.md (approved)
 
-☐ "Change day" button on Today next to the Start CTA
-☐ Menu lists activeProgram.days excluding the currently-recommended day
-☐ WorkoutSessionScreen gets the picked day's id; same TodayRecommendation passed
+✓ "Change day" button on Today next to the Start CTA
+✓ Menu lists activeProgram.days excluding the currently-recommended day
+✓ WorkoutSessionScreen gets the picked day's id; same TodayRecommendation passed
   through unchanged (comeback adjustments are already program-wide)
-☐ Hidden when the active program has only one day
+✓ Hidden when the active program has only one day
+✓ selectedDay resets via .onChange(of: nextDay?.id) — added during review after the
+  fresh eyes caught that TodayView is a permanent tab root (never recreated), so the
+  override would otherwise have outlived "this session only"
 
---- 3. TRAINING PHASE SETTING — DESIGNED (foundational, ship before #4) ---
+--- 3. TRAINING PHASE SETTING — IMPLEMENTED ---
 Spec: docs/superpowers/specs/2026-07-23-training-phase-setting-design.md (approved)
 
-☐ Wire up the existing but completely unused Model/Enums/TrainingPhase.swift
-  (bulk/cut/maintain)
-☐ Add Profile.trainingPhase (nilable) + Supabase migration — needs explicit approval
-  at implementation time per the Data Safety and Approval rule
-☐ Settings row, mirroring the existing weight-unit toggle pattern exactly
-☐ Renamed for users: Building muscle / Losing weight / Maintaining
+✓ Wired up the previously unused Model/Enums/TrainingPhase.swift (bulk/cut/maintain)
+✓ Added Profile.trainingPhase (nilable) + Supabase migration — applied to the live
+  gymbros project after explicit user approval
+  (supabase/migrations/2026-07-24_profiles_training_phase.sql)
+✓ Settings row, mirroring the existing weight-unit toggle pattern exactly
+✓ User-facing copy: Building muscle / Losing weight / Maintaining
 
---- 4. PROGRESSIVE OVERLOAD ADVISOR — DESIGNED (depends on #3) ---
+--- 4. PROGRESSIVE OVERLOAD ADVISOR — IMPLEMENTED ---
 Spec: docs/superpowers/specs/2026-07-23-progressive-overload-advisor-design.md (approved)
 
 Supersedes the "StallDetector + tests" line item that used to sit under Sprint 7
@@ -658,17 +663,20 @@ DeloadAdvisor stays a separate, still-unplanned Sprint 7 item; see the design's
 Non-goals for why the two signals are kept apart (comfortable-plateau vs.
 grinding-near-failure are different problems).
 
-☐ StallDetector: same top-set weight across 4 consecutive sessions, no session over
+✓ StallDetector: same top-set weight across 4 consecutive sessions, no session over
   RPE 8.0 (reuses the boundedExitSessionCount=4 and ProgressiveOverloadEngine's own
   8.0 "hold" ceiling conventions for consistency)
-☐ OverloadAdvisorCardView on Today (normal mode only — never alongside the comeback
+✓ OverloadAdvisorCardView on Today (normal mode only — never alongside the comeback
   card; one exercise at a time, scoped to today's recommended day only)
-☐ Suppressed entirely when trainingPhase is cut or maintain — a deliberate manual
+✓ Suppressed entirely when trainingPhase is cut or maintain — a deliberate manual
   escape hatch, not diet detection (the app has no nutrition tracking)
-☐ "Try it next time" writes ProgramExercise.targetWeight (+2.5kg) — reuses the
+✓ "Try it next time" writes ProgramExercise.targetWeight (+2.5kg) — reuses the
   existing pre-fill mechanism, no new plumbing
-☐ "Not now" snoozes that exercise's prompt for 14 days (local UserDefaults only,
+✓ "Not now" snoozes that exercise's prompt for 14 days (local UserDefaults only,
   mirrors RestTimerNotificationScheduler's storage style)
+✓ TodayViewModel now also fetches sets on normal days (bounded to
+  StallDetector.sessionThreshold = 4), reintroducing a small, deliberate fetch-cost
+  tradeoff that Sprint 6's D6 budget had avoided
 
 --- 5. SUBSTITUTE (Mid-Workout Exercise Swap) — NOT YET APPROVED ---
 Spec: not written yet. The design below was presented for approval during the
@@ -1181,7 +1189,7 @@ Running/cardio:
 | 5 | Settings | ✅ | — | Complete |
 | 5p | Phase 1 Polish (trial feedback) | ✅ | — | Complete |
 | 6 | Next Best Session v1 / Smart Comeback | ✅ | — | Complete — pending manual smoke test |
-| 6.1 | Post-Launch Feature Wave (RPE, Skip Day, Training Phase, Overload Advisor, Substitute) | ☐ | — | 4 of 5 designed 2026-07-23; Substitute not yet approved |
+| 6.1 | Post-Launch Feature Wave (RPE, Skip Day, Training Phase, Overload Advisor, Substitute) | ⏳ | 3d204cc | 4 of 5 implemented 2026-07-24, manual smoke pending; Substitute not yet approved |
 | 7 | Onboarding + Templates + i18n | ☐ | — | App Store polish foundation |
 | 8 | App Store Ship | ☐ | — | 1.0 release |
 | 9 | Defer | ☐ | — | Substitute split out to Sprint 6.1 |

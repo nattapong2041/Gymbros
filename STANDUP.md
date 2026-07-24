@@ -4,13 +4,13 @@
 
 ---
 
-**Last updated:** 2026-06-14 | HEAD `606d9d7` (pre-S06 commit — local-first session change pending commit) | Branch `main`
+**Last updated:** 2026-07-24 | HEAD `3d204cc` (Sprint 6.1 — Post-Launch Feature Wave, 4 of 5 features implemented) | Branch `main` (55 commits ahead of `origin/main`, not yet pushed)
 
 ---
 
 ## Where we are
 
-Sprints 1–6 and S05p fully implemented. S06 pending manual smoke + commit. Local-first workout sessions change fully implemented and tested (all tests pass, build succeeds) — pending commit alongside or separately from S06.
+Sprints 1–6 and S05p fully implemented and committed. Local-first workout sessions and S06 were committed together at `e1859b6`. S06 manual smoke is still genuinely pending — requires editing a `workout_sessions.ended_at` in Supabase to simulate a 14+ day gap. Sprint 6.1 (Post-Launch Feature Wave) is now implemented end-to-end for 4 of its 5 features (RPE UX Simplification, Skip a Day, Training Phase Setting, Progressive Overload Advisor) — Substitute remains unapproved and out of scope. Sprint 6.1's own manual smoke is also pending; see "Next up" below.
 
 | Sprint | Name | Status |
 |--------|------|--------|
@@ -19,13 +19,26 @@ Sprints 1–6 and S05p fully implemented. S06 pending manual smoke + commit. Loc
 | S03 | Logger + Timer | complete |
 | S04 | Today + History + Navigation + Anti-Guilt UX | complete |
 | S05 | Settings | complete |
-| **S05p** | **Phase 1 Polish** | **implemented, manual smoke passed** |
-| **S06** | **Next Best Session v1 / Smart Comeback** | **implemented — all tests pass; pending manual smoke + commit** |
-| **local-first** | **Session upload only on Finish** | **implemented — all tests pass; pending commit** |
+| **S05p** | **Phase 1 Polish** | **implemented, manual smoke passed, committed** |
+| **S06** | **Next Best Session v1 / Smart Comeback** | **implemented, committed at `e1859b6` — manual smoke still pending** |
+| **local-first** | **Session upload only on Finish** | **implemented, committed at `e1859b6`** |
+| **S06.1** | **Post-Launch Feature Wave (RPE, Skip Day, Training Phase, Overload Advisor)** | **implemented, committed through `3d204cc` — manual smoke pending; Substitute not yet approved** |
 
 ---
 
 ## Last session did
+
+- Implemented Sprint 6.1 — Post-Launch Feature Wave (4 of 5 features), via subagent-driven-development directly on `main`, 18 tasks, commits `07ceda7`..`3d204cc`:
+  - **RPE UX Simplification** (Tasks 1-6): replaced the raw 1.0-10.0 `SetRowView`/`SessionDetailView` RPE menus with the existing Easy/Just right/Hard scale (`HowDidThatFeel`); added `HowDidThatFeel.nearest(to:)` bucketing for legacy stored values; removed comeback mode's now-redundant `HowDidThatFeelPicker` end-of-exercise sheet and `applyFeedback`/`hasCompletedSets`, since per-set input already captures the same three values everywhere.
+  - **Skip a Day** (Task 7): `TodayView` gained a "Change day" menu next to the Start CTA, listing every other day in the active program; picking a day reuses the same `comebackCard`/`nextWorkoutCard` render functions with a different `ProgramDay`. Review caught that `TodayView` is a permanent tab root (never recreated), so the picked day would have silently outlived "this session only" — fixed with `.onChange(of: nextDay?.id) { selectedDay = nil }`.
+  - **Training Phase Setting** (Tasks 8-11): added `Profile.trainingPhase: TrainingPhase?` (bulk/cut/maintain) with a `profiles.training_phase` migration applied to the live `gymbros` Supabase project after explicit approval; added a Settings row mirroring the weight-unit toggle exactly.
+  - **Progressive Overload Advisor** (Tasks 12-17): new `StallDetector` service (same top-set weight across 4 qualifying sessions, RPE ≤8.0 gate); new local `OverloadAdvisorSnoozeStore` (14-day snooze, `UserDefaults`-backed); new `OverloadAdvisorCardView` on Today (normal mode only, never alongside the comeback card, suppressed when `trainingPhase` is cut/maintain); `TodayViewModel` now also fetches sets on normal days (bounded to 4 sessions) to feed the detector.
+  - **Substitute** (feature 5) intentionally excluded — not yet approved, per the design docs.
+  - Every task went through implementer → reviewer → (fix + re-review if needed); two tasks needed one fix round each (Skip a Day's `selectedDay` reset; one Overload Advisor test's missing isolated fakes).
+  - Verified: full build `** BUILD SUCCEEDED **`, full `GymbrosTests` suite `** TEST SUCCEEDED **`, `jq empty Gymbros/Resources/Localizable.xcstrings` valid, `git diff --check` clean.
+  - Environment note discovered this session: this machine's simulators are `iPhone 17`, `iPhone 17 Pro`, `iPhone 17 Pro Max` — **no `iPhone 17e`**, despite CLAUDE.md/prior plans specifying it. Used `iPhone 17` for every build/test command this session (user-confirmed). `GymbrosUITestsLaunchTests` and the aggregate `xcodebuild test` result occasionally hit a transient "Simulator device failed to launch... Busy" clone-contention flake unrelated to code; always confirmed via individual test-case output and/or a clean retry.
+  - Plan + spec: `.claude/sprints/S06.1-post-launch-feature-wave/{spec.md,plan.md}`.
+  - Next: run the combined manual smoke checklist below, then either pursue Substitute's approval or start Sprint 7.
 
 - Implemented local-first workout sessions (orphaned-row fix):
   - `WorkoutSessionViewModel.start()` no longer calls any repository — session is now built locally as a `WorkoutSession(id: UUID(), ...)` with client-generated id. Added `currentUserId: @MainActor () -> UUID?` injection (defaults to `AuthService.shared.currentUser?.id`).
@@ -294,20 +307,24 @@ Sprints 1–6 and S05p fully implemented. S06 pending manual smoke + commit. Loc
 
 ## Next up
 
-**Local-first session change** — all tests pass, build passes. Commit this change (can bundle with S06 commit or separately).
+**Local-first sessions, S06, and Sprint 6.1 (4 of 5 features) are all implemented and committed.** Two manual smoke tests remain — note that Sprint 6.1's `HowDidThatFeelPicker` removal means step 4 of the S06 checklist below (the sheet appearing) **no longer applies**; per-set Easy/Just right/Hard input now replaces it in every mode, and the ramp decision should be verified from those per-set picks directly.
 
-**Sprint S06 — Next Best Session v1 / Smart Comeback** is implemented. All automated checks pass. Commit + manual smoke test next.
-
-Manual smoke test (requires editing a `workout_sessions.ended_at` in Supabase to be ≥14 days ago for the active user):
+**S06 manual smoke test** (requires editing a `workout_sessions.ended_at` in Supabase to be ≥14 days ago for the active user):
 1. Today screen shows `ComebackCardView` with bilingual greeting and reason line (e.g. "ขาดไป 15 วัน / 15 days since last session").
 2. Starting a workout from the comeback card uses adjusted weights (×0.9 for 14–20 day gap) and −1 set.
 3. Within workout, the "Easing Back" badge appears above the set list on exercises where baseline data is available.
-4. Finishing the last set of an exercise shows the `HowDidThatFeelPicker` sheet (Easy / Just Right / Hard / Skip).
-5. Submitting feedback backfills RPE on completed sets; skip/dismiss proceeds without RPE change.
-6. After reaching baseline weight × reps, a double haptic fires and does not repeat in the same session.
-7. Overload hint ("Try X kg next time") appears on exercises in normal mode when ≥2 sessions in last 60 days with RPE ≤7.0.
+4. ~~Finishing the last set of an exercise shows the `HowDidThatFeelPicker` sheet~~ — **removed by Sprint 6.1**; instead, confirm per-set Easy/Just right/Hard picks drive the next comeback ramp decision directly (no separate end-of-exercise sheet, no clobbering).
+5. After reaching baseline weight × reps, a double haptic fires and does not repeat in the same session.
+6. Overload hint ("Try X kg next time") appears on exercises in normal mode when ≥2 sessions in last 60 days with RPE ≤7.0.
 
-Then commit S06 when manual smoke passes.
+**Sprint 6.1 manual smoke test** (run in one sitting so the four features are confirmed to coexist — see `.claude/sprints/S06.1-post-launch-feature-wave/plan.md` Task 18 for the full per-feature breakdown):
+1. RPE: log a set with each of Easy/Just right/Hard/Clear in a normal session and in History's edit-set form; confirm no raw numbers anywhere.
+2. Skip a Day: on a 2+ day program, confirm "Change day" lists every day but the recommended one; pick one, Start, confirm it opens that day; finish it; confirm the *next* recommendation follows the day actually completed (requires a manual pull-to-refresh on Today — it does not auto-refresh after returning from a finished workout, a pre-existing app behavior, not a Sprint 6.1 regression).
+3. Training Phase: change it in Settings, relaunch, confirm it persisted.
+4. Progressive Overload Advisor: log the same weight for an exercise across 4 sessions at RPE ≤8.0; confirm the card appears on Today (normal mode only, never with the comeback card); set training phase to "Losing weight," confirm it disappears; "Not now" hides it for 14 days; "Try it next time" bumps the program exercise's target weight by 2.5kg and clears the card.
+5. Run in both Thai and English device locales; verify all new copy from all four features.
+
+After both smoke tests pass, update `.claude/GYMTRACK.md` §9 Sprint Tracking rows 6 and 6.1 to `✅`, mark this section done here, and either pursue Substitute's approval (Sprint 6.1's 5th, unapproved item) or start **Sprint 7 — Onboarding + Templates + i18n + Brain Polish** (no spec written yet; see `.claude/GYMTRACK.md` §9).
 
 ---
 
@@ -323,13 +340,15 @@ Then commit S06 when manual smoke passes.
 - [ ] Add/update S05p in GYMTRACK.md §9 Sprint Tracking table.
 - [ ] After S05p manual smoke passes, update GYMTRACK.md §9 Phase 1 Trial Feedback Polish Backlog items from ☐ to ✓.
 - [x] Confirm `Gymbros.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved` is present after follow-up verification.
+- [ ] `CLAUDE.md` still says the available simulator is `iPhone 17e`; this machine only has `iPhone 17` / `iPhone 17 Pro` / `iPhone 17 Pro Max`. Confirm which is correct going forward (may be a per-machine difference) and update `CLAUDE.md` if `iPhone 17e` is genuinely gone.
+- [ ] Sprint 6.1: pursue Substitute's approval (outline discussed 2026-07-23, not yet confirmed) or explicitly defer it past this sprint.
 
 ---
 
 ## How to resume
 
 1. Read this file.
-2. Read `.claude/sprints/S05p-phase1-polish/plan.md` for implemented scope and manual smoke list.
-3. Run the S05p manual smoke test on a Dynamic Island-capable device/simulator.
-4. Confirm `Package.resolved` remains present before commit.
+2. Read `.claude/sprints/S06.1-post-launch-feature-wave/plan.md` Task 18 for the full manual smoke breakdown, and run both the S06 and Sprint 6.1 smoke checklists above.
+3. Confirm `Package.resolved` remains present before commit.
+4. Decide on Substitute (Sprint 6.1's unapproved 5th item) or move to Sprint 7.
 5. Update GYMTRACK.md and this file before ending the next session.
