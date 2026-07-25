@@ -5,12 +5,14 @@ struct TodayView: View {
     @Binding var deepLinkedWorkoutRoute: WorkoutLaunchRoute?
     let date: Date
     let onShowPrograms: () -> Void
+    let onShowSettings: () -> Void
     private let loadsOnAppear: Bool
 
     @Environment(AppPreferences.self) private var appPreferences
     @State private var selectedWorkoutRoute: WorkoutLaunchRoute?
     @State private var didLogComebackCardShown = false
     @State private var selectedDay: ProgramDay?
+    private let coachMessageService = CoachMessageService()
 
     @MainActor
     init(
@@ -18,13 +20,15 @@ struct TodayView: View {
         deepLinkedWorkoutRoute: Binding<WorkoutLaunchRoute?> = .constant(nil),
         date: Date = .now,
         loadsOnAppear: Bool = true,
-        onShowPrograms: @escaping () -> Void = {}
+        onShowPrograms: @escaping () -> Void = {},
+        onShowSettings: @escaping () -> Void = {}
     ) {
         self._viewModel = State(initialValue: viewModel ?? TodayViewModel())
         self._deepLinkedWorkoutRoute = deepLinkedWorkoutRoute
         self.date = date
         self.loadsOnAppear = loadsOnAppear
         self.onShowPrograms = onShowPrograms
+        self.onShowSettings = onShowSettings
     }
 
     var body: some View {
@@ -40,6 +44,20 @@ struct TodayView: View {
                     initialProgramExerciseId: route.programExerciseId,
                     recommendation: viewModel.state.value?.recommendation ?? .normalDefault
                 )
+            }
+            // In normal mode the day picker is the card's day name itself, so it needs no
+            // toolbar slot. The comeback card never shows a day name (it leads with the
+            // welcome-back message), leaving nothing to attach the menu to -- so that one
+            // mode keeps the toolbar item rather than losing day-switching entirely.
+            .toolbar {
+                if let data = viewModel.state.value,
+                   data.recommendation.mode.isComeback,
+                   let program = data.activeProgram,
+                   let nextDay = data.nextDay {
+                    ToolbarItem(placement: .topBarTrailing) {
+                        changeDayMenu(days: program.days, currentDay: selectedDay ?? nextDay)
+                    }
+                }
             }
             .task {
                 guard loadsOnAppear else { return }
@@ -77,27 +95,27 @@ struct TodayView: View {
     private func successState(_ data: TodayData) -> some View {
         if data.activeProgram == nil || data.nextDay == nil {
             noProgramState
-        } else {
+        } else if let nextDay = data.nextDay {
+            let displayedDay = selectedDay ?? nextDay
             ScrollView {
-                VStack(alignment: .leading, spacing: 20) {
-                    brandHeader
+                VStack(alignment: .leading, spacing: 16) {
+                    brandHeader(data: data)
 
-                    if data.isWelcomeBack, let nextDay = data.nextDay {
-                        welcomeBackBanner(dayName: (selectedDay ?? nextDay).name)
-                    }
+                    // Sits with the header block, above the cards: it's status ("where am
+                    // I this week?"), which belongs next to the date rather than below the
+                    // call to action. Deliberately chrome-less and compact -- a full card
+                    // here would push the advisor card back off the bottom of the screen.
+                    WeekActivityStripView(
+                        completedDates: data.recentSessions.map(\.startedAt),
+                        today: date
+                    )
 
-                    if let nextDay = data.nextDay {
-                        let displayedDay = selectedDay ?? nextDay
-                        if let program = data.activeProgram {
-                            changeDayMenu(days: program.days, currentDay: displayedDay)
-                        }
-                        if data.recommendation.mode.isComeback {
-                            comebackCard(data: data, nextDay: displayedDay)
-                        } else {
-                            nextWorkoutCard(data: data, nextDay: displayedDay)
-                            if let stalled = data.stalledExercise {
-                                overloadAdvisorCard(stalled)
-                            }
+                    if data.recommendation.mode.isComeback {
+                        comebackCard(data: data, nextDay: displayedDay)
+                    } else {
+                        nextWorkoutCard(data: data, nextDay: displayedDay)
+                        if let stalled = data.stalledExercise {
+                            overloadAdvisorCard(stalled)
                         }
                     }
                 }
@@ -108,11 +126,55 @@ struct TodayView: View {
         }
     }
 
-    /// Brand hero header: greeting line + the big date, sitting directly on the
-    /// ambient wash (no card) -- the mockup's "Hey / Just show up. / 08.04" block.
-    private var brandHeader: some View {
-        VStack(alignment: .leading, spacing: 14) {
+    /// Brand hero header: greeting line + the date, sitting directly on the ambient
+    /// wash (no card). The welcome-back message replaces the greeting line rather than
+    /// adding a separate banner below it -- they occupy the same register, and folding
+    /// one into the other is what makes the worst-case screen (welcome-back + card +
+    /// advisor card) fit without scrolling.
+    private func brandHeader(data: TodayData) -> some View {
+        VStack(alignment: .leading, spacing: 12) {
             HStack(spacing: 12) {
+                avatarButton(profileName: data.profileName)
+
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(greetingText(profileName: data.profileName))
+                        .font(.headline)
+                        .foregroundStyle(.primary)
+
+                    // The slot the static tagline used to occupy -- now a line that
+                    // actually reacts to where the user is. See CoachMessageService.
+                    Text(coachMessageText(for: data))
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(2)
+                        .multilineTextAlignment(.leading)
+                }
+
+                Spacer(minLength: 0)
+            }
+
+            HStack(alignment: .firstTextBaseline, spacing: 8) {
+                Text(brandDateText)
+                    .font(.system(size: 34, weight: .bold, design: .rounded))
+                    .foregroundStyle(.primary)
+                    .monospacedDigit()
+
+                Text(date, format: .dateTime.weekday(.wide))
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(.secondary)
+            }
+            .dynamicTypeSize(...DynamicTypeSize.accessibility1)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    /// The gradient avatar is a real control, not decoration: it's circular, 44pt and in
+    /// the top-left, so it reads as a tappable avatar -- it should behave like one rather
+    /// than swallow the tap. Shows the profile's initial when there is a name, and a
+    /// person glyph when there isn't.
+    private func avatarButton(profileName: String?) -> some View {
+        Button(action: onShowSettings) {
+            ZStack {
                 Circle()
                     .fill(
                         LinearGradient(
@@ -121,46 +183,82 @@ struct TodayView: View {
                             endPoint: .bottomTrailing
                         )
                     )
-                    .frame(width: 44, height: 44)
-                    .accessibilityHidden(true)
 
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(greetingKey)
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
-
-                    Text("today.brand.tagline")
-                        .font(.headline)
-                        .foregroundStyle(.primary)
+                if let initial = profileInitial(from: profileName) {
+                    Text(initial)
+                        .font(.system(.title3, design: .rounded).bold())
+                        // Dark-on-gradient: the lime end of this gradient can never sit
+                        // behind white text.
+                        .foregroundStyle(Color.black.opacity(0.82))
+                } else {
+                    Image(systemName: "person.fill")
+                        .font(.body)
+                        .foregroundStyle(Color.black.opacity(0.72))
                 }
-
-                Spacer(minLength: 0)
             }
-
-            VStack(alignment: .leading, spacing: 0) {
-                Text(brandDateText)
-                    .font(.system(size: 46, weight: .bold, design: .rounded))
-                    .foregroundStyle(.primary)
-                    .monospacedDigit()
-
-                Text(date, format: .dateTime.weekday(.wide))
-                    .font(.title3.weight(.semibold))
-                    .foregroundStyle(.secondary)
-            }
-            .dynamicTypeSize(...DynamicTypeSize.accessibility1)
+            .frame(width: 44, height: 44)
+            .contentShape(Circle())
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
+        .buttonStyle(.plain)
+        .accessibilityLabel(Text("accessibility.today.profile"))
+    }
+
+    private func profileInitial(from name: String?) -> String? {
+        guard let first = name?.trimmingCharacters(in: .whitespacesAndNewlines).first else {
+            return nil
+        }
+        return String(first).uppercased()
+    }
+
+    /// The card's day name doubles as the day picker (Calendar-app style): the control
+    /// sits directly on what it changes and costs no extra height. Falls back to plain
+    /// text when there's no other day to switch to, so a one-day program shows no
+    /// affordance that would do nothing.
+    @ViewBuilder
+    private func dayNameMenu(days: [ProgramDay], currentDay: ProgramDay) -> some View {
+        let otherDays = alternateDays(from: days, currentDay: currentDay)
+
+        if otherDays.isEmpty {
+            Text(currentDay.name)
+                .font(.title2.bold())
+                .foregroundStyle(.primary)
+                .lineLimit(2)
+        } else {
+            Menu {
+                ForEach(otherDays) { day in
+                    Button(day.name) { selectedDay = day }
+                }
+            } label: {
+                HStack(spacing: 6) {
+                    Text(currentDay.name)
+                        .font(.title2.bold())
+                        .foregroundStyle(.primary)
+                        .lineLimit(2)
+                        .multilineTextAlignment(.leading)
+
+                    Image(systemName: "chevron.down")
+                        .font(.footnote.weight(.bold))
+                        .foregroundStyle(.secondary)
+                        .accessibilityHidden(true)
+                }
+            }
+            .accessibilityLabel(Text("accessibility.today.change_day \(currentDay.name)"))
+        }
+    }
+
+    /// Excludes whatever day is currently displayed (the default recommendation, or a
+    /// previously-picked alternate) so the picked-away-from day is always reachable
+    /// again -- excluding only the original recommendation would permanently remove it
+    /// from this list the moment the user picked something else.
+    private func alternateDays(from days: [ProgramDay], currentDay: ProgramDay) -> [ProgramDay] {
+        days
+            .sorted { $0.dayOrder < $1.dayOrder }
+            .filter { $0.id != currentDay.id }
     }
 
     @ViewBuilder
     private func changeDayMenu(days: [ProgramDay], currentDay: ProgramDay) -> some View {
-        // Excludes whatever day is currently displayed (the default recommendation, or a
-        // previously-picked alternate) so the picked-away-from day is always reachable
-        // again -- excluding only the original recommendation would permanently remove it
-        // from this list the moment the user picked something else.
-        let otherDays = days
-            .sorted { $0.dayOrder < $1.dayOrder }
-            .filter { $0.id != currentDay.id }
+        let otherDays = alternateDays(from: days, currentDay: currentDay)
         if otherDays.isEmpty == false {
             Menu {
                 ForEach(otherDays) { day in
@@ -198,22 +296,6 @@ struct TodayView: View {
         }
     }
 
-    private func welcomeBackBanner(dayName: String) -> some View {
-        HStack(alignment: .top, spacing: 12) {
-            Image(systemName: "hand.wave.fill")
-                .foregroundStyle(.secondary)
-                .font(.title3)
-                .accessibilityHidden(true)
-
-            Text("today.welcome_back \(dayName)")
-                .font(.subheadline)
-                .foregroundStyle(.primary)
-                .frame(maxWidth: .infinity, alignment: .leading)
-        }
-        .padding(18)
-        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
-    }
-
     private func comebackCard(data: TodayData, nextDay: ProgramDay) -> some View {
         ComebackCardView(recommendation: data.recommendation) {
             selectedWorkoutRoute = WorkoutLaunchRoute(
@@ -237,10 +319,7 @@ struct TodayView: View {
                         .font(.subheadline.weight(.semibold))
                         .foregroundStyle(.secondary)
 
-                    Text(nextDay.name)
-                        .font(.title2.bold())
-                        .foregroundStyle(.primary)
-                        .lineLimit(2)
+                    dayNameMenu(days: data.activeProgram?.days ?? [], currentDay: nextDay)
                 }
 
                 Spacer(minLength: 12)
@@ -252,11 +331,9 @@ struct TodayView: View {
 
             exercisePreview(for: nextDay)
 
-            if let lastSessionDate = data.lastSessionDate {
-                Text("today.last_workout \(lastSessionDate.relativeString)")
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
-            }
+            // "Last workout N hours ago" used to live here. The week strip above now shows
+            // the same thing visually and more completely, so this was both redundant and
+            // ~36pt of the height that pushed the advisor card off the screen.
 
             Button {
                 selectedWorkoutRoute = WorkoutLaunchRoute(
@@ -300,37 +377,27 @@ struct TodayView: View {
             .accessibilityLabel(Text("accessibility.today.streak \(weeks)"))
     }
 
+    // Collapsed from a per-exercise list to one summary line: the per-exercise rows had
+    // no exercise name (ProgramExercise only carries an id, not a name lookup), so three
+    // near-identical "3 เซ็ต • 7-8 ครั้ง • พัก 150 วิ" rows identified nothing.
     private func exercisePreview(for day: ProgramDay) -> some View {
-        VStack(alignment: .leading, spacing: 10) {
+        HStack(spacing: 8) {
             Text("programDetail.exerciseCount \(day.exercises.count)")
                 .font(.subheadline)
                 .foregroundStyle(.primary)
 
-            ForEach(day.exercises.prefix(3)) { exercise in
-                HStack(spacing: 8) {
-                    Image(systemName: "dumbbell.fill")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                        .accessibilityHidden(true)
+            // verbatim: a bare Text("•") would be extracted as a translatable key.
+            Text(verbatim: "•")
+                .foregroundStyle(.secondary)
 
-                    Text(exerciseSummary(exercise))
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                        .lineLimit(1)
-                }
-            }
+            Text("today.next_workout.set_summary \(totalSets(in: day))")
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
         }
     }
 
-    private func exerciseSummary(_ exercise: ProgramExercise) -> String {
-        let sets = String(format: String(localized: "programExercise.setsFormat"), exercise.targetSets)
-        let reps = String(
-            format: String(localized: "programExercise.repsFormat"),
-            exercise.targetRepsMin,
-            exercise.targetRepsMax
-        )
-        let rest = String(format: String(localized: "programExercise.restFormat"), exercise.targetRestSeconds)
-        return [sets, reps, rest].joined(separator: " • ")
+    private func totalSets(in day: ProgramDay) -> Int {
+        day.exercises.reduce(0) { $0 + $1.targetSets }
     }
 
     /// Day.month, dot-separated (e.g. "08.04") -- the brand header's big date.
@@ -341,7 +408,7 @@ struct TodayView: View {
         return String(format: "%02d.%02d", components.day ?? 1, components.month ?? 1)
     }
 
-    private var greetingKey: LocalizedStringKey {
+    private var greetingKey: String {
         switch Calendar.autoupdatingCurrent.component(.hour, from: date) {
         case 5..<12:
             "today.greeting.morning"
@@ -350,6 +417,39 @@ struct TodayView: View {
         default:
             "today.greeting.evening"
         }
+    }
+
+    /// Greets by name when the profile has one, and falls back to the plain time-of-day
+    /// greeting when it doesn't -- rather than showing an awkward empty slot.
+    ///
+    /// The key is assembled into a `String` *before* it reaches `LocalizationValue`.
+    /// Interpolating directly (`LocalizationValue("\(key).named")`) makes the compiler
+    /// treat the interpolated part as a format argument, so the extracted key collapses
+    /// to a literal "%@.named" and the real key is never looked up.
+    private func greetingText(profileName: String?) -> String {
+        let trimmed = profileName?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        guard trimmed.isEmpty == false else {
+            return String(localized: String.LocalizationValue(greetingKey))
+        }
+        let namedKey = greetingKey + ".named"
+        return String(format: String(localized: String.LocalizationValue(namedKey)), trimmed)
+    }
+
+    private func coachMessageText(for data: TodayData) -> String {
+        let message = coachMessageService.message(
+            for: CoachMessageService.Input(
+                completedSessionDates: data.recentSessions.map(\.startedAt),
+                streakWeeks: data.streakWeeks,
+                isWelcomeBack: data.isWelcomeBack,
+                isComeback: data.recommendation.mode.isComeback,
+                hasStalledExercise: data.stalledExercise != nil
+            ),
+            now: date
+        )
+
+        let template = String(localized: String.LocalizationValue(message.key))
+        guard let count = message.count else { return template }
+        return String(format: template, count)
     }
 }
 
@@ -377,14 +477,51 @@ struct TodayView: View {
     }
 }
 
-#Preview("Has Program With Streak") {
-    NavigationStack {
-        TodayView(viewModel: .hasProgramWithStreak, date: TodayViewModel.afternoon, loadsOnAppear: false)
-    }
-}
-
 #Preview("Welcome Back") {
     NavigationStack {
         TodayView(viewModel: .welcomeBack, date: TodayViewModel.evening, loadsOnAppear: false)
+    }
+}
+
+// ---------------------------------------------------------------------------------
+// Fit checks. These two are the pair to compare: same screen, advisor card absent vs
+// present. Both are wrapped in a real TabView because RootView is the only other place
+// TodayView gets a tab bar from -- inside a bare NavigationStack no tab bar renders and
+// the preview cannot show whether anything is clipped by it.
+//
+// Pass = every widget fully visible above the tab bar, no scrolling, at default
+// Dynamic Type. At accessibility text sizes it will scroll, which is correct.
+// ---------------------------------------------------------------------------------
+
+#Preview("FIT · No Advisor Card") {
+    TabView {
+        NavigationStack {
+            TodayView(viewModel: .hasProgramWithStreak, date: TodayViewModel.afternoon, loadsOnAppear: false)
+        }
+        .tabItem {
+            Label("today.title", systemImage: "house")
+        }
+    }
+}
+
+#Preview("FIT · With Advisor Card") {
+    TabView {
+        NavigationStack {
+            TodayView(viewModel: .stalledWithWelcomeBack, date: TodayViewModel.afternoon, loadsOnAppear: false)
+        }
+        .tabItem {
+            Label("today.title", systemImage: "house")
+        }
+    }
+}
+
+#Preview("Comeback: Change Day Toolbar") {
+    TabView {
+        NavigationStack {
+            TodayView(viewModel: .comeback, date: TodayViewModel.morning, loadsOnAppear: false)
+        }
+        .tabItem {
+            Label("today.title", systemImage: "house")
+        }
     }
 }

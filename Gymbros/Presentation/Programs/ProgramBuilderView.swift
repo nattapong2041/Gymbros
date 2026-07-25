@@ -43,6 +43,7 @@ struct ProgramBuilderView: View {
                                 }
                             }
                         }
+                        .buttonStyle(.borderedProminent)
                         .disabled(!viewModel.canSave)
                     }
                 }

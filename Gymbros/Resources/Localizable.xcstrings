@@ -60,6 +60,22 @@
         }
       }
     },
+    "accessibility.today.change_day %@": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Workout day: %@. Tap to change day."
+          }
+        },
+        "th": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "วันที่จะฝึก: %@ แตะเพื่อเปลี่ยนวัน"
+          }
+        }
+      }
+    },
     "accessibility.today.comeback_card": {
       "localizations": {
         "en": {
@@ -88,6 +104,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "การ์ดแนะนำเพิ่มน้ำหนัก %@"
+          }
+        }
+      }
+    },
+    "accessibility.today.profile": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Profile and settings"
+          }
+        },
+        "th": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "โปรไฟล์และตั้งค่า"
           }
         }
       }
@@ -154,6 +186,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "ต่อเนื่อง %lld สัปดาห์"
+          }
+        }
+      }
+    },
+    "accessibility.today.week_activity": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Trained %1$lld of %2$lld days this week"
+          }
+        },
+        "th": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ออกกำลังกาย %1$lld จาก %2$lld วันในสัปดาห์นี้"
           }
         }
       }
@@ -3097,22 +3145,6 @@
         }
       }
     },
-    "today.brand.tagline": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Just show up."
-          }
-        },
-        "th": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "มาแค่นี้พอ"
-          }
-        }
-      }
-    },
     "today.change_day.button": {
       "localizations": {
         "en": {
@@ -3125,6 +3157,414 @@
           "stringUnit": {
             "state": "translated",
             "value": "เปลี่ยนวัน"
+          }
+        }
+      }
+    },
+    "today.coach.away.0": {
+      "extractionState": "stale",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Good to see you."
+          }
+        },
+        "th": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ดีใจที่ได้เจอกันอีก"
+          }
+        }
+      }
+    },
+    "today.coach.away.1": {
+      "extractionState": "stale",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Been a minute. Let's pick it back up."
+          }
+        },
+        "th": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "หายไปพักนึง กลับมาลุยต่อ"
+          }
+        }
+      }
+    },
+    "today.coach.away.2": {
+      "extractionState": "stale",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Right on time. Let's go."
+          }
+        },
+        "th": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "มาพอดีเลย ไปกันเลย"
+          }
+        }
+      }
+    },
+    "today.coach.comeback.0": {
+      "extractionState": "stale",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Welcome back. We'll ease in."
+          }
+        },
+        "th": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "กลับมาแล้ว ค่อยๆ เริ่มกันใหม่"
+          }
+        }
+      }
+    },
+    "today.coach.comeback.1": {
+      "extractionState": "stale",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Good to have you back. No rush today."
+          }
+        },
+        "th": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ดีใจที่กลับมา วันนี้ไม่ต้องรีบ"
+          }
+        }
+      }
+    },
+    "today.coach.comeback.2": {
+      "extractionState": "stale",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Back at it. We'll take it light."
+          }
+        },
+        "th": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "กลับมาแล้ว วันนี้เอาเบาๆ ก่อน"
+          }
+        }
+      }
+    },
+    "today.coach.on_a_roll.0": {
+      "extractionState": "stale",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld days in this week. Nice."
+          }
+        },
+        "th": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "สัปดาห์นี้มาแล้ว %lld วัน เยี่ยม"
+          }
+        }
+      }
+    },
+    "today.coach.on_a_roll.1": {
+      "extractionState": "stale",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "That's %lld this week. You're rolling."
+          }
+        },
+        "th": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "สัปดาห์นี้ %lld วันแล้ว กำลังมาเลย"
+          }
+        }
+      }
+    },
+    "today.coach.on_a_roll.2": {
+      "extractionState": "stale",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld down this week. Let's add one."
+          }
+        },
+        "th": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "สัปดาห์นี้ได้ %lld วันแล้ว เอาอีกสักวัน"
+          }
+        }
+      }
+    },
+    "today.coach.plateau.0": {
+      "extractionState": "stale",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Feeling strong? Might be the day to add weight."
+          }
+        },
+        "th": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "วันนี้รู้สึกดีไหม ลองเพิ่มน้ำหนักดู"
+          }
+        }
+      }
+    },
+    "today.coach.plateau.1": {
+      "extractionState": "stale",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Same weight for a while now. Fancy pushing it?"
+          }
+        },
+        "th": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "อยู่น้ำหนักเดิมมาพักนึง ลองดันดูไหม"
+          }
+        }
+      }
+    },
+    "today.coach.plateau.2": {
+      "extractionState": "stale",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ready to go a bit heavier today?"
+          }
+        },
+        "th": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "วันนี้ลองหนักขึ้นอีกนิดไหม"
+          }
+        }
+      }
+    },
+    "today.coach.ready.0": {
+      "extractionState": "stale",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Let's do this."
+          }
+        },
+        "th": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ลุยกันเลย"
+          }
+        }
+      }
+    },
+    "today.coach.ready.1": {
+      "extractionState": "stale",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Showing up is the hard part."
+          }
+        },
+        "th": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "แค่มาก็เก่งแล้ว"
+          }
+        }
+      }
+    },
+    "today.coach.ready.2": {
+      "extractionState": "stale",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ready when you are."
+          }
+        },
+        "th": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "พร้อมเมื่อไหร่บอกได้เลย"
+          }
+        }
+      }
+    },
+    "today.coach.streak.0": {
+      "extractionState": "stale",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld weeks strong. Keep it rolling."
+          }
+        },
+        "th": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld สัปดาห์ติดแล้ว ไปต่อเลย"
+          }
+        }
+      }
+    },
+    "today.coach.streak.1": {
+      "extractionState": "stale",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld weeks in a row. That's the hard part done."
+          }
+        },
+        "th": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ต่อเนื่องมา %lld สัปดาห์ ผ่านช่วงยากมาแล้ว"
+          }
+        }
+      }
+    },
+    "today.coach.streak.2": {
+      "extractionState": "stale",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld straight weeks. Don't break it now."
+          }
+        },
+        "th": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld สัปดาห์รวด อย่าเพิ่งหยุดนะ"
+          }
+        }
+      }
+    },
+    "today.coach.trained_today.0": {
+      "extractionState": "stale",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Today's done. Rest up."
+          }
+        },
+        "th": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "วันนี้จบแล้ว พักได้เลย"
+          }
+        }
+      }
+    },
+    "today.coach.trained_today.1": {
+      "extractionState": "stale",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nice work today. Recover well."
+          }
+        },
+        "th": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "วันนี้ทำได้ดี พักผ่อนซะ"
+          }
+        }
+      }
+    },
+    "today.coach.trained_today.2": {
+      "extractionState": "stale",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "That's today handled. Good job."
+          }
+        },
+        "th": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "วันนี้เรียบร้อย เก่งมาก"
+          }
+        }
+      }
+    },
+    "today.coach.trained_yesterday.0": {
+      "extractionState": "stale",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Yesterday was solid. Ready for more?"
+          }
+        },
+        "th": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "เมื่อวานทำได้ดี วันนี้เอาต่อไหม"
+          }
+        }
+      }
+    },
+    "today.coach.trained_yesterday.1": {
+      "extractionState": "stale",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Back-to-back? Respect."
+          }
+        },
+        "th": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ติดกันสองวันเลยเหรอ เก่ง"
+          }
+        }
+      }
+    },
+    "today.coach.trained_yesterday.2": {
+      "extractionState": "stale",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Yesterday counted. Today can too."
+          }
+        },
+        "th": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "เมื่อวานก็นับ วันนี้ก็ได้อีก"
           }
         }
       }
@@ -3289,6 +3729,22 @@
         }
       }
     },
+    "today.greeting.afternoon.named": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Good afternoon, %@"
+          }
+        },
+        "th": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "สวัสดีตอนบ่าย %@"
+          }
+        }
+      }
+    },
     "today.greeting.evening": {
       "localizations": {
         "en": {
@@ -3305,6 +3761,22 @@
         }
       }
     },
+    "today.greeting.evening.named": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Good evening, %@"
+          }
+        },
+        "th": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "สวัสดีตอนเย็น %@"
+          }
+        }
+      }
+    },
     "today.greeting.morning": {
       "localizations": {
         "en": {
@@ -3317,6 +3789,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "อรุณสวัสดิ์"
+          }
+        }
+      }
+    },
+    "today.greeting.morning.named": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Good morning, %@"
+          }
+        },
+        "th": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "อรุณสวัสดิ์ %@"
           }
         }
       }
@@ -3339,6 +3827,7 @@
       }
     },
     "today.last_workout %@": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -3350,6 +3839,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "ออกกำลังกายล่าสุด %@"
+          }
+        }
+      }
+    },
+    "today.next_workout.set_summary %lld": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld sets total"
+          }
+        },
+        "th": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "รวม %lld เซ็ต"
           }
         }
       }
@@ -3499,18 +4004,18 @@
         }
       }
     },
-    "today.welcome_back %@": {
+    "today.week_activity.title": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Welcome back! You'll start with %@ today."
+            "value": "This week"
           }
         },
         "th": {
           "stringUnit": {
             "state": "translated",
-            "value": "ยินดีต้อนรับกลับ! วันนี้เริ่มด้วย %@"
+            "value": "สัปดาห์นี้"
           }
         }
       }
@@ -4087,7 +4592,24 @@
         }
       }
     },
+    "workout.restore.exercises_progress %lld %lld": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$lld of %2$lld exercises finished"
+          }
+        },
+        "th": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ทำเสร็จแล้ว %1$lld จาก %2$lld ท่า"
+          }
+        }
+      }
+    },
     "workout.restore.message": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -4099,6 +4621,38 @@
           "stringUnit": {
             "state": "translated",
             "value": "คุณมีการออกกำลังกายที่ยังไม่เสร็จสิ้น ต้องการทำต่อหรือไม่?"
+          }
+        }
+      }
+    },
+    "workout.restore.sets_progress %lld %lld": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$lld of %2$lld sets logged"
+          }
+        },
+        "th": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "บันทึกแล้ว %1$lld จาก %2$lld เซ็ต"
+          }
+        }
+      }
+    },
+    "workout.restore.started %@": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Started %@"
+          }
+        },
+        "th": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "เริ่มเมื่อ %@"
           }
         }
       }

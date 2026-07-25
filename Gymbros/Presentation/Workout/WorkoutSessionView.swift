@@ -1,11 +1,51 @@
 import SwiftUI
 
+/// Everything the Resume sheet needs to describe an in-progress backup, without handing
+/// the whole `ActiveSessionSnapshot` (and its persistence concerns) down into the view.
+struct RestoreSummary: Identifiable {
+    let id: UUID
+    let dayName: String
+    let completedSets: Int
+    let totalSets: Int
+    let finishedExercises: Int
+    let totalExercises: Int
+    let startedAt: Date
+
+    init(snapshot: ActiveSessionSnapshot) {
+        id = snapshot.session.id
+        dayName = snapshot.day.name
+        completedSets = snapshot.rowStates.filter(\.isCompleted).count
+        totalSets = snapshot.rowStates.count
+        finishedExercises = snapshot.finishedExerciseIds.count
+        totalExercises = snapshot.programExercises.count
+        startedAt = snapshot.session.startedAt
+    }
+
+    init(
+        id: UUID = UUID(),
+        dayName: String,
+        completedSets: Int,
+        totalSets: Int,
+        finishedExercises: Int,
+        totalExercises: Int,
+        startedAt: Date
+    ) {
+        self.id = id
+        self.dayName = dayName
+        self.completedSets = completedSets
+        self.totalSets = totalSets
+        self.finishedExercises = finishedExercises
+        self.totalExercises = totalExercises
+        self.startedAt = startedAt
+    }
+}
+
 struct WorkoutSessionView: View {
     let state: ViewState<WorkoutSessionData>
     var activeTimer: RestTimerState?
     var lastSessionReferences: [UUID: LastSessionReference] = [:]
     var isFinishing: Bool = false
-    var pendingRestore: Bool = false
+    var pendingRestore: RestoreSummary?
     var isComebackMode: Bool = false
     var overloadHints: [UUID: Double] = [:]
     
@@ -29,7 +69,7 @@ struct WorkoutSessionView: View {
     
     var body: some View {
         content
-            .navigationTitle(navigationTitle)
+            .navigationTitle(navigationTitleText)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
@@ -47,11 +87,11 @@ struct WorkoutSessionView: View {
                     }
                 }
             }
-            .sheet(isPresented: Binding(
+            .sheet(item: Binding(
                 get: { pendingRestore },
                 set: { _ in }
-            )) {
-                restoreSheetContent
+            )) { summary in
+                restoreSheetContent(summary)
                     .presentationDetents([.medium])
                     .presentationDragIndicator(.visible)
                     .interactiveDismissDisabled()
@@ -75,7 +115,7 @@ struct WorkoutSessionView: View {
     }
     
     @ViewBuilder
-    private var restoreSheetContent: some View {
+    private func restoreSheetContent(_ summary: RestoreSummary) -> some View {
         VStack(spacing: 24) {
             VStack(spacing: 12) {
                 Image(systemName: "arrow.clockwise.icloud")
@@ -85,24 +125,37 @@ struct WorkoutSessionView: View {
                 Text("workout.restore.title")
                     .font(.headline)
 
-                Text("workout.restore.message")
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
-                    .multilineTextAlignment(.center)
+                Text(verbatim: summary.dayName)
+                    .font(.title3.bold())
+                    .foregroundStyle(.primary)
+
+                VStack(spacing: 4) {
+                    Text("workout.restore.sets_progress \(summary.completedSets) \(summary.totalSets)")
+                    Text("workout.restore.exercises_progress \(summary.finishedExercises) \(summary.totalExercises)")
+                    Text("workout.restore.started \(summary.startedAt.relativeString)")
+                }
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+                .multilineTextAlignment(.center)
             }
 
+            // Frame goes on the LABEL, style outside -- .frame(maxWidth: .infinity)
+            // applied outside .buttonStyle centers an intrinsically-sized button instead
+            // of stretching it, which was the stubby-pill bug here.
             VStack(spacing: 12) {
-                Button("workout.restore.action", action: onRestore)
-                    .font(.headline)
-                    .buttonStyle(.borderedProminent)
-                    .controlSize(.large)
-                    .frame(maxWidth: .infinity)
+                Button(action: onRestore) {
+                    Text("workout.restore.action").frame(maxWidth: .infinity)
+                }
+                .font(.headline)
+                .buttonStyle(.borderedProminent)
+                .controlSize(.large)
 
-                Button("workout.restore.discard", role: .destructive, action: onDiscard)
-                    .font(.headline)
-                    .buttonStyle(.bordered)
-                    .controlSize(.large)
-                    .frame(maxWidth: .infinity)
+                Button(role: .destructive, action: onDiscard) {
+                    Text("workout.restore.discard").frame(maxWidth: .infinity)
+                }
+                .font(.headline)
+                .buttonStyle(.bordered)
+                .controlSize(.large)
             }
         }
         .padding()
@@ -171,11 +224,14 @@ struct WorkoutSessionView: View {
         }
     }
     
-    private var navigationTitle: String {
+    // `navigationTitle` needs `Text`, not `String` -- returning a raw String makes
+    // SwiftUI treat "workout.title" as a literal instead of a localization key, which
+    // is why the nav bar used to show the untranslated key verbatim.
+    private var navigationTitleText: Text {
         if case .success(let data) = state {
-            return data.day.name
+            return Text(verbatim: data.day.name)
         }
-        return "workout.title"
+        return Text("workout.title")
     }
     
     private func progressHeader(_ data: WorkoutSessionData) -> some View {
@@ -269,7 +325,14 @@ extension RestTimerState: Identifiable {
     @Previewable @State var index = 0
     WorkoutSessionView(
         state: .loading,
-        pendingRestore: true,
+        pendingRestore: RestoreSummary(
+            dayName: "Upper B",
+            completedSets: 4,
+            totalSets: 18,
+            finishedExercises: 1,
+            totalExercises: 6,
+            startedAt: Date().addingTimeInterval(-25 * 60)
+        ),
         currentExerciseIndex: $index,
         onRetry: {},
         onFinish: {},

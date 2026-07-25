@@ -18,6 +18,7 @@ struct TodayData {
     var rampPreview: [UUID: RampDecision] = [:]
     var trainingPhase: TrainingPhase? = nil
     var stalledExercise: StalledExercise? = nil
+    var profileName: String? = nil
 }
 
 @MainActor
@@ -94,7 +95,8 @@ final class TodayViewModel {
             let now = Date.now
             let sets = await fetchBudgetedSets(for: completed, now: now)
             let recommendation = engine.recommend(program: activeProgram, history: completed, sets: sets, now: now)
-            let trainingPhase = await fetchTrainingPhase()
+            let profile = await fetchProfile()
+            let trainingPhase = profile?.trainingPhase
             let stalledExercise = recommendation.mode.isComeback
                 ? nil
                 : await findStalledExercise(
@@ -122,7 +124,8 @@ final class TodayViewModel {
                 recommendation: recommendation,
                 rampPreview: recommendation.rampPreview,
                 trainingPhase: trainingPhase,
-                stalledExercise: stalledExercise
+                stalledExercise: stalledExercise,
+                profileName: profile?.name
             ))
         } catch {
             let appError = ErrorMapper.map(error, context: .init(operation: "loadToday"))
@@ -160,8 +163,10 @@ final class TodayViewModel {
         return sets
     }
 
-    private func fetchTrainingPhase() async -> TrainingPhase? {
-        (try? await profileRepository.fetchCurrentProfile())?.trainingPhase
+    /// One profile fetch serves both the training phase and the header avatar's initial --
+    /// the avatar deliberately does not add a second round trip.
+    private func fetchProfile() async -> Profile? {
+        try? await profileRepository.fetchCurrentProfile()
     }
 
     private func findStalledExercise(
@@ -265,6 +270,19 @@ extension TodayViewModel {
         preview(.success(.welcomeBack))
     }
 
+    /// Worst-case density check: welcome-back header + next-workout card + Overload
+    /// Advisor card all on screen together. Reachable in practice (train across three
+    /// weeks, then take 8+ days off) but none of the other fixtures exercise it.
+    static var stalledWithWelcomeBack: TodayViewModel {
+        preview(.success(.stalledWithWelcomeBack))
+    }
+
+    /// Comeback-mode fixture so the toolbar change-day menu can be checked against the
+    /// ComebackCardView path without editing workout_sessions.ended_at in Supabase.
+    static var comeback: TodayViewModel {
+        preview(.success(.comeback))
+    }
+
     private static func preview(_ state: ViewState<TodayData>) -> TodayViewModel {
         let vm = TodayViewModel()
         vm.state = state
@@ -291,7 +309,8 @@ extension TodayData {
             recentSessions: [],
             streakWeeks: 0,
             lastSessionDate: nil,
-            isWelcomeBack: true
+            isWelcomeBack: true,
+            profileName: "Nattapong"
         )
     }
 
@@ -302,7 +321,8 @@ extension TodayData {
             recentSessions: [TodayPreviewData.lastSession],
             streakWeeks: 3,
             lastSessionDate: TodayPreviewData.lastSession.startedAt,
-            isWelcomeBack: false
+            isWelcomeBack: false,
+            profileName: "Nattapong"
         )
     }
 
@@ -313,7 +333,39 @@ extension TodayData {
             recentSessions: [TodayPreviewData.olderSession],
             streakWeeks: 0,
             lastSessionDate: TodayPreviewData.olderSession.startedAt,
-            isWelcomeBack: true
+            isWelcomeBack: true,
+            profileName: "Nattapong"
+        )
+    }
+
+    static var stalledWithWelcomeBack: TodayData {
+        TodayData(
+            activeProgram: TodayPreviewData.activeProgram,
+            nextDay: TodayPreviewData.upperDay,
+            recentSessions: [TodayPreviewData.olderSession],
+            streakWeeks: 0,
+            lastSessionDate: TodayPreviewData.olderSession.startedAt,
+            isWelcomeBack: true,
+            stalledExercise: TodayPreviewData.stalledExercise,
+            profileName: "Nattapong"
+        )
+    }
+
+    static var comeback: TodayData {
+        TodayData(
+            activeProgram: TodayPreviewData.activeProgram,
+            nextDay: TodayPreviewData.upperDay,
+            recentSessions: [TodayPreviewData.olderSession],
+            streakWeeks: 0,
+            lastSessionDate: TodayPreviewData.olderSession.startedAt,
+            isWelcomeBack: false,
+            recommendation: TodayRecommendation(
+                mode: .comeback(stage: SmartSessionAdvisor().stage(forDaysSinceLast: 15), adjustments: [:]),
+                programDay: TodayPreviewData.upperDay,
+                reasonKey: "comeback.reason.14_20",
+                gapDays: 15
+            ),
+            profileName: "Nattapong"
         )
     }
 }
@@ -358,6 +410,13 @@ private enum TodayPreviewData {
             endedAt: Date.now.addingTimeInterval(-9 * 24 * 3600 + 2_700),
             notes: nil,
             createdAt: Date.now.addingTimeInterval(-9 * 24 * 3600)
+        )
+    }
+    static var stalledExercise: StalledExercise {
+        StalledExercise(
+            programExercise: ProgramSamples.benchProgramExercise,
+            exerciseName: ProgramSamples.benchPress.name,
+            weight: 60
         )
     }
     private static func accessoryExercise(programDayId: UUID, order: Int, sets: Int, repsMin: Int, repsMax: Int, restSeconds: Int) -> ProgramExercise {

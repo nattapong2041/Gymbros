@@ -26,7 +26,8 @@ struct RootView: View {
                                 get: { deepLinkCoordinator.pendingWorkoutRoute },
                                 set: { deepLinkCoordinator.pendingWorkoutRoute = $0 }
                             ),
-                            onShowPrograms: { selectedTab = 1 }
+                            onShowPrograms: { selectedTab = 1 },
+                            onShowSettings: { selectedTab = 3 }
                         )
                     }
                     .tabItem {

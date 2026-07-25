@@ -71,6 +71,7 @@ struct FeelPickerSheet: View {
                         onConfirm(Double(draftValue))
                         dismiss()
                     }
+                    .buttonStyle(.borderedProminent)
                 }
             }
         }

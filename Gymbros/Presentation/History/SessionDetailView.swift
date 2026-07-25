@@ -173,6 +173,7 @@ private struct EditDurationSheet: View {
                         guard let minutes else { return }
                         Task { await viewModel.updateDuration(minutes: minutes) }
                     }
+                    .buttonStyle(.borderedProminent)
                     .disabled(minutes == nil)
                 }
             }
@@ -270,6 +271,7 @@ private struct EditSetSheet: View {
                         guard let weight = parsedWeight, let reps = parsedReps else { return }
                         Task { await viewModel.updateSet(set, weight: weight, reps: reps, rpe: rpe) }
                     }
+                    .buttonStyle(.borderedProminent)
                     .disabled(parsedWeight == nil || parsedReps == nil)
                 }
             }

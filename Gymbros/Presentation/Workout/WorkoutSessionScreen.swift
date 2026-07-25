@@ -16,7 +16,7 @@ struct WorkoutSessionScreen: View {
             activeTimer: viewModel.activeTimer,
             lastSessionReferences: viewModel.lastSessionReferences,
             isFinishing: viewModel.isFinishing,
-            pendingRestore: viewModel.pendingRestore != nil,
+            pendingRestore: viewModel.pendingRestore.map(RestoreSummary.init),
             isComebackMode: viewModel.isComebackMode,
             overloadHints: viewModel.recommendation.overloadHints,
             currentExerciseIndex: currentExerciseIndex,

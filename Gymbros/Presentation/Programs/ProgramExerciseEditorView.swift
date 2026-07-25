@@ -97,6 +97,7 @@ struct ProgramExerciseEditorView: View {
                         onSave()
                         dismiss()
                     }
+                    .buttonStyle(.borderedProminent)
                     .disabled(form.validate() != nil)
                 }
             }

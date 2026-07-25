@@ -256,6 +256,10 @@ iOS 26's Liquid Glass belongs to the **system chrome** — nav bars, tab bars, t
 
 **If you ever do hand-roll a glass button:** apply the glass *inside* the Button's label plus an explicit `.contentShape(...)`. Wrapping a `Button` in a glass modifier swallows the hit region and makes it untappable. (Better: use `.buttonStyle(.borderedProminent)` and let the system do it.)
 
+**One prominent action per screen.** A screen's single confirming action (a sheet's `.confirmationAction` Save, a form's primary submit) gets `.buttonStyle(.borderedProminent)`; its paired Cancel stays plain — otherwise Save and Cancel render identically and neither reads as the default action. Don't add a colored CTA to a screen with no single primary action (Settings, History, Programs lists correctly use plain rows plus one `.primaryAction` add/start button). An enabled/disabled color distinction driven by view state (e.g. the workout Finish button going accent-vs-secondary based on whether every exercise is done) is a different, deliberate affordance — leave those alone.
+
+**Full-width sheet buttons: frame goes on the label, not the button.** `.frame(maxWidth: .infinity)` applied *outside* `.buttonStyle(...)` centers an intrinsically-sized button instead of stretching it — this produced a stubby pill button and a tiny circular destructive button on the workout Resume sheet. Correct order: `Button { Text("...").frame(maxWidth: .infinity) }.buttonStyle(.borderedProminent)`.
+
 Minimum tap target: **48pt** (sweaty hands).
 
 Custom components: `SetRowView`, `RestTimerRingView`, and the brand-surface helpers in `Core/BrandTheme.swift`.
