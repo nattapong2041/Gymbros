@@ -1,7 +1,7 @@
 # RPE UX Simplification — Design
 
 **Date:** 2026-07-22
-**Status:** Approved, pending implementation plan
+**Status:** Approved. Implementation plan written: `docs/superpowers/plans/2026-07-23-rpe-ux-simplification.md` (not yet executed).
 **Author:** Brainstormed with Claude Code
 
 ## Context

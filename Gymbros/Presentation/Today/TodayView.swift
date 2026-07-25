@@ -30,6 +30,10 @@ struct TodayView: View {
     var body: some View {
         content
             .navigationTitle("today.title")
+            // The brand header carries the screen identity; a large nav title would
+            // duplicate it. Inline keeps the title for accessibility/back-navigation
+            // without a second heading on screen.
+            .navigationBarTitleDisplayMode(.inline)
             .navigationDestination(item: $selectedWorkoutRoute) { route in
                 WorkoutSessionScreen(
                     programDayId: route.programDayId,
@@ -76,11 +80,7 @@ struct TodayView: View {
         } else {
             ScrollView {
                 VStack(alignment: .leading, spacing: 20) {
-                    Text(greetingKey)
-                        .font(.largeTitle.bold())
-                        .foregroundStyle(.primary)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .dynamicTypeSize(...DynamicTypeSize.accessibility2)
+                    brandHeader
 
                     if data.isWelcomeBack, let nextDay = data.nextDay {
                         welcomeBackBanner(dayName: (selectedDay ?? nextDay).name)
@@ -103,7 +103,53 @@ struct TodayView: View {
                 }
                 .padding()
             }
+            .scrollContentBackground(.hidden)
+            .brandHeroWash()
         }
+    }
+
+    /// Brand hero header: greeting line + the big date, sitting directly on the
+    /// ambient wash (no card) -- the mockup's "Hey / Just show up. / 08.04" block.
+    private var brandHeader: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            HStack(spacing: 12) {
+                Circle()
+                    .fill(
+                        LinearGradient(
+                            colors: [.brandSparkLime, .brandHeroViolet],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
+                    )
+                    .frame(width: 44, height: 44)
+                    .accessibilityHidden(true)
+
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(greetingKey)
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+
+                    Text("today.brand.tagline")
+                        .font(.headline)
+                        .foregroundStyle(.primary)
+                }
+
+                Spacer(minLength: 0)
+            }
+
+            VStack(alignment: .leading, spacing: 0) {
+                Text(brandDateText)
+                    .font(.system(size: 46, weight: .bold, design: .rounded))
+                    .foregroundStyle(.primary)
+                    .monospacedDigit()
+
+                Text(date, format: .dateTime.weekday(.wide))
+                    .font(.title3.weight(.semibold))
+                    .foregroundStyle(.secondary)
+            }
+            .dynamicTypeSize(...DynamicTypeSize.accessibility1)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 
     @ViewBuilder
@@ -164,8 +210,8 @@ struct TodayView: View {
                 .foregroundStyle(.primary)
                 .frame(maxWidth: .infinity, alignment: .leading)
         }
-        .padding()
-        .background(.quaternary, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+        .padding(18)
+        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
     }
 
     private func comebackCard(data: TodayData, nextDay: ProgramDay) -> some View {
@@ -220,12 +266,18 @@ struct TodayView: View {
                 )
             } label: {
                 Label("today.start_cta", systemImage: "play.fill")
+                    .font(.headline)
+                    .frame(maxWidth: .infinity)
+                    // Glass must be applied INSIDE the label, and the shape made
+                    // explicit -- wrapping the Button in the glass modifier swallowed
+                    // the hit region and made Start untappable.
             }
             .buttonStyle(.borderedProminent)
+            .controlSize(.large)
             .accessibilityLabel(Text("accessibility.today.start \(nextDay.name)"))
         }
-        .padding()
-        .background(.quaternary, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+        .padding(20)
+        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 22, style: .continuous))
     }
 
     private func overloadAdvisorCard(_ stalled: StalledExercise) -> some View {
@@ -243,20 +295,9 @@ struct TodayView: View {
     }
 
     private func streakBadge(weeks: Int) -> some View {
-        Label {
-            Text("today.streak.weeks \(weeks)")
-                .font(.caption.bold())
-                .lineLimit(1)
-        } icon: {
-            Image(systemName: "checkmark.seal.fill")
-                .accessibilityHidden(true)
-        }
-        .foregroundStyle(.secondary)
-        .padding(.horizontal, 10)
-        .padding(.vertical, 7)
-        .background(.quaternary, in: Capsule())
-        .accessibilityElement(children: .ignore)
-        .accessibilityLabel(Text("accessibility.today.streak \(weeks)"))
+        BrandSparkBadge(systemImage: "bolt.fill", text: "today.streak.weeks \(weeks)")
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel(Text("accessibility.today.streak \(weeks)"))
     }
 
     private func exercisePreview(for day: ProgramDay) -> some View {
@@ -290,6 +331,14 @@ struct TodayView: View {
         )
         let rest = String(format: String(localized: "programExercise.restFormat"), exercise.targetRestSeconds)
         return [sets, reps, rest].joined(separator: " • ")
+    }
+
+    /// Day.month, dot-separated (e.g. "08.04") -- the brand header's big date.
+    /// Uses a fixed numeric format rather than a locale date style so the mark stays
+    /// visually consistent across TH/EN; the weekday below it stays localized.
+    private var brandDateText: String {
+        let components = Calendar.autoupdatingCurrent.dateComponents([.day, .month], from: date)
+        return String(format: "%02d.%02d", components.day ?? 1, components.month ?? 1)
     }
 
     private var greetingKey: LocalizedStringKey {

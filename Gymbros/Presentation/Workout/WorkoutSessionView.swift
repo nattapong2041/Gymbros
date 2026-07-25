@@ -40,7 +40,7 @@ struct WorkoutSessionView: View {
                             } else {
                                 Text("workout.finish")
                                     .fontWeight(.bold)
-                                    .foregroundStyle(canFinishWorkout(data) ? .blue : .secondary)
+                                    .foregroundStyle(canFinishWorkout(data) ? Color.accentColor : Color.secondary)
                             }
                         }
                         .disabled(isFinishing || !canFinishWorkout(data))
@@ -62,7 +62,7 @@ struct WorkoutSessionView: View {
             )) { timerState in
                 ZStack {
                     Color(uiColor: .systemBackground).ignoresSafeArea()
-                    
+
                     RestTimerRingView(
                         state: timerState,
                         onStop: onStopTimer,
@@ -80,17 +80,17 @@ struct WorkoutSessionView: View {
             VStack(spacing: 12) {
                 Image(systemName: "arrow.clockwise.icloud")
                     .font(.system(size: 40))
-                    .foregroundStyle(.blue)
-                
+                    .foregroundStyle(Color.accentColor)
+
                 Text("workout.restore.title")
                     .font(.headline)
-                
+
                 Text("workout.restore.message")
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
                     .multilineTextAlignment(.center)
             }
-            
+
             VStack(spacing: 12) {
                 Button("workout.restore.action", action: onRestore)
                     .font(.headline)
@@ -192,12 +192,15 @@ struct WorkoutSessionView: View {
             Spacer()
             
             let finishedCount = data.exerciseSections.filter { $0.isFinished }.count
+            // Lime spark = progress/achievement, dark text per the brand contrast rule.
             Text(String(format: NSLocalizedString("workout.progress.done", comment: ""), finishedCount))
                 .font(.system(.caption, design: .rounded).bold())
-                .padding(.horizontal, 8)
-                .padding(.vertical, 4)
-                .background(.quaternary, in: Capsule())
-                .foregroundStyle(.blue)
+                .foregroundStyle(Color.black.opacity(0.82))
+                .padding(.horizontal, 10)
+                .padding(.vertical, 5)
+                .background(Color.brandSparkLime, in: Capsule())
+                .contentTransition(.numericText())
+                .animation(.spring(response: 0.35, dampingFraction: 0.8), value: finishedCount)
         }
         .padding()
         .background(Color(uiColor: .secondarySystemGroupedBackground))

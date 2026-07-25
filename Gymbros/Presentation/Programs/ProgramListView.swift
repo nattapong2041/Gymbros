@@ -5,6 +5,13 @@ struct ProgramListView: View {
     @State private var isShowingCreateSheet = false
     @State private var programToDelete: Program?
     @State private var hasLoadedPrograms = false
+    private let loadsOnAppear: Bool
+
+    @MainActor
+    init(viewModel: ProgramListViewModel, loadsOnAppear: Bool = true) {
+        self._viewModel = State(initialValue: viewModel)
+        self.loadsOnAppear = loadsOnAppear
+    }
 
     var body: some View {
         NavigationStack {
@@ -51,11 +58,15 @@ struct ProgramListView: View {
             set: { viewModel.transientError = $0 }
         ))
         .task {
+            guard loadsOnAppear else {
+                hasLoadedPrograms = true
+                return
+            }
             await viewModel.loadPrograms()
             hasLoadedPrograms = true
         }
         .onAppear {
-            guard hasLoadedPrograms else { return }
+            guard loadsOnAppear, hasLoadedPrograms else { return }
             Task { await viewModel.loadPrograms(isRefreshing: true) }
         }
     }
@@ -99,7 +110,7 @@ struct ProgramListView: View {
                                 } label: {
                                     Label("programs.setActive.action", systemImage: "star.fill")
                                 }
-                                .tint(.blue)
+                                .tint(Color.accentColor)
                             }
                         }
                 }
@@ -133,12 +144,14 @@ struct ProgramRow: View {
                     .foregroundStyle(.primary)
 
                 if program.isActive {
+                    // Lime spark = the brand's "this is the live one" signal.
+                    // Dark text on lime, per the brand contrast rule.
                     Text("programs.active.badge")
                         .font(.caption2.bold())
-                        .padding(.horizontal, 6)
-                        .padding(.vertical, 2)
-                        .background(.quaternary, in: Capsule())
-                        .foregroundStyle(.green)
+                        .foregroundStyle(Color.black.opacity(0.82))
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 3)
+                        .background(Color.brandSparkLime, in: Capsule())
                 }
             }
 

@@ -58,7 +58,7 @@ struct SessionDetailView: View {
                                 }
                                 .buttonStyle(.plain)
                             }
-                        } header: {
+                                } header: {
                             Text(group.name)
                         }
                     }

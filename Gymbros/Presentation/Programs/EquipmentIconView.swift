@@ -13,11 +13,11 @@ struct EquipmentIconView: View {
             if let symbolName = equipment?.symbolName {
                 Image(systemName: symbolName)
                     .font(.system(size: size * 0.42, weight: .semibold))
-                    .foregroundStyle(.blue)
+                    .foregroundStyle(Color.accentColor)
             } else if let equipment {
                 Text(equipment.shortTitleKey)
                     .font(.system(size: size * 0.24, weight: .bold))
-                    .foregroundStyle(.blue)
+                    .foregroundStyle(Color.accentColor)
                     .minimumScaleFactor(0.7)
                     .lineLimit(1)
             } else {

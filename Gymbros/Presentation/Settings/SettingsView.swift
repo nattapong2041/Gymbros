@@ -118,6 +118,10 @@ struct SettingsView: View {
                             }
                             .foregroundStyle(.primary)
                         }
+                        // .plain so the row keeps Apple's label color instead of
+                        // picking up the violet button tint -- settings rows and
+                        // policy links stay system-colored.
+                        .buttonStyle(.plain)
                         .frame(minHeight: 48)
 
                         Button {
@@ -151,7 +155,7 @@ struct SettingsView: View {
                         isPresented: $showingDeleteSheet
                     )
                 }
-            }
+                }
         }
         .navigationTitle("settings.title")
         .transientErrorAlert(error: $viewModel.transientError)
@@ -183,7 +187,7 @@ struct PlaceholderSheet: View {
                 Spacer()
                 Image(systemName: "info.circle")
                     .font(.system(size: 60))
-                    .foregroundStyle(.blue)
+                    .foregroundStyle(Color.accentColor)
 
                 Text(title)
                     .font(.title2)

@@ -32,11 +32,17 @@ struct RestTimerRingView: View {
                 Circle()
                     .stroke(.quaternary, lineWidth: 12)
                 
-                // Progress Ring
+                // Progress Ring -- brand gradient: violet winding toward lime as the
+                // rest completes, so "ready" reads as the lime spark moment.
                 Circle()
                     .trim(from: 0, to: progress)
                     .stroke(
-                        Color.blue,
+                        AngularGradient(
+                            colors: [.brandHeroViolet, .brandSparkLime],
+                            center: .center,
+                            startAngle: .degrees(0),
+                            endAngle: .degrees(360)
+                        ),
                         style: StrokeStyle(lineWidth: 12, lineCap: .round)
                     )
                     .rotationEffect(.degrees(-90))

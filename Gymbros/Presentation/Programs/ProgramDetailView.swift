@@ -30,7 +30,7 @@ struct ProgramDetailView: View {
                             } label: {
                                 HStack(spacing: 12) {
                                     Image(systemName: "calendar")
-                                        .foregroundStyle(.blue)
+                                        .foregroundStyle(Color.accentColor)
 
                                     VStack(alignment: .leading, spacing: 2) {
                                         Text(day.name)
@@ -57,7 +57,7 @@ struct ProgramDetailView: View {
                                 } label: {
                                     Label("common.rename", systemImage: "pencil")
                                 }
-                                .tint(.blue)
+                                .tint(Color.accentColor)
                             }
                         }
                         .onMove { source, destination in
@@ -76,7 +76,7 @@ struct ProgramDetailView: View {
                                     Text("programDetail.addDay.action")
                                 }
                                 .font(.subheadline.bold())
-                                .foregroundStyle(.blue)
+                                .foregroundStyle(Color.accentColor)
                             }
                             .buttonStyle(.borderless)
                         }
@@ -174,13 +174,9 @@ struct ProgramDetailView: View {
         Section {
             VStack(alignment: .leading, spacing: 8) {
                 if program.isActive {
-                    HStack {
-                        Image(systemName: "star.fill")
-                            .foregroundStyle(.green)
-                        Text("programs.active.badge")
-                            .font(.subheadline.bold())
-                    }
-                    .padding(.bottom, 4)
+                    // Matches the lime "Active" spark badge on the Programs list.
+                    BrandSparkBadge(systemImage: "star.fill", text: "programs.active.badge")
+                        .padding(.bottom, 4)
                 }
 
                 if let description = program.description, !description.isEmpty {

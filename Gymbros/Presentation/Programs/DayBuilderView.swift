@@ -52,7 +52,7 @@ struct DayBuilderView: View {
                                     Text("dayBuilder.addExercise.action")
                                 }
                                 .font(.subheadline.bold())
-                                .foregroundStyle(.blue)
+                                .foregroundStyle(Color.accentColor)
                             }
                             .buttonStyle(.borderless)
                         }

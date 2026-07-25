@@ -73,7 +73,7 @@ struct WorkoutExercisePageView: View {
                                 Text("workout.set.add")
                             }
                             .font(.system(.subheadline, design: .rounded).bold())
-                            .foregroundStyle(.blue)
+                            .foregroundStyle(Color.accentColor)
                             .frame(maxWidth: .infinity)
                             .frame(height: 48)
                         }
@@ -82,6 +82,11 @@ struct WorkoutExercisePageView: View {
                 }
                 .frame(maxWidth: .infinity)
                 .padding(.horizontal)
+                .padding(.vertical, 8)
+                // Grouped-list surface: the set fields use .secondarySystemBackground,
+                // which is invisible directly on .systemGroupedBackground. A white
+                // section behind them restores contrast (and matches the header).
+                .background(Color(uiColor: .secondarySystemGroupedBackground))
                 .background(
                     GeometryReader { proxy in
                         Color.clear.preference(
@@ -154,10 +159,10 @@ struct WorkoutExercisePageView: View {
                     Text(verbatim: appPreferences.weightUnit.localizedAbbreviation)
                 }
                 .font(.system(.caption, design: .rounded))
-                .padding(.horizontal, 8)
-                .padding(.vertical, 4)
-                .background(.quaternary, in: Capsule())
-                .foregroundStyle(.blue)
+                .foregroundStyle(Color.accentColor)
+                .padding(.horizontal, 10)
+                .padding(.vertical, 5)
+                .background(Color.accentColor.opacity(0.14), in: Capsule())
             }
             
             if let notes = section.programExercise.notes, !notes.isEmpty {
@@ -309,6 +314,7 @@ struct WorkoutExercisePageView: View {
                 Text("workout.exercise.finished")
             }
             .font(.system(.headline, design: .rounded))
+            // .green stays: "done" is a strong universal convention worth keeping.
             .foregroundStyle(.green)
             .padding()
             .frame(maxWidth: .infinity)

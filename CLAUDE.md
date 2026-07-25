@@ -224,14 +224,41 @@ Log raw errors only in debug/developer channels. Logs may include operation cont
 
 ## Design System
 
-The app currently uses SwiftUI system and semantic colors only (e.g. `.systemBackground`, `.secondarySystemBackground`, `.primary`, `.secondary`, `.blue`, `.green`, `.red`, `.orange`, `.purple`). 
+System semantic colors still govern ~90% of the UI (`.systemBackground`, `.secondarySystemBackground`, `.primary`, `.secondary`, `.blue`, `.green`, `.red`, `.orange`). On top of that base is a **two-role brand accent system** (adopted 2026-07-25 — see `GYMTRACK.md` §6 and `docs/superpowers/specs/2026-07-25-brand-identity-design.md`).
 
-**Brand Colors (Future Use):**
-The custom colors `AccentColor` (electric lime) and `GymPurple` (purple) are defined in the asset catalog for future brand identity. However, to ensure rapid MVP delivery and system-wide accessibility/contrast compliance, they must **not** be used in the current UI. Use adaptive system colors instead.
+**Brand colors (two-role, accessibility-codified):**
+- **Violet = workhorse** → `AccentColor` asset (light `#7B5CD6` / dark `#9B7FE8`), the app-wide `.tint()`. Interactive controls, Start button, selected/active states, comeback/milestone moments. Default pairing is violet + **dark text** (~4.7:1).
+- **Lime = spark** → `SparkLime` asset (`#C8FF00`). Gradient wash, highlights, progress fills, PR/success badges — **always with dark text**. **Never** behind white text; **never** as text/small-icon on white (this is the old failure that got lime deferred).
+- **Hero violet** → `GymPurple` asset (`#9B7FE8`), the violet end of the gradient wash.
+- Reference the named assets — no ad-hoc hex literals in code. Do **not** redeclare these generated color symbols in `AppTheme.swift` (invalid redeclaration).
+
+### The rule: Apple provides the glass; we provide the color
+
+iOS 26's Liquid Glass belongs to the **system chrome** — nav bars, tab bars, toolbars, floating controls. Apple's own apps (Mail, Notes, App Store) float that glass over **clean, neutral content**: plain grouped lists and white cards. Do the same.
+
+**Use stock SwiftUI components everywhere.** A plain `List`, `Form`, and `.buttonStyle(.borderedProminent)` already render on-brand, because `AccentColor` is violet — the system tints them for you. Reaching for a custom surface is almost always the wrong move.
+
+**Do NOT** add page-level gradients, custom glass rows, bespoke card chrome, or hand-rolled glass buttons to ordinary screens. (An earlier pass did exactly that across every screen and had to be reverted.)
+
+**Where the brand actually appears** — that's all of it:
+1. `AccentColor` (violet) — the app-wide tint, so every stock control is already on-brand.
+2. `BrandSparkBadge` — the lime capsule for PR / streak / active-program moments.
+3. `brandHeroWash()` — the signature lime→violet wash, **Today screen only**. Not a global texture.
+4. The rest-timer ring's violet→lime gradient — coloring an existing element, not a new one.
+
+`Gymbros/Core/BrandTheme.swift` is deliberately small (a few colors, one badge, one hero wash). If it starts growing, that's the smell that we're fighting the system instead of using it.
+
+**Set inputs stay solid.** In `SetRowView`, the weight/reps `TextField`s and complete checkbox keep solid `Color(.secondarySystemBackground)` fills and 48pt tap targets — tapped mid-set with sweaty hands. Note they need a `.secondarySystemGroupedBackground` section behind them; on a bare `.systemGroupedBackground` page they become invisible (grey-on-grey).
+
+**Text stays system-colored.** Brand color is for surfaces, accents, and badges only. Body text, form labels, settings rows, picker options (ลดน้ำหนัก / เพิ่มน้ำหนัก), and policy links (นโยบายความเป็นส่วนตัว) keep `.primary` / `.secondary` — Apple's text colors are already correct for contrast and dark mode. Do not recolor them. Note: a `Button` inside a `Form` tints its label with the accent even when the label sets `.foregroundStyle(.primary)`; add `.buttonStyle(.plain)` so settings-style rows keep the system label color.
+
+**Semantic colors are never swept.** `.red` (destructive), `.green` (set complete / finished), `.orange` (warning), and the effort-track green→orange ramp all stay — they encode meaning, not brand. Only hardcoded `.blue` on interactive controls was swept to `Color.accentColor`.
+
+**If you ever do hand-roll a glass button:** apply the glass *inside* the Button's label plus an explicit `.contentShape(...)`. Wrapping a `Button` in a glass modifier swallows the hit region and makes it untappable. (Better: use `.buttonStyle(.borderedProminent)` and let the system do it.)
 
 Minimum tap target: **48pt** (sweaty hands).
 
-Custom components (only two): `SetRowView` and `RestTimerRingView`.
+Custom components: `SetRowView`, `RestTimerRingView`, and the brand-surface helpers in `Core/BrandTheme.swift`.
 
 ## Localization
 

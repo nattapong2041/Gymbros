@@ -8,10 +8,10 @@
 
 | Field | Value |
 |---|---|
-| Status | ✅ Sprint complete — all tests pass; pending manual smoke test (user-driven) |
-| Last commit | `606d9d7` (pre-sprint HEAD; commit pending explicit request) |
+| Status | ✅ Sprint complete and committed; pending manual smoke test (user-driven) |
+| Last commit | `e1859b6` (2026-06-20, bundled with local-first sessions) |
 | Known deviations | See "Locked wiring decisions" below (D1–D8) |
-| Next step | Manual smoke test; commit when approved |
+| Next step | Manual smoke test (see STANDUP.md "Next up" for the checklist) |
 
 ## Locked wiring decisions (deltas vs. spec text)
 

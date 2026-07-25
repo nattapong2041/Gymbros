@@ -18,7 +18,13 @@ struct SignInView: View {
             VStack(spacing: 12) {
                 Image(systemName: "dumbbell.fill")
                     .font(.system(size: iconSize))
-                    .foregroundStyle(.blue)
+                    .foregroundStyle(
+                        LinearGradient(
+                            colors: [.brandSparkLime, .brandHeroViolet],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
+                    )
                     .accessibilityHidden(true)
 
                 Text("GymBros")

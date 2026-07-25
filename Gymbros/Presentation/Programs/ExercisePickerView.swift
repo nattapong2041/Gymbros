@@ -123,12 +123,13 @@ struct ExercisePickerView: View {
             .font(.subheadline.weight(.semibold))
             .padding(.horizontal)
             .frame(minHeight: 48) // Mandated 48pt tap target
+            // Active filter reads as violet-tinted; inactive stays neutral.
             .background(
                 selection.wrappedValue == nil
                     ? Color(.tertiarySystemBackground)
-                    : Color(.quaternarySystemFill)
+                    : Color.accentColor.opacity(0.16)
             )
-            .foregroundStyle(selection.wrappedValue == nil ? Color.primary : Color.blue)
+            .foregroundStyle(selection.wrappedValue == nil ? Color.primary : Color.accentColor)
             .clipShape(Capsule())
         }
     }
@@ -166,9 +167,8 @@ struct ExercisePickerRow: View {
 
             Image(systemName: "plus.circle.fill")
                 .font(.title3)
-                .foregroundStyle(.blue)
+                .foregroundStyle(Color.accentColor)
         }
-        .padding(.vertical, 4)
     }
 }
 

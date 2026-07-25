@@ -279,47 +279,89 @@ Do not make one language feel like a footnote.
 
 SwiftUI native design system. No Figma for V1. Paper sketches or quick references for key screens only.
 
-### System Color Strategy
+### Brand Color Strategy (two-role system)
+
+> Full spec: `docs/superpowers/specs/2026-07-25-brand-identity-design.md`.
+> This reverses the earlier "system-colors-only, brand deferred" rule — see the
+> Decision Log (§19). Brand colors are back, but codified so the old lime contrast
+> failure cannot recur.
 
 ```text
-Current whole-app rule:
-  Use SwiftUI system and semantic colors only across the entire app.
+Whole-app rule:
+  System semantic colors still govern ~90% of the UI (text, forms, logger, lists).
+  Two brand accents are layered on top, used surgically:
 
-Allowed:
-  .primary, .secondary
-  .background, systemBackground, secondarySystemBackground
-  Default SwiftUI button/list/form/navigation styling
-  Adaptive system colors only when semantic:
-    .blue   → primary actions when explicit tint is needed
-    .green  → success/completion
-    .orange → warning/recovery
-    .red    → destructive/error
-    .purple → comeback/PR/milestone only when semantic and readable
+Two-role brand accents:
+  Violet = workhorse
+    AccentColor asset -> light #7B5CD6, dark #9B7FE8
+    The SwiftUI .tint(). Interactive controls, Start button, selected/active
+    states, links, comeback/milestone moments.
+    Default pairing is violet + DARK text (~4.7:1, passes AA).
+  Lime = spark
+    SparkLime asset -> #C8FF00
+    Limited energy only: the gradient wash, highlight bars, progress fills,
+    PR/success badges -- ALWAYS with dark text (~#2C3A00).
+  Hero violet
+    GymPurple asset -> #9B7FE8, the violet end of the gradient wash.
+  Ink / anchor
+    system .primary / label -- big bold type, selected pills, nav.
 
-Forbidden in app UI:
-  Color.gymAccent
-  Color.gymPurple
-  Color.gymAccentText
-  Custom named color assets for UI styling
-  Hex literals in code/docs as active implementation guidance
-  Color(red:green:blue:) in code
+Accessibility rules (must not regress):
+  Violet #7B5CD6 (light) + white text        -> OK (system controls)
+  Violet #9B7FE8 + dark text                  -> OK (~4.7:1), the default
+  #9B7FE8 + white text at small sizes         -> large text only, avoid for body
+  Lime #C8FF00 + dark text                    -> OK (~15:1)
+  Lime #C8FF00 + white text                   -> NEVER (the old failure)
+  Lime #C8FF00 as text/small icon on white    -> NEVER (too light)
+
+THE RULE (corrected 2026-07-25): Apple provides the glass; we provide the color.
+  iOS 26 Liquid Glass belongs to the SYSTEM chrome -- nav bars, tab bars,
+  toolbars, floating controls. Apple's own apps float that glass over clean,
+  neutral content: plain grouped lists and white cards. We do the same.
+
+  Use STOCK SwiftUI components everywhere. A plain List, Form, and
+  .buttonStyle(.borderedProminent) already render on-brand, because
+  AccentColor is violet -- the system tints them for us.
+
+  Do NOT add page-level gradients, custom glass rows, bespoke card chrome, or
+  hand-rolled glass buttons to ordinary screens. An earlier pass did exactly
+  that across every screen and had to be reverted.
+
+Where the brand appears -- that's all of it:
+  1. AccentColor (violet) -- the app-wide tint
+  2. BrandSparkBadge -- lime capsule for PR / streak / active program
+  3. brandHeroWash() -- signature lime->violet wash, TODAY SCREEN ONLY
+  4. Rest-timer ring's violet->lime gradient (coloring an existing element)
+
+  Core/BrandTheme.swift is deliberately small. If it grows, that's the smell
+  that we're fighting the system instead of using it.
+
+Set inputs stay solid:
+  SetRowView's weight/reps TextFields and complete checkbox keep solid
+  Color(.secondarySystemBackground) fills and 48pt tap targets -- tapped
+  mid-set with sweaty hands. They need a .secondarySystemGroupedBackground
+  section behind them; on a bare .systemGroupedBackground page they go
+  invisible (grey-on-grey).
+  Real .glassEffect() is iOS 26+; deployment target is iOS 18.4, so a
+  system-material fallback path is always compiled. Applied via
+  View.brandGlassBackground() (Gymbros/Core/BrandTheme.swift), same dual-path as
+  the existing bottom workout pill.
+
+Still forbidden:
+  Hardcoded hex literals in code for UI styling (use the named assets)
+  Lime behind white text, or lime as small text on white (see rules above)
+  Glass/translucency on SetRowView's weight/reps fields or complete checkbox
+  Recoloring body text, form labels, settings rows, picker options
+    (ลดน้ำหนัก / เพิ่มน้ำหนัก), or policy links (นโยบายความเป็นส่วนตัว)
+  Sweeping semantic colors -- .red destructive, .green complete/finished,
+    .orange warning, and the effort-track ramp all stay as-is
 ```
 
-Reason: the initial lime brand color has poor readability on light backgrounds. Apple guidance for SwiftUI Color, HIG Color, and HIG Dark Mode favors dynamic system colors and semantic colors that adapt across appearances. Custom brand colors are deferred for the whole app until they can be redesigned and tested for light mode, dark mode, contrast, accessibility, and Thai/English UI density.
-
-### Deferred Brand Color Direction
-
-```text
-Deferred:
-  Lime / electric accent direction
-  Purple comeback / PR / deload direction
-
-Before reintroducing:
-  Define light + dark variants
-  Verify contrast against system backgrounds
-  Verify button, text, badge, chart, and card use cases
-  Avoid using brand colors for body text unless contrast is proven
-```
+Reason for the reversal: the original lime failed light-mode contrast *when used
+behind text*. The two-role model fixes the root cause — text stays dark, lime is a
+spark with dark text only, violet is the workhorse tuned as a 2-stop ramp — rather than
+banning brand color entirely. Light/dark variants and the AA rules are defined above
+and verified in the spec.
 
 ### Custom Components
 
@@ -527,7 +569,8 @@ App Store: phase-level releases
 ✅ Sprint 5p — Phase 1 Polish (trial feedback)        complete
 ✅ Sprint 6 — Next Best Session v1 / Smart Comeback   complete — manual smoke pending
 ✅ Sprint 6.1 — Post-Launch Feature Wave              5 of 5 implemented — manual smoke pending
-⏳ Sprint 7 — Onboarding + Templates + i18n           next up after 6.1 (no spec.md yet)
+🎨 Sprint 6.5 — Brand Identity                        color/glass foundation landed; symbol/icon/motion pending
+⏳ Sprint 7 — Onboarding + Templates + i18n           after 6.5 (no spec.md yet)
 ```
 
 ---
@@ -746,6 +789,47 @@ Done:
   exercise mid-workout without breaking the session. All five implemented and
   covered by automated tests as of 2026-07-24; manual smoke test across all five
   together is still pending (see STANDUP.md).
+```
+
+---
+
+### Sprint 6.5 — Brand Identity 🎨 FOUNDATION LANDED — symbol/icon/motion pending
+
+**Effort:** Medium
+
+```text
+Spec: docs/superpowers/specs/2026-07-25-brand-identity-design.md (approved 2026-07-25)
+
+Give the app a unique identity without abandoning system-color accessibility.
+Reverses the earlier "brand colors deferred" rule with a codified two-role model
+(see §6 Brand Color Strategy). The app name is a separate, decoupled task — every
+literal candidate is taken on the App Store; an ownable name must be coined and
+vetted. Everything here is name-agnostic except the wordmark.
+
+Soul: "You bring the body. The app brings the brain." Just show up.
+
+--- FOUNDATION — LANDED 2026-07-25 ---
+✓ AccentColor switched from lime to the violet workhorse (light #7B5CD6 / dark
+  #9B7FE8) — now the app-wide tint
+✓ New SparkLime color asset (#C8FF00); GymPurple (#9B7FE8) kept as hero violet
+✓ Gymbros/Core/BrandTheme.swift: View.brandHeroSurface() (lime→transparent→violet
+  gradient wash) + View.brandGlassBackground() (Liquid Glass on iOS 26+, system-
+  material fallback below — deployment target is iOS 18.4)
+✓ Applied brandHeroSurface() to the Today greeting header as the proof surface
+✓ Build verified ** BUILD SUCCEEDED ** on iPhone 17
+
+--- PENDING (Sprint 6.5 build) ---
+☐ Abstract name-agnostic symbol (violet form + lime spark) — icon, launch, empty states
+☐ App icon + launch screen (bold lime+violet; icon is outside UI, no contrast limit)
+☐ Full hero/chrome glass migration: comeback card, PR celebration, tab bar, cards
+☐ Motion + signature moments (today's-session reveal; keep existing haptic language)
+☐ Localized brand voice pass
+☐ Wordmark — deferred until the app name lands
+
+Done (foundation):
+  The app tints violet app-wide, the Today header carries the brand gradient in
+  light + dark, and the reusable glass/gradient helpers exist with a safe iOS<26
+  fallback. Remaining identity work is scoped above.
 ```
 
 ---
@@ -1224,6 +1308,7 @@ Running/cardio:
 | 5p | Phase 1 Polish (trial feedback) | ✅ | — | Complete |
 | 6 | Next Best Session v1 / Smart Comeback | ✅ | — | Complete — pending manual smoke test |
 | 6.1 | Post-Launch Feature Wave (RPE, Skip Day, Training Phase, Overload Advisor, Substitute) | ✅ | (pending commit) | 5 of 5 implemented 2026-07-24, automated tests pass, manual smoke test pending |
+| 6.5 | Brand Identity | 🎨 | — | Two-role lime+violet color system + Liquid Glass foundation landed 2026-07-25; abstract symbol, app icon, wordmark (post-name), full glass migration, and motion pending. Spec: docs/superpowers/specs/2026-07-25-brand-identity-design.md |
 | 7 | Onboarding + Templates + i18n | ☐ | — | App Store polish foundation |
 | 8 | App Store Ship | ☐ | — | 1.0 release |
 | 9 | Defer | ☐ | — | Substitute split out to Sprint 6.1 |
@@ -2007,12 +2092,12 @@ Parallel worktrees:
 | Muscle heatmap | Optional | Core Pro feature | Not differentiated enough |
 | CI/CD | Xcode Cloud | GitHub Actions | Simplest Apple path |
 | Release cadence | Sprint→TestFlight, phase→App Store | Every sprint App Store | Lower review/marketing overhead |
-| Whole-app color policy | SwiftUI system and semantic colors only | Custom lime/purple brand colors in current app UI | Avoid light-mode readability problems; follow adaptive Apple color behavior first |
-| Brand color direction | Deferred lime/purple exploration | Shipping unreadable accent colors | Revisit only after light/dark contrast and UI-role testing |
+| Whole-app color policy | ~~System colors only~~ → **superseded 2026-07-25**: two-role lime+violet brand system over system-color base (§6) | Banning brand color entirely | System colors still govern ~90% of UI; brand accents are codified with AA rules so the old lime failure can't recur |
+| Brand color direction | ~~Deferred lime/purple~~ → **reintroduced 2026-07-25** (lime #C8FF00 spark + violet #9B7FE8 workhorse) | Shipping unreadable accent colors | Root cause (lime behind text) fixed via the two-role model; contrast rules verified in the brand spec |
 | Sprint 3 logger UI | Paged one-exercise-at-a-time + per-exercise finish | Single-scroll sectioned list | Clearer "show next exercise" product flow |
 | Sprint 3 supersets | Free-swipe between unfinished pages | Formal group_id paired pages | Supports superset/alternating workflows without expanding Sprint 3 scope |
 | Sprint 3 default weight | Add nullable program_exercises.target_weight column | Derive only from history | Lets users set a starting weight per exercise; history is a fallback |
-| Custom colors policy | No active custom UI colors anywhere in the app | `gymAccentText`, ad-hoc hex literals, custom named color styling | System colors are the current app-wide contract; brand palette can return later after validation |
+| Custom colors policy | ~~No active custom UI colors~~ → **superseded 2026-07-25**: named brand assets (AccentColor violet, SparkLime, GymPurple) allowed; ad-hoc hex literals still forbidden | Ad-hoc hex literals in code | Brand palette returned via validated named assets; hardcoded hex in code stays banned |
 
 ---
 
@@ -2047,6 +2132,30 @@ Parallel worktrees:
 ---
 
 ## 19. Decision Log
+
+### 2026-07-25 — Brand identity reintroduced (two-role lime+violet), Sprint 6.5
+
+- Reversed the long-standing "system-colors-only, brand colors deferred" rule. The
+  original lime was deferred because it failed light-mode contrast **when used behind
+  text**; the fix is a two-role model that addresses the root cause rather than banning
+  brand color: text stays dark, **lime `#C8FF00` is a spark used only with dark text**,
+  and **violet is the workhorse** tuned as a 2-stop ramp (`AccentColor` light `#7B5CD6`
+  / dark `#9B7FE8`). AA rules are codified in §6 and the spec so the failure can't recur.
+- The chosen colors already existed in the asset catalog (`AccentColor` was `#C8FF00`,
+  `GymPurple` was `#9B7FE8`) — the original deferred palette, rediscovered. `AccentColor`
+  was switched to the violet workhorse; lime moved to a new `SparkLime` asset.
+- **Liquid Glass** adopted as "glass heroes + solid content": glass on chrome/hero
+  surfaces with the brand gradient behind, logger/forms stay solid. iOS floor kept at
+  the real target (**iOS 18.4**, not the 17.0 the docs claimed) with a system-material
+  fallback below iOS 26 — same dual-path as the existing bottom workout pill. No users
+  dropped.
+- **App name decoupled.** Every literal candidate (GymBros, Showup, Just Lift, Nexset)
+  is already taken on the App Store; an ownable name must be coined and separately
+  vetted. All identity work is name-agnostic except the wordmark, which waits for it.
+- Foundation landed this session (color assets, `Gymbros/Core/BrandTheme.swift`,
+  Today-header proof surface, `** BUILD SUCCEEDED **`); symbol, app icon, full glass
+  migration, and motion are the remaining Sprint 6.5 build.
+- Design: `docs/superpowers/specs/2026-07-25-brand-identity-design.md`.
 
 ### 2026-07-24 — Substitute approved and designed, completing Sprint 6.1
 
