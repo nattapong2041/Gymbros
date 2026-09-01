@@ -4,7 +4,38 @@
 
 ---
 
-**Last updated:** 2026-07-25 | HEAD `db0ae8f` + uncommitted Substitute work + uncommitted Sprint 6.5 brand-identity foundation | Branch `main` (69 commits ahead of `origin/main`, not yet pushed)
+**Last updated:** 2026-08-31 | HEAD `ba1ec58` + uncommitted Google Sign-In work (+ earlier uncommitted Substitute / Sprint 6.5 brand work if still pending) | Branch `main`
+
+---
+
+## Google Sign-In — implemented (uncommitted; Google Cloud config DONE, one Supabase toggle left)
+
+Second auth provider alongside Apple. Design spec: `docs/superpowers/specs/2026-08-31-google-sign-in-design.md`. Approved plan: `~/.claude/plans/help-me-plan-the-streamed-corbato.md`.
+
+**Done & verified** — `** TEST SUCCEEDED **` (full suite) on iPhone 17e:
+- SPM: `GoogleSignIn-iOS` added to `project.pbxproj` (resolves to 9.2.0) + `Package.resolved` updated. `xcodebuild` needed `-skipMacroValidation` in this shell; a real Xcode has the macro approved.
+- New: `Core/NonceGenerator.swift` (extracted from `SignInViewModel`), `Model/Enums/AuthProvider.swift`, `Core/LastUsedAuthProviderStore.swift`, `Data/Remote/GoogleCredentialProvider.swift` (`GoogleCredentialProviding` test seam), `Core/Extensions/UIApplication+TopViewController.swift`, `Assets.xcassets/GoogleG.imageset` (vector G, Original rendering).
+- `AuthService`: `signInWithApple(...)` → `signIn(provider:idToken:accessToken:nonce:email:fullName:)`; `syncProfileEmail` → `syncProfile` (also backfills `profiles.name` when null via `.is("name", value: nil)`).
+- `AppError.AuthFailure`: `appleCredentialMissing` → `credentialMissing`, `appleSignInCancelled` → `signInCancelled`; `credentialExchangeFailed` got real localization keys.
+- `SignInViewModel`: `signInWithGoogle()`, `pendingProvider` (per-button progress, both disabled while busy), `isUserCancellation` covers Apple + `GIDSignInError.canceled`, requests Apple `.fullName`, records last-used on success only.
+- `SignInView`: outlined Google button matching the Apple button's 56pt height; "same method" hint; subtle "Last used" caption (plain `.caption2`, not `BrandSparkBadge`).
+- `RootView.onOpenURL`: `GIDSignIn.sharedInstance.handle(url)` first, falls through to `DeepLinkCoordinator`. `AppDelegate`: `GoogleCredentialProvider.configure()` + `restorePreviousSignIn()`.
+- Localization: 8 keys added TH+EN, 2 Apple-named error keys removed.
+- Tests: `NonceGeneratorTests`, `LastUsedAuthProviderStoreTests`, `AuthProviderTests` (new), `SignInViewModelTests` (new — Google success/failure/auth-exchange/cancel/GID-non-cancel/in-flight `pendingProvider`+`.loading`/re-entrancy/raw-vs-hashed nonce; Apple `prepareAppleSignIn` scopes+hashed nonce, Apple cancel→idle, Apple non-cancel→mapped error; `isUserCancellation` positive+negative), `ErrorHandlingTests` (updated). `** TEST SUCCEEDED **` on iPhone 17e 2026-09-01.
+
+**Client IDs wired in (2026-08-31):** iOS `39794716614-37objb4nnf99jrh8ombgod4gps8v6bj3`, Web `39794716614-6qqln4liinrna3fl6rsbujkuoa1ohdm7`. Live in `Core/Constants.swift` + `Info.plist` (`GIDClientID`, `GIDServerClientID`, reversed-ID scheme). `** BUILD SUCCEEDED **` with them.
+
+**Google Cloud console — DONE (2026-09-01, by user):** consent screen, iOS OAuth client, Web OAuth client all configured.
+
+**LAST REMAINING config — Supabase dashboard (user, ~2 min):**
+- Supabase → Auth → Providers → Google → Enable. "Client IDs" field = `39794716614-6qqln4liinrna3fl6rsbujkuoa1ohdm7.apps.googleusercontent.com,39794716614-37objb4nnf99jrh8ombgod4gps8v6bj3.apps.googleusercontent.com` (web first). OAuth Client ID/Secret fields (if required to save) = Web client ID + its secret. **Skip nonce check OFF.**
+- Confirm Web client's Authorized redirect URI in Google Cloud = `https://mkeoidoakzmsgjslihvf.supabase.co/auth/v1/callback`.
+
+**DB verified (2026-09-01):** `private.handle_new_user()` reads `raw_user_meta_data->>'full_name'` → Google users get `profiles.name` free, no schema change.
+
+**`Gymbros/Core/Secrets.swift`** is git-ignored and absent from this checkout — a temp dummy is used for verification and removed after. Restore the real one before building in Xcode.
+
+**Not done:** manual smoke (needs the Supabase toggle live — see spec "Verification"). No commit made (not requested).
 
 ---
 

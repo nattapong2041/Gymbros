@@ -28,7 +28,21 @@
 				<string>gymbros</string>
 			</array>
 		</dict>
+		<dict>
+			<key>CFBundleTypeRole</key>
+			<string>Editor</string>
+			<key>CFBundleURLName</key>
+			<string>com.nattapongsawa.gymbros.googlesignin</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>com.googleusercontent.apps.39794716614-37objb4nnf99jrh8ombgod4gps8v6bj3</string>
+			</array>
+		</dict>
 	</array>
+	<key>GIDClientID</key>
+	<string>39794716614-37objb4nnf99jrh8ombgod4gps8v6bj3.apps.googleusercontent.com</string>
+	<key>GIDServerClientID</key>
+	<string>39794716614-6qqln4liinrna3fl6rsbujkuoa1ohdm7.apps.googleusercontent.com</string>
 	<key>CFBundleVersion</key>
 	<string>$(CURRENT_PROJECT_VERSION)</string>
 	<key>NSSupportsLiveActivities</key>

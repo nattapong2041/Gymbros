@@ -223,7 +223,7 @@ Smart Comeback is the first public proof of this engine.
 | Storage V1 | Supabase + in-memory active session | Simple, fast, already in use |
 | Storage later | SwiftData + Supabase | Only if reliability/watch needs justify it |
 | Cloud | Supabase Postgres | Relational data, SQL queries |
-| Auth | Supabase + Apple Sign-In | One-tap, iOS-native |
+| Auth | Supabase + Apple Sign-In + Google Sign-In | Both via `signInWithIdToken`, nonce-verified |
 | AI V1 | Rule-based Swift | Offline, testable, cheap, explainable |
 | AI V2 | Deferred | Only if user demand/data justify chat-style AI |
 | Payments | StoreKit 2 + RevenueCat | Native subscriptions, regional pricing, entitlement management |

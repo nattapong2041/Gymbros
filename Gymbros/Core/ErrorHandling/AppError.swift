@@ -3,8 +3,10 @@ import Foundation
 enum AuthFailure: Equatable {
     case sessionMissing
     case tokenExpired
-    case appleSignInCancelled
-    case appleCredentialMissing
+    /// User dismissed the provider sheet (Apple or Google). Never shown as an error.
+    case signInCancelled
+    /// Provider returned success but not the ID token / credential we need.
+    case credentialMissing
     case credentialExchangeFailed
 }
 
@@ -51,8 +53,10 @@ enum AppError: Error, Equatable {
         switch self {
         case .auth(.sessionMissing):
             "error.auth.sessionMissing.title"
-        case .auth(.appleCredentialMissing):
-            "error.auth.appleCredentialMissing.title"
+        case .auth(.credentialMissing):
+            "error.auth.credentialMissing.title"
+        case .auth(.credentialExchangeFailed):
+            "error.auth.credentialExchangeFailed.title"
         case .network(.offline):
             "error.network.offline.title"
         case .network(.timeout):
@@ -76,8 +80,10 @@ enum AppError: Error, Equatable {
         switch self {
         case .auth(.sessionMissing):
             "error.auth.sessionMissing.message"
-        case .auth(.appleCredentialMissing):
-            "error.auth.appleCredentialMissing.message"
+        case .auth(.credentialMissing):
+            "error.auth.credentialMissing.message"
+        case .auth(.credentialExchangeFailed):
+            "error.auth.credentialExchangeFailed.message"
         case .network(.offline):
             "error.network.offline.message"
         case .network(.timeout):
@@ -98,6 +104,6 @@ enum AppError: Error, Equatable {
     }
 
     var isVisibleToUser: Bool {
-        self != .cancelled && self != .auth(.appleSignInCancelled)
+        self != .cancelled && self != .auth(.signInCancelled)
     }
 }

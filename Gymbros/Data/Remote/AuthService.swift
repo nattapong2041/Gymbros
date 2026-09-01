@@ -53,12 +53,34 @@ class AuthService {
         }
     }
 
-    func signInWithApple(idToken: String, nonce: String, email: String?) async throws {
+    /// Exchanges a provider ID token for a Supabase session.
+    ///
+    /// - Parameters:
+    ///   - nonce: the **raw** (un-hashed) nonce. Supabase hashes it and compares
+    ///     against the `nonce` claim in the ID token. The provider was handed
+    ///     `NonceGenerator.sha256(nonce)`.
+    ///   - accessToken: required for Google (its ID token carries an `at_hash`
+    ///     claim); nil for Apple.
+    ///   - email / fullName: used only to backfill the profile row; the DB
+    ///     trigger already seeds it from `auth.users`.
+    func signIn(
+        provider: AuthProvider,
+        idToken: String,
+        accessToken: String? = nil,
+        nonce: String,
+        email: String?,
+        fullName: String?
+    ) async throws {
         let session = try await client.auth.signInWithIdToken(
-            credentials: .init(provider: .apple, idToken: idToken, nonce: nonce)
+            credentials: .init(
+                provider: provider.supabaseProvider,
+                idToken: idToken,
+                accessToken: accessToken,
+                nonce: nonce
+            )
         )
         self.currentUser = session.user
-        await syncProfileEmail(user: session.user, appleEmail: email)
+        await syncProfile(user: session.user, fallbackEmail: email, fullName: fullName)
     }
 
     func signOut() async throws {
@@ -69,21 +91,44 @@ class AuthService {
         currentUser = session?.user
     }
 
-    private func syncProfileEmail(user: User, appleEmail: String?) async {
-        let email = user.email ?? appleEmail
-        guard let email, email.isEmpty == false else { return }
+    /// Backfills `profiles.email` (always) and `profiles.name` (only when still
+    /// null, so a user-set name is never clobbered). The `on_auth_user_created`
+    /// trigger already seeds both from `auth.users`; this covers Apple's
+    /// private-relay case and providers whose metadata arrives after the trigger.
+    private func syncProfile(user: User, fallbackEmail: String?, fullName: String?) async {
+        let email = user.email ?? fallbackEmail
 
         do {
-            try await client
-                .from("profiles")
-                .update(["email": email])
-                .eq("id", value: user.id)
-                .execute()
+            if let email, email.isEmpty == false {
+                try await client
+                    .from("profiles")
+                    .update(["email": email])
+                    .eq("id", value: user.id)
+                    .execute()
+            }
+
+            if let fullName, fullName.isEmpty == false {
+                try await client
+                    .from("profiles")
+                    .update(["name": fullName])
+                    .eq("id", value: user.id)
+                    .is("name", value: nil)
+                    .execute()
+            }
         } catch {
             #if DEBUG
-            let appError = ErrorMapper.map(error, context: .init(operation: "syncProfileEmail", table: "profiles"))
-            debugPrint("Profile email sync failed: \(appError)")
+            let appError = ErrorMapper.map(error, context: .init(operation: "syncProfile", table: "profiles"))
+            debugPrint("Profile sync failed: \(appError)")
             #endif
+        }
+    }
+}
+
+private extension AuthProvider {
+    var supabaseProvider: OpenIDConnectCredentials.Provider {
+        switch self {
+        case .apple: .apple
+        case .google: .google
         }
     }
 }

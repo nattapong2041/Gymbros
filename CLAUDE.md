@@ -199,7 +199,7 @@ Log raw errors only in debug/developer channels. Logs may include operation cont
 
 ## Supabase
 
-- Auth: Apple Sign-In only (via `signInWithIdToken`). Profile row is auto-created by a DB trigger on `auth.users` insert — do not create it manually in app code.
+- Auth: Apple Sign-In and Google Sign-In, both via `signInWithIdToken` (`AuthService.signIn(provider:…)`). Google uses the `GoogleSignIn-iOS` SDK for the native account sheet. Nonce verification stays **on** for both — the provider is handed `NonceGenerator.sha256(rawNonce)`, Supabase is handed the raw nonce; do **not** enable "Skip nonce check" in the dashboard. Google's OAuth iOS + Web client IDs are public identifiers (`AppConstants.GoogleSignIn`, `Info.plist`); only the Web client *secret* is a real secret and it lives solely in the Supabase dashboard. Profile row is auto-created by a DB trigger on `auth.users` insert — do not create it manually in app code.
 - One active program per user is enforced by a DB trigger — app code just sets `is_active = true`.
 - All dates use ISO 8601 encoding.
 - Supabase URL and anon key live in `Core/Constants.swift` under `AppConstants.Supabase`. In Sprint 1 these are hardcoded; use xcconfig for production.

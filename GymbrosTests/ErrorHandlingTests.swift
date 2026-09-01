@@ -70,6 +70,19 @@ struct ErrorHandlingTests {
         #expect(AuthService.shouldClearCurrentUser(afterSessionLoadFailure: AuthError.sessionMissing))
     }
 
+    @Test("Auth failure cases expose dedicated localization keys")
+    func authFailuresExposeDedicatedKeys() {
+        #expect(AppError.auth(.credentialMissing).titleKey == "error.auth.credentialMissing.title")
+        #expect(AppError.auth(.credentialMissing).messageKey == "error.auth.credentialMissing.message")
+        #expect(AppError.auth(.credentialExchangeFailed).messageKey == "error.auth.credentialExchangeFailed.message")
+    }
+
+    @Test("Cancelled sign-in is never shown to the user")
+    func cancelledSignInIsHidden() {
+        #expect(AppError.auth(.signInCancelled).isVisibleToUser == false)
+        #expect(AppError.cancelled.isVisibleToUser == false)
+    }
+
     @Test("AppError exposes localization keys without raw messages")
     func appErrorExposesLocalizationKeysWithoutRawMessages() {
         let error = AppError.unknown(debugID: "secret-debug-id")

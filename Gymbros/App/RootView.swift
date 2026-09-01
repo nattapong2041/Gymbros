@@ -1,3 +1,4 @@
+import GoogleSignIn
 import SwiftUI
 
 struct RootView: View {
@@ -112,6 +113,9 @@ struct RootView: View {
             refreshActiveWorkoutWidget()
         }
         .onOpenURL { url in
+            // Google's OAuth callback comes back on our reversed-client-ID scheme.
+            // Let GoogleSignIn claim it first; fall through to app deep links.
+            guard GIDSignIn.sharedInstance.handle(url) == false else { return }
             deepLinkCoordinator.handle(url)
         }
         .confirmationDialog(
